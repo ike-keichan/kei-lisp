@@ -12,8 +12,12 @@ shims
 treeshake
 sourcemap
 
+# テスト
+vitest
+
 # ドキュメント・Lint
 jsdoc
+tsconfig
 
 # npm パッケージ
 readline

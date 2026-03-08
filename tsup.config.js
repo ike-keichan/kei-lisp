@@ -12,6 +12,7 @@ export default defineConfig([
     sourcemap: true,
     treeshake: true,
     shims: true,
+    dts: true,
   },
   // CLI エントリ
   {

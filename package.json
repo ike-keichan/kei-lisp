@@ -4,10 +4,14 @@
   "description": "A Lisp interpreter implemented in JavaScript",
   "author": "Keisuke Ikeda",
   "license": "MIT",
+  "type": "module",
   "keywords": [
     "lisp",
     "interpreter",
-    "javascript"
+    "javascript",
+    "repl",
+    "functional-programming",
+    "cli"
   ],
   "repository": {
     "type": "git",
@@ -16,12 +20,19 @@
   "main": "./dist/index.js",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
+  "types": "./dist/index.d.ts",
   "bin": {
-    "kei-lisp": "./dist/cli.js"
+    "kei-lisp": "./dist/cli.cjs"
   },
   "files": [
     "dist/"
@@ -30,21 +41,22 @@
     "prepare": "pnpm build",
     "prepublishOnly": "pnpm check && pnpm test",
     "build": "tsup",
-    "start": "node dist/cli.js",
-    "dev": "pnpm build && node dist/cli.js",
-    "test": "node dist/cli.js",
+    "start": "node dist/cli.cjs",
+    "dev": "pnpm build && node dist/cli.cjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf ./dist && find . -name \".DS_Store\" -delete",
     "wipe": "pnpm clean && rm -rf ./node_modules",
     "check": "run-s check:*",
     "check:format": "prettier \"./src/**/*.js\" --check",
-    "check:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" --check",
+    "check:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" \"./.github/**/*.yml\" --check",
     "check:lint": "eslint \"./src/**/*.js\"",
     "check:lint-config": "eslint ./*.{js,mjs}",
     "check:spell": "cspell \"./src/**/*.js\"",
-    "check:spell-config": "cspell \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\"",
+    "check:spell-config": "cspell \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" \"./.github/**/*.yml\"",
     "fix": "run-s fix:*",
     "fix:format": "prettier \"./src/**/*.js\" --write",
-    "fix:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" --write",
+    "fix:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" \"./.github/**/*.yml\" --write",
     "fix:lint": "eslint \"./src/**/*.js\" --fix",
     "fix:lint-config": "eslint ./*.{js,mjs} --fix",
     "doc": "jsdoc src/*.js && open -a \"/Applications/Google Chrome.app\" out/index.html"
@@ -62,9 +74,11 @@
     "npm-run-all": "^4.1.5",
     "prettier": "^3.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=24.0.0"
-  }
+  },
+  "packageManager": "pnpm@10.30.3"
 }

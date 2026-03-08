@@ -16,3 +16,6 @@ allq
 # インタープリタ内部
 PEEKCOUNT
 nexts
+
+# サンプルコード
+tasu

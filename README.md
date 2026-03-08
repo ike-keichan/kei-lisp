@@ -1,89 +1,70 @@
-# KeiLisp
+# kei-lisp
 
-（this document fix： 2020/12/4 create: 2020/11/5）
+[![npm version](https://img.shields.io/npm/v/kei-lisp.svg)](https://www.npmjs.com/package/kei-lisp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 
-## Status
+A Lisp interpreter implemented in JavaScript.
 
-Creation Period：2020.7~<br>
-Version： 1.0 (2020/12/1)
+## Installation
 
-## About program
+### CLI
 
-Hello! I am developing it as a graduation research project of "Special Research on Computer Science and Engineering IIA/IIB" in Department of Computer Science and Engineering, Kyoto Sangyo University.
-
-This is an interpreter that mimics Lisp.
-I hope this will be the beginning of your encounter with Lisp and functional programming.
-This program is intended to be run in the CLI.
-A program that can be run in a web browser is [here](https://github.com/ike-keichan/KeiLisp-onWeb).
-
-As of December 1, 2020, version 1.0 is complete.
-
-## Execution environment
-
-### OS
-
-```
-$ sw_vers
-ProductName:	Mac OS X
-ProductVersion:	10.15.7
-BuildVersion:	19H2
+```sh
+npm install -g kei-lisp
 ```
 
-### NVM
+### Library
 
-```
-$ nvm --version
-0.35.3
-```
-
-### Node.js
-
-```
-$ node --version
-v12.18.3
+```sh
+npm install kei-lisp
 ```
 
-If the OS and Node.js versions match, the following software will be installed automatically when you setup your environment.
+## Usage
 
-### Node module
+### CLI
 
+Start the interactive REPL:
+
+```sh
+kei-lisp
 ```
-$ npm list --depth=0
-KeiLisp@1.0.0 ~/KeiLisp
-├── @babel/core@7.12.9
-├── @babel/plugin-proposal-class-properties@7.12.1
-├── @babel/preset-env@7.12.7
-├── babel-loader@8.2.2
-├── expose-gc@1.0.0
-├── ramda@0.27.1
-├── readline@1.3.0
-├── webpack@4.44.2
-└── webpack-cli@3.3.12
 
+Options:
+
+```sh
+kei-lisp --version  # Show version
+kei-lisp --help     # Show help
 ```
+
+### Library
+
+```js
+// ESM
+import { LispInterpreter } from 'kei-lisp';
+
+// CommonJS
+const { LispInterpreter } = require('kei-lisp');
+
+const interpreter = new LispInterpreter();
+interpreter.run();
+```
+
+Available exports:
+
+| Export              | Description                |
+| ------------------- | -------------------------- |
+| `LispInterpreter`   | Main interpreter class     |
+| `Cons`              | Cons cell (pair) data type |
+| `InterpretedSymbol` | Lisp symbol data type      |
 
 ## Reference
 
-- [Atom](./README_Atom.md)
-- [Cons](./README_Cons.md)
-- [Function](./README_Function.md)
+- [Atom](./docs/README_Atom.md)
+- [Cons](./docs/README_Cons.md)
+- [Function](./docs/README_Function.md)
 
-## Quick start
-
-### Install
-
-```
-$ git clone https://github.com/ike-keichan/KeiLisp.git
-```
-
-### Setup & Launch
-
-```
-$ cd ./KeiLisp
-$ make test
-```
-
-## Example
+## Examples
 
 ### example1
 
@@ -159,7 +140,7 @@ nil
 1
 ```
 
-### example 5
+### example5
 
 ```
 >> (defun tasu (a b) (+ a b))
@@ -168,30 +149,38 @@ tasu
 15
 ```
 
----
+## Development
 
-## Others
+### Requirements
 
-### Clean
+- [nodenv](https://github.com/nodenv/nodenv) (Node.js version management)
+- Node.js >= 24.0.0 (see `.node-version`)
+- [pnpm](https://pnpm.io/)
 
-```
-$ make clean
-```
+### Setup
 
-### Wipe
-
-```
-$ make wipe
-```
-
-### Lint
-
-```
-$ make lint
+```sh
+git clone https://github.com/ike-keichan/kei-lisp.git
+cd kei-lisp
+pnpm install
+pnpm dev
 ```
 
-### JSDoc
+### Scripts
 
-```
-$ make doc
-```
+| Command           | Description                           |
+| ----------------- | ------------------------------------- |
+| `pnpm build`      | Build for distribution                |
+| `pnpm dev`        | Build and run                         |
+| `pnpm start`      | Run built CLI                         |
+| `pnpm test`       | Run tests                             |
+| `pnpm test:watch` | Run tests in watch mode               |
+| `pnpm check`      | Run all checks (format/lint/spell)    |
+| `pnpm fix`        | Auto-fix format and lint issues       |
+| `pnpm clean`      | Remove build artifacts                |
+| `pnpm wipe`       | Remove build artifacts + node_modules |
+| `pnpm doc`        | Generate JSDoc                        |
+
+## License
+
+[MIT](./LICENSE)
