@@ -1,6 +1,4 @@
 .vscode
 .DS_Store
 node_modules
-Example.js
-package-lock.json
-package.json
+dist/
