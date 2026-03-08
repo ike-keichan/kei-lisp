@@ -1,104 +1,107 @@
 # KeiLisp
+
 （this document fix： 2020/1/2 create: 2020/11/27）
 
 ## Function
+
 In this interpreter the following functions are defined.
 
-+ [abs](#abs)
-+ [add](#add)
-+ [and](#and)
-+ [apply](#apply)
-+ [append](#append)
-+ [assoc](#assoc)
-+ [atom](#atom)
-+ [bind](#bind)
-+ [butlast](#butlast)
-+ [car](#car)
-+ [cdr](#cdr)
-+ [characterp](#characterp)
-+ [cond](#cond)
-+ [cons](#cons)
-+ [consp](#consp)
-+ [copy](#copy)
-+ [cos](#cos)
-+ [defun](#defun)
-+ [divide](#divide)
-+ [do](#do)
-+ [do*](#do-1)
-+ [dolist](#dolist)
-+ [doublep](#doublep)
-+ [eq](#eq)
-+ [equal](#equal)
-+ [eval](#eval)
-+ [exit](#exit)
-+ [exp](#exp)
-+ [floatp](#floatp)
-+ [format](#format)
-+ [gc](#gc)
-+ [gensym](#gensym)
-+ [if](#if)
-+ [integerp](#integerp)
-+ [lambda](#lambda)
-+ [let](#let)
-+ [let*](#let-1)
-+ [last](#last)
-+ [length](#length)
-+ [listp](#listp)
-+ [mapcar](#mapcar)
-+ [member](#member)
-+ [memq](#memq)
-+ [mod](#mod)
-+ [multipy](#multiply)
-+ [napier](#napier)
-+ [neq](#neq)
-+ [nequal](#nequal)
-+ [not](#not)
-+ [notrace](#notrace)
-+ [nth](#nth)
-+ [nthcdr](#nthcdr)
-+ [null](#null)
-+ [numberp](#numberp)
-+ [or](#or)
-+ [pi](#pi)
-+ [pop](#pop)
-+ [progn](#progn)
-+ [princ](#princ)
-+ [print](#print)
-+ [push](#push)
-+ [quote](#quote)
-+ [random](#random)
-+ [reverse](#reverse)
-+ [round](#round)
-+ [rplaca](#rplaca)
-+ [rplacd](#rplacd)
-+ [setq](#setq)
-+ [set-allq](#set-allq)
-+ [sin](#sin)
-+ [sqrt](#sqrt)
-+ [subtract](#subtract)
-+ [stringp](#stringp)
-+ [symbolp](#symbolp)
-+ [tasn](#tan)
-+ [terpri](#terpri)
-+ [time](#time)
-+ [trace](#trace)
-+ [unless](#unless)
-+ [when](#when)
-+ [+](#)
-+ [-](#-)
-+ [*](#-1)
-+ [/](#-2)
-+ [//](#-3)
-+ [=](#-4)
-+ [==](#-5)
-+ [~=](#-6)
-+ [~~](#-7)
-+ [<](#-8)
-+ [<=](#-9)
-+ [>](#-10)
-+ [>=](#-11)
+- [abs](#abs)
+- [add](#add)
+- [and](#and)
+- [apply](#apply)
+- [append](#append)
+- [assoc](#assoc)
+- [atom](#atom)
+- [bind](#bind)
+- [butlast](#butlast)
+- [car](#car)
+- [cdr](#cdr)
+- [characterp](#characterp)
+- [cond](#cond)
+- [cons](#cons)
+- [consp](#consp)
+- [copy](#copy)
+- [cos](#cos)
+- [defun](#defun)
+- [divide](#divide)
+- [do](#do)
+- [do\*](#do-1)
+- [dolist](#dolist)
+- [doublep](#doublep)
+- [eq](#eq)
+- [equal](#equal)
+- [eval](#eval)
+- [exit](#exit)
+- [exp](#exp)
+- [floatp](#floatp)
+- [format](#format)
+- [gc](#gc)
+- [gensym](#gensym)
+- [if](#if)
+- [integerp](#integerp)
+- [lambda](#lambda)
+- [let](#let)
+- [let\*](#let-1)
+- [last](#last)
+- [length](#length)
+- [listp](#listp)
+- [mapcar](#mapcar)
+- [member](#member)
+- [memq](#memq)
+- [mod](#mod)
+- [multipy](#multiply)
+- [napier](#napier)
+- [neq](#neq)
+- [nequal](#nequal)
+- [not](#not)
+- [notrace](#notrace)
+- [nth](#nth)
+- [nthcdr](#nthcdr)
+- [null](#null)
+- [numberp](#numberp)
+- [or](#or)
+- [pi](#pi)
+- [pop](#pop)
+- [progn](#progn)
+- [princ](#princ)
+- [print](#print)
+- [push](#push)
+- [quote](#quote)
+- [random](#random)
+- [reverse](#reverse)
+- [round](#round)
+- [rplaca](#rplaca)
+- [rplacd](#rplacd)
+- [setq](#setq)
+- [set-allq](#set-allq)
+- [sin](#sin)
+- [sqrt](#sqrt)
+- [subtract](#subtract)
+- [stringp](#stringp)
+- [symbolp](#symbolp)
+- [tasn](#tan)
+- [terpri](#terpri)
+- [time](#time)
+- [trace](#trace)
+- [unless](#unless)
+- [when](#when)
+- [+](#)
+- [-](#-)
+- [\*](#-1)
+- [/](#-2)
+- [//](#-3)
+- [=](#-4)
+- [==](#-5)
+- [~=](#-6)
+- [~~](#-7)
+- [<](#-8)
+- [<=](#-9)
+- [>](#-10)
+- [>=](#-11)
 
 ### abs
+
 **(abs X)**
 Function to answer the absolute value of X.
 
@@ -108,6 +111,7 @@ Function to answer the absolute value of X.
 ```
 
 ### add
+
 **(add X1 X2 ... Xn)**
 Function to answer the sum of X1, X2 ... and Xn.
 
@@ -119,6 +123,7 @@ Function to answer the sum of X1, X2 ... and Xn.
 ```
 
 ### and
+
 **(and X1 X2 ... Xn)**
 Function to answer the logical product of X1, X2 ... and Xn.
 
@@ -138,6 +143,7 @@ nil
 ```
 
 ### append
+
 **(append L1 L2)**
 Functions to answer the combined list of L1 and L2.
 
@@ -147,6 +153,7 @@ Functions to answer the combined list of L1 and L2.
 ```
 
 ### apply
+
 **(apply X L)**
 Function to answer the result of applying X to L.
 
@@ -156,6 +163,7 @@ Function to answer the result of applying X to L.
 ```
 
 ### assoc
+
 **(assoc X L)**
 Find the pairs with the key specified by X from the L association list
 
@@ -169,6 +177,7 @@ Find the pairs with the key specified by X from the L association list
 ```
 
 ### atom
+
 **(atom X)**
 Function to answer whether X is an Atom.
 
@@ -190,6 +199,7 @@ t
 ```
 
 ### bind
+
 **(bind X)**
 Functions to answer the number of values bound to the X Symbol.
 
@@ -206,6 +216,7 @@ nil
 ```
 
 ### butlast
+
 **(butlast L X)**
 Functions to answer the list with the X values removed from the end of L.
 
@@ -215,6 +226,7 @@ Functions to answer the list with the X values removed from the end of L.
 ```
 
 ### car
+
 **(car L)**
 Function to answer the value of the head from L.
 
@@ -226,6 +238,7 @@ a
 ```
 
 ### cdr
+
 **(cdr L)**
 Function to answer the value of the tail from L.
 
@@ -237,6 +250,7 @@ Function to answer the value of the tail from L.
 ```
 
 ### characterp
+
 **(characterp X)**
 Function to answer whether X is a Character.
 
@@ -256,6 +270,7 @@ nil
 ```
 
 ### cond
+
 **(cond (X1 Y11 Y12 ... Y1n) ... (Xn Yn1 Yn2 ... Ynn))**
 Function to answer Yn1, Yn2 ... and Ynn satisfy the Xn condition.
 
@@ -270,6 +285,7 @@ Function to answer Yn1, Yn2 ... and Ynn satisfy the Xn condition.
 ```
 
 ### cons
+
 **(cons X Y)**
 Function to answer the X and Y pairs.
 
@@ -283,6 +299,7 @@ Function to answer the X and Y pairs.
 ```
 
 ### consp
+
 **(consp X)**
 Function to answer whether X is a Cons.
 
@@ -302,6 +319,7 @@ nil
 ```
 
 ### copy
+
 **(copy X)**
 Function to answer a copy of X.
 
@@ -317,6 +335,7 @@ nil
 ```
 
 ### cos
+
 **(cos X)**
 Function to answer an cos of X.
 Due to the limited accuracy of PI, there will be a slight error.
@@ -331,6 +350,7 @@ Due to the limited accuracy of PI, there will be a slight error.
 ```
 
 ### defun
+
 **(defun N L X1 X2 ... Xn)**
 Function defining function with N as the function name, L as the argument, and X1, X2 ... and Xn as the process.
 
@@ -342,6 +362,7 @@ tasu
 ```
 
 ### divide
+
 **(divide X1 X2 ... Xn)**
 Function to answer the quotient of X1 divided by X2 ... and Xn.
 
@@ -353,6 +374,7 @@ Function to answer the quotient of X1 divided by X2 ... and Xn.
 ```
 
 ### do
+
 **(do L X1 X2 ... Xn)**
 List L is a list of temporary variables, functions to do X in parallel.
 
@@ -363,8 +385,9 @@ List L is a list of temporary variables, functions to do X in parallel.
 45
 ```
 
-### do*
-<br>**(do* L X1 X2 ... Xn)**
+### do\*
+
+<br>**(do\* L X1 X2 ... Xn)**
 List L is a list of temporary variables, functions to do X in sequence.
 
 ```
@@ -374,6 +397,7 @@ List L is a list of temporary variables, functions to do X in sequence.
 ```
 
 ### dolist
+
 **(dolist L X1 X2 ... Xn)**
 Functions to do X in order for the elements of the list L
 
@@ -387,6 +411,7 @@ t
 ```
 
 ### doublep
+
 **(doublep X)**
 Function to answer whether X is a Double.
 
@@ -420,6 +445,7 @@ nil
 ```
 
 ### eval
+
 **(eval X)**
 Function to answer the result of applying X to L.
 
@@ -429,6 +455,7 @@ Function to answer the result of applying X to L.
 ```
 
 ### eq
+
 **(eq X Y)**
 Function that answers whether X and Y are equal or not.
 
@@ -450,6 +477,7 @@ nil
 ```
 
 ### equal
+
 **(equal X Y)**
 Function that answers whether X and Y are equal or not.
 
@@ -471,6 +499,7 @@ t
 ```
 
 ### exit
+
 **(exit)**
 Function to exit the Lisp interpreter.<br>
 This function is KeiLisp only. This is no support with KeiLisp-onWeb.
@@ -481,6 +510,7 @@ Bye!
 ```
 
 ### exp
+
 **(exp X)**
 Function to answer the X power of e.
 
@@ -492,6 +522,7 @@ Function to answer the X power of e.
 ```
 
 ### floatp
+
 **(floatp X)**
 Function to answer whether X is a Float.
 
@@ -525,12 +556,12 @@ nil
 ```
 
 ### format
+
 **(format L X1 X2 ... Xn)**
 Function to format the output contents.<br>
 Write the content to be formatted output after "~".
 "%" represents a line break. Any other single character represents a value bound to a symbol.
 Symbol-bound values can be specified by filling in as the argument X after L.
-
 
 ```
 >> (setq a 10)
@@ -543,6 +574,7 @@ nil
 ```
 
 ### gc
+
 **(gc)**
 Functions to operate the garbage collection.<br>
 This function is KeiLisp only. This is no support with KeiLisp-onWeb.
@@ -553,6 +585,7 @@ t
 ```
 
 ### gensym
+
 **(gensym)**
 Function to answer the new symbol.
 
@@ -564,6 +597,7 @@ id1
 ```
 
 ### if
+
 **(if X Y Z)**
 Functions to do Y when X is t and to do Z when X is nil.
 
@@ -579,6 +613,7 @@ Functions to do Y when X is t and to do Z when X is nil.
 ```
 
 ### integerp
+
 **(integerp X)**
 Function to answer whether X is an Integer.
 
@@ -612,6 +647,7 @@ nil
 ```
 
 ### lambda
+
 **(lambda L X1 X2 ... Xn)**
 Function to generate the lambda expression with L as the argument, and X1, X2 ... and Xn as the process.
 
@@ -623,6 +659,7 @@ Function to generate the lambda expression with L as the argument, and X1, X2 ..
 ```
 
 ### last
+
 **(last L)**
 Functions to answer the last element of the list L.
 
@@ -636,6 +673,7 @@ Functions to answer the last element of the list L.
 ```
 
 ### length
+
 **(length L)**
 Function to answer the length of the list L.
 
@@ -649,6 +687,7 @@ Function to answer the length of the list L.
 ```
 
 ### let
+
 **(let L X1 X2 ... Xn)**
 Explicitly create a new environment. List L is a list of temporary variables, functions to do Y in parallel.
 
@@ -663,8 +702,9 @@ Explicitly create a new environment. List L is a list of temporary variables, fu
 nil
 ```
 
-### let*  
-<br>**(let* L X1 X2 ... Xn)**
+### let\*
+
+<br>**(let\* L X1 X2 ... Xn)**
 Explicitly create a new environment. List L is a list of temporary variables, functions to do Y in sequence.
 
 ```
@@ -679,6 +719,7 @@ nil
 ```
 
 ### list
+
 **(list X1 X2 ... Xn)**
 Functions to make a list of X1, X2 ... and Xn.
 
@@ -690,6 +731,7 @@ Functions to make a list of X1, X2 ... and Xn.
 ```
 
 ### listp
+
 **(listp X)**
 Function to answer whether X is a List.
 
@@ -709,17 +751,19 @@ nil
 ```
 
 ### mapcar
+
 **(mapcar X L)**
 Functions to apply X to the elements of list L in sequence.
 
 ```
->> (mapcar list '(a b c))  
+>> (mapcar list '(a b c))
 ((a) (b) (c))
 >>  (mapcar (lambda (a) (* a 10)) '(1 2 3))
 (10 20 30)
 ```
 
 ### member
+
 **(member X L)**
 Functions to answer the list of subsequent elements when the list L contains X.
 
@@ -733,6 +777,7 @@ nil
 ```
 
 ### memq
+
 **(memq X L)**
 Functions to answer whether or not X is an element of list L.
 
@@ -746,17 +791,19 @@ nil
 ```
 
 ### mod
+
 **(mod X1 X2 ... Xn)**
 Function to answer the excess of X1 divide by X2 ... and Xn.
 
 ```
 >> (mod 1000 3)
 1
->> (mod 100 43 8)   
+>> (mod 100 43 8)
 6
 ```
 
 ### multiply
+
 **(multiply X1 X2 ... Xn)**
 Function to answer the product of X1 and X2 ... and Xn.
 
@@ -768,6 +815,7 @@ Function to answer the product of X1 and X2 ... and Xn.
 ```
 
 ### napier
+
 **(napier)**
 Function to answer the Napier number
 
@@ -777,6 +825,7 @@ Function to answer the Napier number
 ```
 
 ### neq
+
 **(neq X Y)**
 Function that answers whether X and Y are not equal or not.
 
@@ -798,6 +847,7 @@ t
 ```
 
 ### nequal
+
 **(nequal X Y)**
 Function that answers whether X and Y are not equal or not.
 
@@ -819,6 +869,7 @@ nil
 ```
 
 ### not
+
 **(not X)**
 Function to answer the logical negation of X.
 
@@ -834,6 +885,7 @@ t
 ```
 
 ### notrace
+
 **(notrace)**
 Function to no output the calculation process.<br>
 You can turn on the output with "[trace](#trace)".
@@ -844,6 +896,7 @@ t
 ```
 
 ### nth
+
 **(nth X L)**
 Function to answer the X-th element of the list L.
 
@@ -857,6 +910,7 @@ b
 ```
 
 ### nthcdr
+
 **(nthcdr X L)**
 Function to answer the X-th element of tail of the list L.
 
@@ -870,6 +924,7 @@ Function to answer the X-th element of tail of the list L.
 ```
 
 ### null
+
 **(null X)**
 Function to answer whether X is a Nil.
 
@@ -889,6 +944,7 @@ nil
 ```
 
 ### numberp
+
 **(numberp X)**
 Function to answer whether X is a Number.
 
@@ -914,6 +970,7 @@ nil
 ```
 
 ### or
+
 **(or X1 X2 ... Xn)**
 Function to answer the logical sums of X1, X2 ... and Xn.
 
@@ -933,6 +990,7 @@ nil
 ```
 
 ### pi
+
 **(pi)**
 Function to answer Pi.
 
@@ -942,6 +1000,7 @@ Function to answer Pi.
 ```
 
 ### pop
+
 **(pop L)**
 Function to pop to Symbol-bound list L.
 
@@ -959,7 +1018,8 @@ nil
 ```
 
 ### progn
-**(progn X1	X2 ... Xn)**
+
+**(progn X1 X2 ... Xn)**
 Function to run X1, X2 ... and Xn in sequence.
 
 ```
@@ -973,6 +1033,7 @@ nil
 ```
 
 ### princ
+
 **(princ X)**
 Function to output X without a newline.
 
@@ -982,6 +1043,7 @@ Function to output X without a newline.
 ```
 
 ### print
+
 **(print X)**
 Function to output X with a newline.
 
@@ -992,6 +1054,7 @@ Function to output X with a newline.
 ```
 
 ### push
+
 **(push X L)**
 Function to push the value of X to Symbol-bound list L.
 
@@ -1007,6 +1070,7 @@ nil
 ```
 
 ### quote
+
 **(quote X)**
 Function to answer the reference.
 
@@ -1018,6 +1082,7 @@ a
 ```
 
 ### random
+
 **(random)**
 Function to answer a random number greater than or equal to 0 and less than or equal to 1.
 
@@ -1033,6 +1098,7 @@ Function to answer a random number greater than or equal to 0 and less than or e
 ```
 
 ### reverse
+
 **(reverse L)**
 Function to answer the list of list L inverse order.
 
@@ -1044,6 +1110,7 @@ Function to answer the list of list L inverse order.
 ```
 
 ### round
+
 **(round X)**
 Function to answer the rounded value of X.
 
@@ -1059,6 +1126,7 @@ Function to answer the rounded value of X.
 ```
 
 ### rplaca
+
 **(rplaca X L)**
 Function to bind X to the head of list L.
 
@@ -1070,6 +1138,7 @@ Function to bind X to the head of list L.
 ```
 
 ### rplacd
+
 **(rplacd X L)**
 Function to bind X to the tail of list L.
 
@@ -1081,6 +1150,7 @@ Function to bind X to the tail of list L.
 ```
 
 ### setq
+
 **(setq X Y)**
 Functions to bind the value of Y to X.
 
@@ -1101,6 +1171,7 @@ hello
 ```
 
 ### set-allq
+
 **(set-allq X Y)**
 Functions to bind the value of Y to X to the entire environment.
 
@@ -1115,6 +1186,7 @@ Functions to bind the value of Y to X to the entire environment.
 ```
 
 ### sin
+
 **(sin X)**
 Function to answer a sin of X.
 Due to the limited accuracy of PI, there will be a slight error.
@@ -1129,6 +1201,7 @@ Due to the limited accuracy of PI, there will be a slight error.
 ```
 
 ### sqrt
+
 **(sqrt X)**
 Function to answer the square root of X.
 
@@ -1146,6 +1219,7 @@ Function to answer the square root of X.
 ```
 
 ### subtract
+
 **(subtract X1 X2 ... Xn)**
 Function to answer the difference of X1 minus X2 ... and Xn.
 
@@ -1157,6 +1231,7 @@ Function to answer the difference of X1 minus X2 ... and Xn.
 ```
 
 ### stringp
+
 **(stringp X)**
 Function to answer whether X is a String.
 
@@ -1176,6 +1251,7 @@ t
 ```
 
 ### symbolp
+
 **(symbolp X)**
 Function to answer whether X is a Symbol.
 
@@ -1195,6 +1271,7 @@ nil
 ```
 
 ### tan
+
 **(tan X)**
 Function to answer a tan of X.
 Due to the limited accuracy of PI, there will be a slight error.
@@ -1207,6 +1284,7 @@ Due to the limited accuracy of PI, there will be a slight error.
 ```
 
 ### terpri
+
 **(terpri)**
 Function to output new line;
 
@@ -1217,6 +1295,7 @@ t
 ```
 
 ### time
+
 **(time X)**
 Function to answer the processing time(ms) of X.
 
@@ -1230,6 +1309,7 @@ Function to answer the processing time(ms) of X.
 ```
 
 ### trace
+
 **(trace)**
 Function to output the calculation process.<br>
 You can turn off the output with "[notrace](#notrace)".
@@ -1252,6 +1332,7 @@ t
 ```
 
 ### unless
+
 **(unless X Y)**
 Function to do Y when X is nil.
 
@@ -1267,6 +1348,7 @@ nil
 ```
 
 ### when
+
 **(when X Y)**
 Function to do Y when X is t.
 
@@ -1282,6 +1364,7 @@ nil
 ```
 
 ### +
+
 **(+ X1 X2 ... Xn)**
 Function to answer the sum of X1, X2 ... and Xn.<br>
 Same as the function "[add](#add)".
@@ -1294,6 +1377,7 @@ Same as the function "[add](#add)".
 ```
 
 ### -
+
 **(- X1 X2 ... Xn)**
 Function to answer the difference of X1 minus X2 ... and Xn.<br>
 Same as the function "[subtract](#subtract)".
@@ -1305,8 +1389,9 @@ Same as the function "[subtract](#subtract)".
 13.2
 ```
 
-### *
-**(* X1 X2 ... Xn)**
+### \*
+
+**(\* X1 X2 ... Xn)**
 Function to answer the product of X1 and X2 ... and Xn.<br>
 Same as the function "[multiply](#multiply)".
 
@@ -1318,6 +1403,7 @@ Same as the function "[multiply](#multiply)".
 ```
 
 ### /
+
 **(/ X1 X2 ... Xn)**
 Function to answer the quotient of X1 divided by X2 ... and Xn.<br>
 Same as the function "[divide](#divide)".
@@ -1330,6 +1416,7 @@ Same as the function "[divide](#divide)".
 ```
 
 ### //
+
 **(// X1 X2 ... Xn)**
 Function to answer the excess of X1 divide by X2 ... and Xn.<br>
 Same as the function "[mod](#mod)".
@@ -1337,11 +1424,12 @@ Same as the function "[mod](#mod)".
 ```
 >> (// 1000 3)
 1
->> (// 100 43 8)   
+>> (// 100 43 8)
 6
 ```
 
 ### =
+
 **(= X Y)**
 Function that answers whether X and Y are equal or not.<br>
 Same as the function "[equal](#equal)".
@@ -1364,6 +1452,7 @@ t
 ```
 
 ### ==
+
 **(== X Y)**
 Function that answers whether X and Y are equal or not.<br>
 Same as the function "[eq](#eq)".
@@ -1386,6 +1475,7 @@ nil
 ```
 
 ### ~=
+
 **(= X Y)**
 Function that answers whether X and Y are not equal or not.<br>
 Same as the function "[nequal](#nequal)".
@@ -1408,6 +1498,7 @@ nil
 ```
 
 ### ~~
+
 **(~~ X Y)**
 Function that answers whether X and Y are not equal or not.<br>
 Same as the function "[neq](#neq)".
@@ -1430,6 +1521,7 @@ t
 ```
 
 ### <
+
 **(< X1 X2 ... Xn)**
 Function to answers whether X1, X2 ... and Xn is arranged in ascending order with no overlap.
 
@@ -1443,6 +1535,7 @@ nil
 ```
 
 ### <=
+
 **(<= X1 X2 ... Xn)**
 Function to answers whether X1, X2 ... and Xn is arranged in ascending order with overlap.
 
@@ -1456,6 +1549,7 @@ nil
 ```
 
 ### >
+
 **(> X1 X2 ... Xn)**
 Function to answers whether X1, X2 ... and Xn is arranged in descending order with no overlap.
 
@@ -1469,6 +1563,7 @@ nil
 ```
 
 ### >=
+
 **(>= X1 X2 ... Xn)**
 Function to answers whether X1, X2 ... and Xn is arranged in descending order with overlap.
 

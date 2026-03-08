@@ -1,0 +1,21 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": ["keisuke", "ikeda", "kei-lisp"],
+  "dictionaries": ["lisp", "kei-lisp", "tool"],
+  "dictionaryDefinitions": [
+    {
+      "name": "lisp",
+      "path": "./configs/cspell/lisp.txt"
+    },
+    {
+      "name": "kei-lisp",
+      "path": "./configs/cspell/kei-lisp.txt"
+    },
+    {
+      "name": "tool",
+      "path": "./configs/cspell/tool.txt"
+    }
+  ],
+  "ignorePaths": ["node_modules/", "dist/", "pnpm-lock.yaml", "out/"]
+}

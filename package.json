@@ -1,55 +1,70 @@
 {
-    "name": "kei-lisp",
-    "version": "2.0.0",
-    "description": "A Lisp interpreter implemented in JavaScript",
-    "author": "Ikeda Keisuke",
-    "license": "MIT",
-    "keywords": [
-        "lisp",
-        "interpreter",
-        "javascript"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ike-keichan/kei-lisp.git"
-    },
-    "main": "./dist/index.js",
-    "exports": {
-        ".": {
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.js"
-        }
-    },
-    "bin": {
-        "kei-lisp": "./dist/cli.js"
-    },
-    "files": [
-        "dist/"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "prepare": "pnpm build",
-        "prepublishOnly": "pnpm lint && pnpm test",
-        "start": "node dist/cli.js",
-        "dev": "pnpm build && node dist/cli.js",
-        "test": "node dist/cli.js",
-        "clean": "rm -rf ./dist && find . -name \".DS_Store\" -delete",
-        "wipe": "pnpm clean && rm -rf ./node_modules",
-        "lint": "eslint src/",
-        "doc": "jsdoc src/*.js && open -a \"/Applications/Google Chrome.app\" out/index.html"
-    },
-    "dependencies": {
-        "expose-gc": "^1.0.0",
-        "ramda": "^0.32.0"
-    },
-    "devDependencies": {
-        "eslint": "^10.0.3",
-        "globals": "^16.0.0",
-        "jsdoc": "^4.0.5",
-        "tsup": "^8.0.0",
-        "typescript": "^5.0.0"
-    },
-    "engines": {
-        "node": ">=24.0.0"
+  "name": "kei-lisp",
+  "version": "2.0.0",
+  "description": "A Lisp interpreter implemented in JavaScript",
+  "author": "Keisuke Ikeda",
+  "license": "MIT",
+  "keywords": [
+    "lisp",
+    "interpreter",
+    "javascript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ike-keichan/kei-lisp.git"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
+  },
+  "bin": {
+    "kei-lisp": "./dist/cli.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "prepare": "pnpm build",
+    "prepublishOnly": "pnpm check && pnpm test",
+    "build": "tsup",
+    "start": "node dist/cli.js",
+    "dev": "pnpm build && node dist/cli.js",
+    "test": "node dist/cli.js",
+    "clean": "rm -rf ./dist && find . -name \".DS_Store\" -delete",
+    "wipe": "pnpm clean && rm -rf ./node_modules",
+    "check": "run-s check:*",
+    "check:format": "prettier \"./src/**/*.js\" --check",
+    "check:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" --check",
+    "check:lint": "eslint \"./src/**/*.js\"",
+    "check:lint-config": "eslint ./*.{js,mjs}",
+    "check:spell": "cspell \"./src/**/*.js\"",
+    "check:spell-config": "cspell \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\"",
+    "fix": "run-s fix:*",
+    "fix:format": "prettier \"./src/**/*.js\" --write",
+    "fix:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" --write",
+    "fix:lint": "eslint \"./src/**/*.js\" --fix",
+    "fix:lint-config": "eslint ./*.{js,mjs} --fix",
+    "doc": "jsdoc src/*.js && open -a \"/Applications/Google Chrome.app\" out/index.html"
+  },
+  "dependencies": {
+    "expose-gc": "^1.0.0",
+    "ramda": "^0.32.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "cspell": "^9.7.0",
+    "eslint": "^10.0.3",
+    "globals": "^16.0.0",
+    "jsdoc": "^4.0.5",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
 }

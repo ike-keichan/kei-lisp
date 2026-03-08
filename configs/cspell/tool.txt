@@ -1,0 +1,21 @@
+# 開発ツール・npm パッケージ名の辞書
+
+# パッケージマネージャー・ランタイム管理
+pnpm
+nodenv
+npmrc
+prepublish
+
+# ビルドツール
+tsup
+shims
+treeshake
+sourcemap
+
+# ドキュメント・Lint
+jsdoc
+
+# npm パッケージ
+readline
+ramda
+expose-gc
