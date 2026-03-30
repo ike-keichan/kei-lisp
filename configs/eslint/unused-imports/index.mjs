@@ -1,24 +1,23 @@
 import pluginUnusedImports from 'eslint-plugin-unused-imports';
-import { srcFiles } from '../constants.mjs';
+import { RULE_LEVEL } from '../const/index.mjs';
+
+const { ERROR, WARN, OFF } = RULE_LEVEL;
 
 /**
- * eslint-plugin-unused-imports設定
+ * ESLint config for eslint-plugin-unused-imports.
  *
- * @remarks
- * - 未使用インポートおよび変数を検出する。
- * - no-unused-vars は本プラグイン側で処理するため無効化。
+ * `no-unused-vars` is disabled in favor of `unused-imports/no-unused-vars`.
  */
 export const unusedImportsConfigs = [
   {
-    files: srcFiles,
     plugins: {
       'unused-imports': pluginUnusedImports,
     },
     rules: {
-      'no-unused-vars': 'off',
-      'unused-imports/no-unused-imports': 'error',
+      'no-unused-vars': OFF,
+      'unused-imports/no-unused-imports': ERROR,
       'unused-imports/no-unused-vars': [
-        'warn',
+        WARN,
         { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
       ],
     },

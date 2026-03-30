@@ -1,24 +1,20 @@
 import pluginImportX from 'eslint-plugin-import-x';
-import { srcFiles } from '../constants.mjs';
+import { RULE_LEVEL } from '../const/index.mjs';
+
+const { ERROR, WARN } = RULE_LEVEL;
 
 /**
- * eslint-plugin-import-x設定
- *
- * @remarks
- * - インポートの解決・重複検出を行う。
+ * ESLint config for eslint-plugin-import-x.
  */
 export const importXConfigs = [
+  pluginImportX.flatConfigs.recommended,
   {
-    files: srcFiles,
-    plugins: {
-      'import-x': pluginImportX,
-    },
     settings: {
       'import-x/resolver': { typescript: true, node: true },
     },
     rules: {
-      'import-x/no-unresolved': 'warn',
-      'import-x/no-duplicates': 'error',
+      'import-x/no-unresolved': WARN,
+      'import-x/no-duplicates': ERROR,
     },
   },
 ];

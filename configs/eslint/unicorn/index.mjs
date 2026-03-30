@@ -1,21 +1,19 @@
 import pluginUnicorn from 'eslint-plugin-unicorn';
-import { srcFiles } from '../constants.mjs';
+import { RULE_LEVEL } from '../const/index.mjs';
+
+const { OFF } = RULE_LEVEL;
 
 /**
- * eslint-plugin-unicorn設定
+ * ESLint config for eslint-plugin-unicorn.
  *
- * @remarks
- * - プラグイン設定：レコメンドに含まれているため、宣言不要。
- * - prevent-abbreviations / filename-case は既存コードベースに合わせて無効化。
+ * `prevent-abbreviations` and `filename-case` are disabled to align with the existing codebase.
  */
 export const unicornConfigs = [
-  // 推奨ルール
-  { ...pluginUnicorn.configs['flat/recommended'], files: srcFiles },
+  pluginUnicorn.configs.recommended,
   {
-    files: srcFiles,
     rules: {
-      'unicorn/prevent-abbreviations': 'off',
-      'unicorn/filename-case': 'off',
+      'unicorn/prevent-abbreviations': OFF,
+      'unicorn/filename-case': OFF,
     },
   },
 ];
