@@ -18,6 +18,10 @@ vitest
 # ドキュメント・Lint
 jsdoc
 tsconfig
+tseslint
+sonarjs
+unicorn
+
 
 # npm パッケージ
 readline
