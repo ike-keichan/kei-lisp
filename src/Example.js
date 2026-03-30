@@ -12,16 +12,19 @@ import { LispInterpreter } from './LispInterpreter.js';
  * @author Keisuke Ikeda
  * @return {Null} 何も返さない。
  */
-function main()
-{
-    const aLispInterpreter = new LispInterpreter();
-    aLispInterpreter.run();
+function main() {
+  const aLispInterpreter = new LispInterpreter();
+  aLispInterpreter.run();
 
-    return null;
+  return null;
 }
 
 // Webページでない時のみmain関数を呼びだす。
-if (typeof document === "undefined") { main(); }
+if (typeof document === 'undefined') {
+  main();
+}
 
 // Webページとして使用のときのみ、Webpackでグローバルスコープから隠れてしまっては困るものだけを、グローバルスコープに登録します。
-if (typeof window !== "undefined") { window.main = main; }
+if (typeof window !== 'undefined') {
+  window.main = main;
+}
