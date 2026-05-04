@@ -1,0 +1,29 @@
+# 開発ツール・npm パッケージ名の辞書
+
+# パッケージマネージャー・ランタイム管理
+pnpm
+nodenv
+npmrc
+prepublish
+
+# ビルドツール
+tsup
+shims
+treeshake
+sourcemap
+
+# テスト
+vitest
+
+# ドキュメント・Lint
+jsdoc
+tsconfig
+tseslint
+sonarjs
+unicorn
+
+
+# npm パッケージ
+readline
+ramda
+expose-gc

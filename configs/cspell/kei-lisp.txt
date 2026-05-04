@@ -1,0 +1,21 @@
+# kei-lisp 固有の辞書
+# kei-lisp インタープリタ独自の実装用語
+
+# 述語
+doublep
+
+# 出力
+printc
+
+# 算術・定数
+napier
+
+# 環境操作
+allq
+
+# インタープリタ内部
+PEEKCOUNT
+nexts
+
+# サンプルコード
+tasu
