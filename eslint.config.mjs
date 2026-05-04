@@ -1,8 +1,6 @@
 import globals from 'globals';
 import prettier from 'eslint-config-prettier';
 
-import { FILES } from './configs/eslint/const/index.mjs';
-
 import { jsConfigs } from './configs/eslint/js/index.mjs';
 import { nConfigs } from './configs/eslint/n/index.mjs';
 import { sonarjsConfigs } from './configs/eslint/sonarjs/index.mjs';
@@ -13,8 +11,6 @@ import { unusedImportsConfigs } from './configs/eslint/unused-imports/index.mjs'
 import { typescriptConfigs } from './configs/eslint/typescript/index.mjs';
 import { vitestConfigs } from './configs/eslint/vitest/index.mjs';
 
-const { SRC, CONFIG } = FILES;
-
 export default [
   // Global ignores
   {
@@ -22,9 +18,8 @@ export default [
   },
 
   // Language options
-  // TODO: TS 移行中は SRC に .ts を追加し、移行完了後は parserOptions.project を設定する
+  // TODO: TS 移行完了後は parserOptions.project を設定する
   {
-    files: [...SRC, ...CONFIG],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

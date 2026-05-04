@@ -6,7 +6,7 @@ const { ERROR, OFF } = RULE_LEVEL;
 /**
  * ESLint config for eslint-plugin-unicorn.
  *
- * `prevent-abbreviations` and `filename-case` are disabled to align with the existing codebase.
+ * Several recommended rules are disabled to align with the existing codebase and the Lisp domain.
  */
 export const unicornConfigs = [
   pluginUnicorn.configs.recommended,

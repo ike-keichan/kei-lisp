@@ -6,7 +6,8 @@ const { ERROR, WARN, OFF } = RULE_LEVEL;
 /**
  * ESLint config for eslint-plugin-unused-imports.
  *
- * `no-unused-vars` is disabled in favor of `unused-imports/no-unused-vars`.
+ * The base `no-unused-vars` rule and the typescript-eslint variant are both disabled
+ * in favor of `unused-imports/no-unused-vars`.
  */
 export const unusedImportsConfigs = [
   {
