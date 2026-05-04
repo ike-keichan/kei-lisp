@@ -1,9 +1,9 @@
-import js from '@eslint/js';
 import globals from 'globals';
 import prettier from 'eslint-config-prettier';
 
 import { FILES } from './configs/eslint/const/index.mjs';
 
+import { jsConfigs } from './configs/eslint/js/index.mjs';
 import { nConfigs } from './configs/eslint/n/index.mjs';
 import { sonarjsConfigs } from './configs/eslint/sonarjs/index.mjs';
 import { securityConfigs } from './configs/eslint/security/index.mjs';
@@ -21,16 +21,19 @@ export default [
     ignores: ['dist/**', 'node_modules/**', 'out/**'],
   },
 
-  // Source & Config files: base JavaScript rules
+  // Language options
+  // TODO: TS 移行中は SRC に .ts を追加し、移行完了後は parserOptions.project を設定する
   {
     files: [...SRC, ...CONFIG],
-    ...js.configs.recommended,
     languageOptions: {
-      ecmaVersion: 2022,
+      ecmaVersion: 'latest',
       sourceType: 'module',
       globals: { ...globals.node },
     },
   },
+
+  // Base JavaScript rules
+  ...jsConfigs,
 
   // Source files
   ...nConfigs,
@@ -40,8 +43,10 @@ export default [
   ...importXConfigs,
   ...unusedImportsConfigs,
 
-  // Test files
+  // TypeScript rules (applies to all .ts files including src and tests)
   ...typescriptConfigs,
+
+  // Test files
   ...vitestConfigs,
 
   // Prettier: disable conflicting formatting rules (must be last)

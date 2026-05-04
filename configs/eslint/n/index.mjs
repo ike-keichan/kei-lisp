@@ -1,4 +1,7 @@
 import pluginN from 'eslint-plugin-n';
+import { RULE_LEVEL } from '../const/index.mjs';
+
+const { ERROR } = RULE_LEVEL;
 
 /**
  * ESLint config for eslint-plugin-n.
@@ -6,6 +9,11 @@ import pluginN from 'eslint-plugin-n';
 export const nConfigs = [
   pluginN.configs['flat/recommended'],
   {
-    rules: {},
+    rules: {
+      // fs の Promise API の使用を強制
+      'n/prefer-promises/fs': ERROR,
+      // readline の Promise API の使用を強制
+      'n/prefer-promises/readline': ERROR,
+    },
   },
 ];
