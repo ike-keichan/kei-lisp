@@ -1,8 +1,6 @@
-// #!/usr/bin/env node
-
 'use strict';
 
-import { Table } from './Table';
+import { Table } from '../Table/index.js';
 
 /**
  * @class
@@ -10,55 +8,50 @@ import { Table } from './Table';
  * @author Keisuke Ikeda
  * @this {InterpretedSymbol}
  */
-export class InterpretedSymbol extends Object {
+export class InterpretedSymbol {
   /**
    * InterpretedSymbolを記憶させるテーブル
    */
-  static table = new Table();
+  static table: Table = new Table();
+
+  name: string;
 
   /**
    * コンストラクタメソッド
-   * @constructor
-   * @param {String} name
-   * @return {InterpretedSymbol} 自身
+   * @param name 印字名
    */
-  constructor(name = 'null') {
-    super();
+  constructor(name: string = 'null') {
     this.name = name;
-    return this;
   }
 
   /**
    * 印字名で自身と引数のインタプリテッドシンボルを比較するメソッド
-   * @param {InterpretedSymbol} aSymbol
-   * @return {Number} 文字列の長さの差
+   * @param aSymbol 比較対象
+   * @return 文字列の長さの差
    */
-  compareTo(aSymbol) {
+  compareTo(aSymbol: InterpretedSymbol): number {
     let aNumber =
       this.name.charCodeAt(0) < aSymbol.name.charCodeAt(0)
-        ? aSymbol.name.length - this.name.charCodeAt
-        : this.name.charCodeAt - aSymbol.name.length;
-    aNumber = this.name.charCodeAt(0) == aSymbol.name.charCodeAt(0) ? 0 : aNumber;
+        ? aSymbol.name.length - this.name.length
+        : this.name.length - aSymbol.name.length;
+    aNumber = this.name.charCodeAt(0) === aSymbol.name.charCodeAt(0) ? 0 : aNumber;
 
     return aNumber;
   }
 
   /**
    * 自身と引数のオブジェクトが等しいかどうかを判別し、応答するメソッド
-   * @param {*} anObject
-   * @return {Boolean} 真偽値
    */
-  equals(anObject) {
+  equals(anObject: unknown): boolean {
     return this === anObject;
   }
 
   /**
    * 同じ印字名に対して同一のインタプリテッドシンボルを応答するメソッド
-   * @param {String} aString 印字名
-   * @return {InterpretedSymbol} 引数と同一のインタプリテッドシンボル
+   * @param aString 印字名
    */
-  static of(aString) {
-    let aSymbol = this.table.get(aString);
+  static of(aString: string): InterpretedSymbol {
+    let aSymbol = this.table.get(aString) as InterpretedSymbol | null;
 
     if (aSymbol == null) {
       aSymbol = new InterpretedSymbol(aString);
@@ -70,9 +63,8 @@ export class InterpretedSymbol extends Object {
 
   /**
    * 自身を文字列にして応答するメソッド
-   * @return {String} 自身の文字列
    */
-  toString() {
+  toString(): string {
     return this.name;
   }
 }

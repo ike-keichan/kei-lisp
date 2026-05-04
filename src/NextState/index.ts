@@ -1,9 +1,8 @@
-// #!/usr/bin/env node
-
 'use strict';
 
-// ライブラリ「Ramda」を読み込む。
 import * as R from 'ramda';
+
+import type { Parser } from '../Parser/index.js';
 
 /**
  * @class
@@ -11,38 +10,34 @@ import * as R from 'ramda';
  * @author Keisuke Ikeda
  * @this {NextState}
  */
-export class NextState extends Object {
+export class NextState {
+  automaton: Parser | null;
+  nextState: number | null;
+  method: unknown;
+  methodName: string | null;
+
   /**
    * コンストラクタメソッド
-   * @constructor
-   * @param {Number} aNumber
-   * @param {String} aString
-   * @return {NextState} 自身
    */
-  constructor(aNumber, aString) {
-    super();
-    this.automaton;
+  constructor(aNumber: number | null, aString: string | null) {
+    this.automaton = null;
     this.nextState = aNumber;
     this.method = null;
     this.methodName = aString;
-
-    return this;
   }
 
   /**
    * 入力された文字に対応するメソッドを呼び出し、トークン番号を応答するメソッド
-   * @param {Parser} anAutomaton パースするためのメソッドを呼び出すインスタンス
-   * @return {Number} 環境の状況を表す数字、トークン番号
    */
-  next(anAutomaton) {
+  next(anAutomaton: Parser): number {
     this.automaton = anAutomaton;
     if (this.methodName == null) {
       return Number(this.nextState);
     }
     if (this.method == null) {
       try {
-        this.method = this.automaton[this.methodName];
-      } catch (e) {
+        this.method = (this.automaton as unknown as Record<string, unknown>)[this.methodName];
+      } catch {
         throw new Error('Not Found Method: ' + this.methodName);
       }
     }
@@ -52,11 +47,11 @@ export class NextState extends Object {
       if (this.nextState != null) {
         aNumber = this.nextState;
       }
-      let anObject = R.invoker(0, this.methodName)(this.automaton);
+      const anObject = R.invoker(0, this.methodName)(this.automaton);
       if (anObject != null) {
         aNumber = Number(anObject);
       }
-    } catch (e) {
+    } catch {
       throw new Error('Not Invoke Method: ' + this.methodName);
     }
 

@@ -1,6 +1,6 @@
 'use strict';
 
-import { LispInterpreter } from './LispInterpreter.js';
+import { LispInterpreter } from './LispInterpreter/index.js';
 
 const args = process.argv.slice(2);
 

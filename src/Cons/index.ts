@@ -1,18 +1,19 @@
-// #!/usr/bin/env node
-
 'use strict';
 
-//モジュール「InterpretedSymbol」を読み込む。
-import { InterpretedSymbol } from './InterpretedSymbol';
+import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
+import { Loop } from '../Loop/index.js';
+import { Parser } from '../Parser/index.js';
+import { Table } from '../Table/index.js';
 
-//モジュール「Loop」を読み込む。
-import { Loop } from './Loop';
-
-//モジュール「Parser」を読み込む。
-import { Parser } from './Parser';
-
-//モジュール「Table」を読み込む。
-import { Table } from './Table';
+export type LispValue =
+  | Cons
+  | InterpretedSymbol
+  | Table
+  | number
+  | string
+  | boolean
+  | null
+  | undefined;
 
 /**
  * @class
@@ -20,48 +21,47 @@ import { Table } from './Table';
  * @author Keisuke Ikeda
  * @this {Cons}
  */
-export class Cons extends Object {
-  static nil = new Cons();
+export class Cons {
+  static nil: Cons = new Cons();
+
+  car: LispValue;
+  cdr: LispValue;
 
   /**
    * コンストラクタメソッド
    * @constructor
-   * @param {*} car car、引数なしでnilが参照される。
-   * @param {*} cdr cdr、引数なしでnilが参照される。
-   * @return {Cons} 自身
+   * @param car car、引数なしでnilが参照される。
+   * @param cdr cdr、引数なしでnilが参照される。
    */
-  constructor(car = Cons.nil, cdr = Cons.nil) {
-    super();
+  constructor(car: LispValue = Cons.nil, cdr: LispValue = Cons.nil) {
     this.car = car;
     this.cdr = cdr;
-
-    return this;
   }
 
   /**
    * Consの最後に指定された要素を加えるメソッド
-   * @param {*} anObject 加えるオブジェクト
-   * @return {Cons} 要素を加えたCons
+   * @param anObject 加えるオブジェクト
+   * @return 要素を加えたCons
    */
-  add(anObject) {
-    let aCons = new Cons(anObject, Cons.nil);
+  add(anObject: LispValue): Cons {
+    const aCons = new Cons(anObject, Cons.nil);
     return this.nconc(aCons);
   }
 
   /**
    * 自身（Cons）を複製し、応答するメソッド
-   * @return {Cons} 複製したCons
+   * @return 複製したCons
    */
-  clone() {
+  clone(): Cons {
     return new Cons(Cons.cloneValue(this.car), Cons.cloneValue(this.cdr));
   }
 
   /**
    * 引数の値(Consの要素)を複製し、応答するメソッド
-   * @param {*} value Consの要素
-   * @return {*} 複製したConsの要素
+   * @param value Consの要素
+   * @return 複製したConsの要素
    */
-  static cloneValue(value) {
+  static cloneValue(value: LispValue): LispValue {
     if (Cons.isCons(value)) {
       return value.clone();
     }
@@ -85,10 +85,10 @@ export class Cons extends Object {
 
   /**
    * 自身と引数が等しいかをどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
+   * @param anObject 判別するオブジェクト
+   * @return 真偽値
    */
-  equals(anObject) {
+  equals(anObject: LispValue): boolean {
     if (Cons.isCons(anObject)) {
       return this.equalsAUX(this, anObject);
     }
@@ -97,21 +97,19 @@ export class Cons extends Object {
 
   /**
    * 2つ引数がともにConsであり、等しいかをどうかを判別し、応答するメソッド
-   * @param {*} left 判別するオブジェクト
-   * @param {*} right 判別するオブジェクト
-   * @return {Boolean} 真偽値
+   * @param left 判別するオブジェクト
+   * @param right 判別するオブジェクト
+   * @return 真偽値
    */
-  equalsAUX(left, right) {
+  equalsAUX(left: LispValue, right: LispValue): boolean {
     if (left === right) {
       return true;
     }
-    if ((Cons.isCons(left) && Cons.isCons(right)) == false) {
+    if (!(Cons.isCons(left) && Cons.isCons(right))) {
       return false;
     }
-    let leftCons = left;
-    let rightCons = right;
-    if (this.equalsAUX(leftCons.car, rightCons.car)) {
-      return this.equalsAUX(leftCons.cdr, rightCons.cdr);
+    if (this.equalsAUX(left.car, right.car)) {
+      return this.equalsAUX(left.cdr, right.cdr);
     }
 
     return false;
@@ -119,125 +117,101 @@ export class Cons extends Object {
 
   /**
    * 引数がAtomかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isAtom(anObject) {
+  static isAtom(anObject: LispValue): boolean {
     return Cons.isNotCons(anObject);
   }
 
   /**
    * 引数がConsかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isCons(anObject) {
-    return anObject != Cons.nil && anObject instanceof Cons;
+  static isCons(anObject: LispValue): anObject is Cons {
+    return anObject !== Cons.nil && anObject instanceof Cons;
   }
 
   /**
    * 引数がListかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isList(anObject) {
+  static isList(anObject: LispValue): boolean {
     return Cons.isNil(anObject) || Cons.isCons(anObject);
   }
 
   /**
    * 引数がNilかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isNil(anObject) {
-    return anObject == Cons.nil;
+  static isNil(anObject: LispValue): boolean {
+    return anObject === Cons.nil;
   }
 
   /**
    * 引数がConsでないかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isNotCons(anObject) {
+  static isNotCons(anObject: LispValue): boolean {
     return !Cons.isCons(anObject);
   }
 
   /**
    * 引数がListでないかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isNotList(anObject) {
+  static isNotList(anObject: LispValue): boolean {
     return !Cons.isList(anObject);
   }
 
   /**
    * 引数がNilでないかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isNotNil(anObject) {
+  static isNotNil(anObject: LispValue): boolean {
     return !Cons.isNil(anObject);
   }
 
   /**
    * 引数がインタプリテッドシンボルでないかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isNotSymbol(anObject) {
+  static isNotSymbol(anObject: LispValue): boolean {
     return !Cons.isSymbol(anObject);
   }
 
   /**
    * 引数が数字かどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isNumber(anObject) {
-    return anObject instanceof Number || typeof anObject == 'number';
+  static isNumber(anObject: LispValue): anObject is number {
+    return anObject instanceof Number || typeof anObject === 'number';
   }
 
   /**
    * 引数が文字列かどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isString(anObject) {
-    return anObject instanceof String || typeof anObject == 'string';
+  static isString(anObject: LispValue): anObject is string {
+    return anObject instanceof String || typeof anObject === 'string';
   }
 
   /**
    * 引数がインタプリテッドシンボルかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isSymbol(anObject) {
+  static isSymbol(anObject: LispValue): anObject is InterpretedSymbol {
     return anObject instanceof InterpretedSymbol;
   }
 
   /**
    * 引数が環境かどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  static isTable(anObject) {
+  static isTable(anObject: LispValue): anObject is Table {
     return anObject instanceof Table;
   }
 
   /**
    * Consの最後のセルを応答するメソッド
-   * @return {Cons} 自身の最後のセル
+   * @return 自身の最後のセル
    */
-  last() {
-    let theCons = new Cons(Cons.nil, this);
-    let aCons = this;
+  last(): Cons {
+    let theCons: Cons = new Cons(Cons.nil, this);
+    let aCons: Cons = this;
 
     while (Cons.isCons(aCons)) {
-      if (Cons.isCons(aCons.cdr) == false) {
+      if (!Cons.isCons(aCons.cdr)) {
         break;
       }
-      theCons = theCons.cdr;
+      theCons = theCons.cdr as Cons;
       aCons = aCons.cdr;
     }
 
@@ -246,19 +220,19 @@ export class Cons extends Object {
 
   /**
    * Consのイテレータを応答するメソッド
-   * @return {Loop} Consのイテレータ
+   * @return Consのイテレータ
    */
-  loop() {
+  loop(): Loop {
     return new Loop(this);
   }
 
   /**
    * 自身の長さ（深さ）を応答するメソッド
-   * @return {Number} 自身の長さ（深さ）
+   * @return 自身の長さ（深さ）
    */
-  length() {
+  length(): number {
     let count = 0;
-    let aCons = this;
+    let aCons: LispValue = this;
 
     while (Cons.isCons(aCons)) {
       count++;
@@ -270,25 +244,25 @@ export class Cons extends Object {
 
   /**
    * Consを結合するし、自身を応答するメソッド
-   * @param {Cons} aCons 結合するCons
-   * @return {Cons} 自身
+   * @param aCons 結合するCons
+   * @return 自身
    */
-  nconc(aCons) {
+  nconc(aCons: Cons): Cons {
     this.last().setCdr(aCons);
     return this;
   }
 
   /**
    * Consのn番目の要素を応答するメソッド
-   * @param {Number} aNumber 指定する番号
-   * @return {Cons} 指定した番号の要素
+   * @param aNumber 指定する番号
+   * @return 指定した番号の要素
    */
-  nth(aNumber) {
+  nth(aNumber: number): LispValue {
     if (aNumber <= 0) {
       return Cons.nil;
     }
     let count = 1;
-    let aCons = this;
+    let aCons: LispValue = this;
     while (Cons.isCons(aCons)) {
       if (count >= aNumber) {
         return aCons.car;
@@ -302,40 +276,32 @@ export class Cons extends Object {
 
   /**
    * 指定された文字列を字句解析してConsを生成し、応答するメソッド
-   * @param {String} aString 字句解析する文字列
-   * @return {Cons}
+   * @param aString 字句解析する文字列
    */
-  static parse(aString) {
+  static parse(aString: string): LispValue {
     return Parser.parse(aString);
   }
 
   /**
    * carを設定するメソッド
-   * @param {*} anObject car
-   * @return {Null} 何も返さない。
    */
-  setCar(anObject) {
+  setCar(anObject: LispValue): null {
     this.car = anObject;
     return null;
   }
 
   /**
    * cdrを設定するメソッド
-   * @param {*} anObject cdr
-   * @return {Null} 何も返さない。
    */
-  setCdr(anObject) {
+  setCdr(anObject: LispValue): null {
     this.cdr = anObject;
     return null;
   }
 
   /**
    * Consを設定するメソッド
-   * @param {*} car car
-   * @param {*} cdr cdr
-   * @return {Cons} 自身
    */
-  setCons(car, cdr) {
+  setCons(car: LispValue, cdr: LispValue): Cons {
     this.car = car;
     this.cdr = cdr;
     return this;
@@ -343,10 +309,9 @@ export class Cons extends Object {
 
   /**
    * 自身を整形し、文字列として返すメソッド
-   * @return {String} 自身を整形した文字列
    */
-  toString() {
-    let aString = new String();
+  toString(): string {
+    let aString = '';
     if (Cons.isNil(this)) {
       aString += Cons.toString(Cons.nil);
     } else {
@@ -354,22 +319,21 @@ export class Cons extends Object {
 
       if (Cons.isNil(this.cdr)) {
         aString += ')';
-      } else if (this.cdr instanceof Cons == false) {
+      } else if (!(this.cdr instanceof Cons)) {
         aString += ' . ' + Cons.toString(this.cdr) + ')';
       } else {
-        let aCons = this.cdr;
-        let flag = true;
-        while (flag) {
-          let head = aCons.car;
-          let tail = aCons.cdr;
-          if (head instanceof Table == false) {
+        let aCons: Cons = this.cdr;
+        while (true) {
+          const head = aCons.car;
+          const tail = aCons.cdr;
+          if (!(head instanceof Table)) {
             aString += ' ' + Cons.toString(head);
           }
           if (Cons.isNil(tail)) {
             aString += ')';
             break;
           }
-          if (tail instanceof Cons == false) {
+          if (!(tail instanceof Cons)) {
             aString += ' . ' + Cons.toString(tail) + ')';
             break;
           }
@@ -383,17 +347,16 @@ export class Cons extends Object {
 
   /**
    * 引数のオブジェクトを整形し、文字列として返すメソッド
-   * @param {Object} anObject 整形するオブジェクト
-   * @return {String} 整形した文字列
+   * @param anObject 整形するオブジェクト
    */
-  static toString(anObject) {
-    let aString = new String();
+  static toString(anObject: LispValue): string {
+    let aString = '';
     if (Cons.isNil(anObject)) {
       aString += 'nil';
     } else if (anObject instanceof String) {
       aString += '"' + anObject.toString() + '"';
     } else {
-      aString += anObject.toString();
+      aString += String(anObject);
     }
 
     return aString;

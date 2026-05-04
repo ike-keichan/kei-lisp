@@ -12,8 +12,6 @@ export const nConfigs = [
     rules: {
       // fs の Promise API の使用を強制
       'n/prefer-promises/fs': ERROR,
-      // readline の Promise API の使用を強制
-      'n/prefer-promises/readline': ERROR,
     },
   },
 ];

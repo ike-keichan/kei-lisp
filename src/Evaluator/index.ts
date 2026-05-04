@@ -1,0 +1,716 @@
+'use strict';
+
+import { createRequire } from 'node:module';
+
+import * as R from 'ramda';
+
+import { Applier } from '../Applier/index.js';
+import { Cons, type LispValue } from '../Cons/index.js';
+import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
+import { StreamManager } from '../StreamManager/index.js';
+import { Table } from '../Table/index.js';
+
+const require = createRequire(import.meta.url);
+
+/**
+ * @class
+ * @classdesc Lispの万能関数のEvaluateを模倣したクラス
+ * @author Keisuke Ikeda
+ * @this {Evaluator}
+ */
+export class Evaluator {
+  static buildInFunctions: Map<InterpretedSymbol, string> = Evaluator.setup();
+
+  environment: Table;
+  streamManager: StreamManager;
+  depth: number;
+
+  constructor(aTable: Table, aStreamManager: StreamManager, aNumber: number) {
+    this.environment = aTable;
+    this.streamManager = aStreamManager;
+    this.depth = aNumber;
+  }
+
+  and(aCons: Cons): LispValue {
+    for (const each of aCons.loop()) {
+      const anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      if (Cons.isNil(anObject)) {
+        return Cons.nil;
+      }
+    }
+
+    return InterpretedSymbol.of('t');
+  }
+
+  apply_lisp(aCons: Cons): LispValue {
+    const procedure = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    const args = Evaluator.eval(aCons.nth(2), this.environment, this.streamManager, this.depth);
+    let aTable: Table = this.environment;
+    if (procedure instanceof Cons && procedure.last().car instanceof Table) {
+      aTable = procedure.last().car as Table;
+    }
+
+    return Applier.apply(procedure, args, aTable, this.streamManager, this.depth);
+  }
+
+  bind(aCons: Cons): LispValue {
+    if (Cons.isNotSymbol(aCons.car)) {
+      console.log('Can not apply "bind" to "' + String(aCons.car) + '"');
+      return Cons.nil;
+    }
+    const aSymbol = aCons.car as InterpretedSymbol;
+    if (!this.environment.has(aSymbol)) {
+      return Cons.nil;
+    }
+
+    return this.bindAUX(aSymbol);
+  }
+
+  bindAUX(aSymbol: InterpretedSymbol): number {
+    let aTable: Table | null = this.environment;
+    let anObject: LispValue = aTable.get(aSymbol);
+    let count = 1;
+
+    while (aTable != null) {
+      if (!aTable.has(aSymbol)) {
+        break;
+      }
+      const theObject: LispValue = aTable.get(aSymbol);
+      if (theObject !== anObject) {
+        count++;
+        anObject = theObject;
+      }
+      aTable = aTable.source;
+    }
+
+    return count;
+  }
+
+  binding(parameters: Cons, aTable: Table): null {
+    for (const each of parameters.loop()) {
+      if (!Cons.isCons(each)) {
+        continue;
+      }
+      let key: InterpretedSymbol | null = null;
+      if (Cons.isSymbol(each.car)) {
+        key = each.car;
+      } else {
+        console.log('"' + String(each.car) + '" is not symbol');
+      }
+      const value = Evaluator.eval(each.nth(2), aTable, this.streamManager, this.depth);
+      aTable.set(key, value);
+    }
+
+    return null;
+  }
+
+  bindingParallel(parameters: Cons, aTable: Table): null {
+    const theTable = new Map<unknown, LispValue>();
+    for (const each of parameters.loop()) {
+      if (!Cons.isCons(each)) {
+        continue;
+      }
+      let key: InterpretedSymbol | null = null;
+      if (Cons.isSymbol(each.car)) {
+        key = each.car;
+      } else {
+        console.log('"' + String(each.car) + '" is not symbol');
+      }
+      const value = Evaluator.eval(each.nth(2), aTable, this.streamManager, this.depth);
+      theTable.set(key, value);
+    }
+
+    for (const [key, value] of theTable) {
+      aTable.set(key, value);
+    }
+
+    return null;
+  }
+
+  cond(aCons: LispValue): LispValue {
+    if (Cons.isNil(aCons)) {
+      return Cons.nil;
+    }
+    if (!Cons.isCons(aCons)) {
+      return Cons.nil;
+    }
+    const clause = aCons.car as Cons;
+    let anObject: LispValue = Evaluator.eval(
+      clause.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+    );
+    if (Cons.isNil(anObject)) {
+      return this.cond(aCons.cdr);
+    }
+    const consequent = clause.cdr as Cons;
+    for (const each of consequent.loop()) {
+      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+    }
+    return anObject;
+  }
+
+  defun(aCons: Cons): LispValue {
+    const variable = aCons.car;
+    let lambda: LispValue = aCons.cdr;
+    lambda = aCons.length() === 2 ? (lambda as Cons).car : new Cons(InterpretedSymbol.of('lambda'), lambda);
+    lambda = Evaluator.eval(lambda, new Table(this.environment), this.streamManager, this.depth);
+    this.environment.set(variable, lambda);
+
+    return variable;
+  }
+
+  do_(aCons: Cons): LispValue {
+    const parameters = aCons.car as Cons;
+    const bool = aCons.nth(2) as Cons;
+    const expressions = (aCons.cdr as Cons).cdr as Cons;
+    this.bindingParallel(parameters, this.environment);
+    if (Cons.isNil(bool)) {
+      bool.setCar(Cons.nil);
+    }
+
+    while (Cons.isNil(Evaluator.eval(bool.car, this.environment, this.streamManager, this.depth))) {
+      const theTable = new Map<InterpretedSymbol, LispValue>();
+      for (const each of expressions.loop()) {
+        Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      }
+      for (const each of parameters.loop()) {
+        if (!Cons.isCons(each)) {
+          continue;
+        }
+        if (Cons.isNotSymbol(each.car)) {
+          console.log('"' + String(each.car) + '" is not symbol');
+        }
+        const key = each.car as InterpretedSymbol;
+        if (Cons.isNotNil(each.nth(3))) {
+          const value = Evaluator.eval(
+            each.nth(3),
+            this.environment,
+            this.streamManager,
+            this.depth,
+          );
+          theTable.set(key, value);
+        }
+      }
+      for (const [key, value] of theTable) {
+        this.environment.set(key, value);
+      }
+    }
+    return Evaluator.eval(bool.nth(2), this.environment, this.streamManager, this.depth);
+  }
+
+  doList(aCons: Cons): LispValue {
+    const parameter = aCons.car as Cons;
+    const theCons = aCons.cdr as Cons;
+    const args = Evaluator.eval(parameter.nth(2), this.environment, this.streamManager, this.depth);
+    if (!Cons.isCons(args)) {
+      return Cons.nil;
+    }
+    for (const element of args.loop()) {
+      this.environment.set(parameter.car, element);
+      for (const each of theCons.loop()) {
+        Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      }
+    }
+
+    return Evaluator.eval(parameter.nth(3), this.environment, this.streamManager, this.depth);
+  }
+
+  doStar(aCons: Cons): LispValue {
+    const parameters = aCons.car as Cons;
+    const bool = aCons.nth(2) as Cons;
+    const expressions = (aCons.cdr as Cons).cdr as Cons;
+    this.binding(parameters, this.environment);
+    if (Cons.isNil(bool)) {
+      bool.setCar(Cons.nil);
+    }
+
+    while (Cons.isNil(Evaluator.eval(bool.car, this.environment, this.streamManager, this.depth))) {
+      for (const each of expressions.loop()) {
+        Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      }
+      for (const each of parameters.loop()) {
+        if (!Cons.isCons(each)) {
+          continue;
+        }
+        if (Cons.isNotSymbol(each.car)) {
+          console.log('"' + String(each.car) + '" is not symbol');
+        }
+        const key = each.car as InterpretedSymbol;
+        if (Cons.isNotNil(each.nth(3))) {
+          const value = Evaluator.eval(
+            each.nth(3),
+            this.environment,
+            this.streamManager,
+            this.depth,
+          );
+          this.environment.set(key, value);
+        }
+      }
+    }
+    return Evaluator.eval(bool.nth(2), this.environment, this.streamManager, this.depth);
+  }
+
+  entrustApplier(form: Cons): LispValue {
+    const aCons = form.cdr as Cons;
+    let args: Cons = new Cons(Cons.nil, Cons.nil);
+    const procedure = form.car;
+    let aSymbol: InterpretedSymbol | null = null;
+
+    if (Cons.isSymbol(procedure)) {
+      aSymbol = procedure;
+    }
+    if (this.isSpy(aSymbol)) {
+      this.spyPrint(this.streamManager.spyStream(aSymbol), form.toString());
+      this.setDepth(this.depth + 1);
+    }
+
+    for (const each of aCons.loop()) {
+      if (each instanceof Table) {
+        break;
+      }
+      args.add(Evaluator.eval(each, this.environment, this.streamManager, this.depth));
+    }
+    if (this.isSpy(aSymbol)) {
+      this.setDepth(this.depth - 1);
+    }
+
+    args = args.cdr as Cons;
+    return Applier.apply(procedure, args, this.environment, this.streamManager, this.depth);
+  }
+
+  static eval(
+    form: LispValue,
+    environment: Table,
+    aStreamManager: StreamManager = new StreamManager(),
+    depth: number = 1,
+  ): LispValue {
+    return new Evaluator(environment, aStreamManager, depth).eval(form);
+  }
+
+  eval(form: LispValue): LispValue {
+    if (Cons.isSymbol(form)) {
+      return this.evaluateSymbol(form);
+    }
+    if (Cons.isNil(form) || Cons.isNotList(form)) {
+      return form;
+    }
+    const formCons = form as Cons;
+    if (Cons.isSymbol(formCons.car) && Evaluator.buildInFunctions.has(formCons.car)) {
+      return this.specialForm(formCons);
+    }
+
+    return this.entrustApplier(formCons);
+  }
+
+  eval_lisp(aCons: Cons): LispValue {
+    return Evaluator.eval(
+      Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth),
+      this.environment,
+      this.streamManager,
+      this.depth,
+    );
+  }
+
+  evaluateSymbol(aSymbol: InterpretedSymbol): LispValue {
+    let answer: LispValue = Cons.nil;
+    if (aSymbol != null && this.environment.has(aSymbol)) {
+      if (this.isSpy(aSymbol)) {
+        this.spyPrint(this.streamManager.spyStream(aSymbol), aSymbol.toString());
+        this.setDepth(this.depth + 1);
+      }
+
+      answer = this.environment.get(aSymbol);
+      if (answer instanceof Cons && answer.cdr instanceof Table) {
+        answer = answer.car;
+      }
+
+      if (this.isSpy(aSymbol)) {
+        this.setDepth(this.depth - 1);
+        this.spyPrint(
+          this.streamManager.spyStream(aSymbol),
+          String(answer) + ' <== ' + String(aSymbol),
+        );
+      }
+    } else {
+      console.log('I could find no variable binding for ' + String(aSymbol));
+    }
+
+    return answer;
+  }
+
+  exit(): never {
+    console.log('Bye!');
+    process.exit(0);
+  }
+
+  gc(): InterpretedSymbol {
+    const gc = require('expose-gc/function') as () => void;
+    gc();
+    return InterpretedSymbol.of('t');
+  }
+
+  if_(aCons: Cons): LispValue {
+    let anObject: LispValue;
+    const bool = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    anObject = Cons.isNil(bool) ? aCons.nth(3) : aCons.nth(2);
+
+    return Evaluator.eval(anObject, this.environment, this.streamManager, this.depth);
+  }
+
+  indent(): string {
+    let index = 0;
+    let aString = '';
+    while (index++ < this.depth) {
+      aString += '| ';
+    }
+
+    return aString;
+  }
+
+  isSpy(aSymbol: InterpretedSymbol | null): boolean {
+    if (aSymbol == null) {
+      return false;
+    }
+    return this.streamManager.isSpy(aSymbol);
+  }
+
+  lambda(args: Cons): LispValue {
+    const aCons = Cons.cloneValue(args) as Cons;
+    const theCons = aCons.cdr as Cons;
+    theCons.setCdr(new Cons(this.environment, Cons.nil));
+
+    return new Cons(InterpretedSymbol.of('lambda'), aCons);
+  }
+
+  let(aCons: Cons): LispValue {
+    const aTable = new Table(this.environment);
+    const parameters = aCons.car as Cons;
+    const forms = aCons.cdr as Cons;
+    let anObject: LispValue = Cons.nil;
+    this.bindingParallel(parameters, aTable);
+    for (const each of forms.loop()) {
+      anObject = Evaluator.eval(each, aTable, this.streamManager, this.depth);
+    }
+
+    return anObject;
+  }
+
+  letStar(aCons: Cons): LispValue {
+    const aTable = new Table(this.environment);
+    const parameters = aCons.car as Cons;
+    const forms = aCons.cdr as Cons;
+    let anObject: LispValue = Cons.nil;
+    this.binding(parameters, aTable);
+    for (const each of forms.loop()) {
+      anObject = Evaluator.eval(each, aTable, this.streamManager, this.depth);
+    }
+
+    return anObject;
+  }
+
+  not(aCons: Cons): LispValue {
+    if (Cons.isNil(Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth))) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
+  notrace(): InterpretedSymbol {
+    this.streamManager.noTrace();
+    return InterpretedSymbol.of('t');
+  }
+
+  or(aCons: Cons): LispValue {
+    for (const each of aCons.loop()) {
+      const anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      if (Cons.isNotNil(anObject)) {
+        return InterpretedSymbol.of('t');
+      }
+    }
+
+    return Cons.nil;
+  }
+
+  pop_(aCons: Cons): LispValue {
+    if (Cons.isNotSymbol(aCons.car)) {
+      console.log('arguments 1 is not symbol.');
+    }
+    const aSymbol = aCons.car as InterpretedSymbol;
+    const anObject = Evaluator.eval(aSymbol, this.environment, this.streamManager, this.depth);
+    if (Cons.isNotCons(anObject)) {
+      return Cons.nil;
+    }
+    const consObject = anObject as Cons;
+    this.environment.setIfExit(aSymbol, consObject.cdr);
+
+    return consObject.car;
+  }
+
+  progn(aCons: Cons): LispValue {
+    let anObject: LispValue = Cons.nil;
+    let theCons = aCons.car as Cons;
+    this.bindingParallel(theCons, this.environment);
+    theCons = aCons.cdr as Cons;
+    for (const each of theCons.loop()) {
+      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+    }
+
+    return anObject;
+  }
+
+  princ(aCons: Cons): LispValue {
+    const anObject = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    process.stdout.write(String(anObject));
+
+    return anObject;
+  }
+
+  print(aCons: Cons): LispValue {
+    const anObject = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    console.log(anObject);
+
+    return anObject;
+  }
+
+  push_(aCons: Cons): LispValue {
+    let anObject = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    if (Cons.isNotSymbol(aCons.nth(2))) {
+      console.log('arguments 2 is not symbol.');
+    }
+    const aSymbol = aCons.nth(2) as InterpretedSymbol;
+    anObject = new Cons(
+      anObject,
+      Evaluator.eval(aSymbol, this.environment, this.streamManager, this.depth),
+    );
+    this.environment.setIfExit(aSymbol, anObject);
+
+    return anObject;
+  }
+
+  quote(aCons: Cons): LispValue {
+    return aCons.car;
+  }
+
+  rplaca(args: Cons): LispValue {
+    let anObject = Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
+    if (Cons.isNotCons(anObject)) {
+      console.log('Can not apply "set-car!" to "' + String(anObject) + '"');
+      return Cons.nil;
+    }
+    const aCons = anObject as Cons;
+    anObject = Evaluator.eval(args.nth(2), this.environment, this.streamManager, this.depth);
+    aCons.setCar(anObject);
+
+    return Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
+  }
+
+  rplacd(args: Cons): LispValue {
+    let anObject = Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
+    if (Cons.isNotCons(anObject)) {
+      console.log('Can not apply "set-cdr!" to "' + String(anObject) + '"');
+      return Cons.nil;
+    }
+    const aCons = anObject as Cons;
+    anObject = Evaluator.eval(args.nth(2), this.environment, this.streamManager, this.depth);
+    aCons.setCdr(anObject);
+
+    return Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
+  }
+
+  setq(args: Cons): LispValue {
+    let anObject: LispValue = Cons.nil;
+    const anIterator = args.loop();
+    const index = -1;
+
+    while (anIterator.hasNext()) {
+      let key: InterpretedSymbol | null = null;
+
+      if (Cons.isSymbol(args.nth(index + 2))) {
+        key = anIterator.next() as InterpretedSymbol;
+      } else {
+        console.log('"' + String(args.car) + '" is not symbol');
+      }
+
+      if (!anIterator.hasNext()) {
+        console.log('sizes do not match.');
+      }
+      anObject = Evaluator.eval(
+        anIterator.next(),
+        this.environment,
+        this.streamManager,
+        this.depth,
+      );
+      this.environment.set(key, anObject);
+    }
+
+    return anObject;
+  }
+
+  set_allq(args: Cons): LispValue {
+    let anObject: LispValue = Cons.nil;
+    const anIterator = args.loop();
+    const index = -1;
+
+    while (anIterator.hasNext()) {
+      let key: InterpretedSymbol | null = null;
+
+      if (Cons.isSymbol(args.nth(index + 2))) {
+        key = anIterator.next() as InterpretedSymbol;
+      } else {
+        console.log('"' + String(args.car) + '" is not symbol');
+      }
+      anObject = Evaluator.eval(
+        anIterator.next(),
+        this.environment,
+        this.streamManager,
+        this.depth,
+      );
+      if (key != null) {
+        this.environment.setIfExit(key, anObject);
+      }
+    }
+
+    return anObject;
+  }
+
+  setDepth(aNumber: number): null {
+    this.depth = aNumber;
+    return null;
+  }
+
+  static setup(): Map<InterpretedSymbol, string> {
+    try {
+      const aTable = new Map<InterpretedSymbol, string>();
+      aTable.set(InterpretedSymbol.of('and'), 'and');
+      aTable.set(InterpretedSymbol.of('apply'), 'apply_lisp');
+      aTable.set(InterpretedSymbol.of('bind'), 'bind');
+      aTable.set(InterpretedSymbol.of('cond'), 'cond');
+      aTable.set(InterpretedSymbol.of('defun'), 'defun');
+      aTable.set(InterpretedSymbol.of('do'), 'do_');
+      aTable.set(InterpretedSymbol.of('dolist'), 'doList');
+      aTable.set(InterpretedSymbol.of('do*'), 'doStar');
+      aTable.set(InterpretedSymbol.of('eval'), 'eval_lisp');
+      aTable.set(InterpretedSymbol.of('exit'), 'exit');
+      aTable.set(InterpretedSymbol.of('gc'), 'gc');
+      aTable.set(InterpretedSymbol.of('if'), 'if_');
+      aTable.set(InterpretedSymbol.of('lambda'), 'lambda');
+      aTable.set(InterpretedSymbol.of('let'), 'let');
+      aTable.set(InterpretedSymbol.of('let*'), 'letStar');
+      aTable.set(InterpretedSymbol.of('not'), 'not');
+      aTable.set(InterpretedSymbol.of('notrace'), 'notrace');
+      aTable.set(InterpretedSymbol.of('or'), 'or');
+      aTable.set(InterpretedSymbol.of('pop'), 'pop_');
+      aTable.set(InterpretedSymbol.of('progn'), 'progn');
+      aTable.set(InterpretedSymbol.of('princ'), 'princ');
+      aTable.set(InterpretedSymbol.of('print'), 'print');
+      aTable.set(InterpretedSymbol.of('push'), 'push_');
+      aTable.set(InterpretedSymbol.of('quote'), 'quote');
+      aTable.set(InterpretedSymbol.of('rplaca'), 'rplaca');
+      aTable.set(InterpretedSymbol.of('rplacd'), 'rplacd');
+      aTable.set(InterpretedSymbol.of('setq'), 'setq');
+      aTable.set(InterpretedSymbol.of('set-allq'), 'set_allq');
+      aTable.set(InterpretedSymbol.of('terpri'), 'terpri');
+      aTable.set(InterpretedSymbol.of('time'), 'time');
+      aTable.set(InterpretedSymbol.of('trace'), 'trace');
+      aTable.set(InterpretedSymbol.of('unless'), 'unless');
+      aTable.set(InterpretedSymbol.of('when'), 'when');
+
+      return aTable;
+    } catch {
+      throw new Error('NullPointerException (Evaluator, initialize)');
+    }
+  }
+
+  specialForm(form: Cons): LispValue {
+    const aSymbol = form.car as InterpretedSymbol;
+
+    if (this.isSpy(aSymbol)) {
+      this.spyPrint(this.streamManager.spyStream(aSymbol), form.toString());
+      this.setDepth(this.depth + 1);
+    }
+
+    const aCons = form.cdr as Cons;
+    const methodName = Evaluator.buildInFunctions.get(aSymbol) as string;
+
+    try {
+      const method = (this as unknown as Record<string, unknown>)[methodName];
+      ((x: unknown) => {
+        x;
+      })(method);
+    } catch {
+      throw new Error('Not Found Method: ' + methodName);
+    }
+
+    const answer = R.invoker(1, methodName)(aCons, this) as LispValue;
+
+    if (this.isSpy(aSymbol)) {
+      this.setDepth(this.depth - 1);
+      this.spyPrint(
+        this.streamManager.spyStream(aSymbol),
+        String(answer) + ' <== ' + String(aSymbol),
+      );
+    }
+
+    return answer;
+  }
+
+  spyPrint(aStream: unknown, line: string): null {
+    const aPrintStream = process.stdout;
+    if (aStream != null) {
+      console.log(aStream);
+    }
+    console.log(this.indent() + line);
+    if (aStream != null) {
+      console.log(aPrintStream);
+    }
+    return null;
+  }
+
+  terpri(): InterpretedSymbol {
+    console.log('');
+    return InterpretedSymbol.of('t');
+  }
+
+  time(aCons: Cons): number {
+    const start = process.hrtime();
+    Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    const end = process.hrtime(start);
+
+    return end[1] / 1_000_000;
+  }
+
+  trace(): InterpretedSymbol {
+    this.streamManager.trace();
+    return InterpretedSymbol.of('t');
+  }
+
+  unless(aCons: Cons): LispValue {
+    let anObject: LispValue = Cons.nil;
+    const theCons = aCons.cdr as Cons;
+    const flag = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    if (Cons.isNotNil(flag)) {
+      return Cons.nil;
+    }
+    for (const each of theCons.loop()) {
+      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+    }
+
+    return anObject;
+  }
+
+  when(aCons: Cons): LispValue {
+    let anObject: LispValue = Cons.nil;
+    const theCons = aCons.cdr as Cons;
+    const flag = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    if (Cons.isNil(flag)) {
+      return Cons.nil;
+    }
+    for (const each of theCons.loop()) {
+      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+    }
+
+    return anObject;
+  }
+}

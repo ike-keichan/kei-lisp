@@ -1,20 +1,10 @@
-// #!/usr/bin/env node
-
 'use strict';
 
-// モジュール「Cons」を読み込む。
-import { Cons } from './Cons.js';
+import { Cons, type LispValue } from '../Cons/index.js';
+import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
+import { IntStream } from '../IntStream/index.js';
+import { NextState } from '../NextState/index.js';
 
-//モジュール「InterpretedSymbol」を読み込む。
-import { InterpretedSymbol } from './InterpretedSymbol';
-
-// モジュール「IntStream」を読み込む。
-import { IntStream } from './IntStream.js';
-
-// モジュール「NextState」を読み込む。
-import { NextState } from './NextState.js';
-
-// 一時的に読み込む最大文字数
 const PEEKCOUNT = 10;
 
 /**
@@ -23,67 +13,67 @@ const PEEKCOUNT = 10;
  * @author Keisuke Ikeda
  * @this {Parser}
  */
-export class Parser extends Object {
+export class Parser {
+  stream: Iterator<string>;
+  token: LispValue;
+  tokenString: string;
+  states: Map<number, Map<string, NextState>>;
+  state: number;
+  nexts: Array<string | null>;
+
   /**
    * コンストラクタメソッド
-   * @constructor
-   * @param {String} aString 解析する文字列
-   * @return {Parser} 自身
+   * @param aString 解析する文字列
    */
-  constructor(aString) {
-    super();
+  constructor(aString: string) {
     this.stream = aString[Symbol.iterator]();
-    this.token;
+    this.token = null;
     this.tokenString = '';
     this.states = new Map();
     this.state = 0;
+    this.nexts = new Array<string | null>(PEEKCOUNT + 1).fill(null);
     this.initializeStateTransitionTable();
-    this.nexts = Array(PEEKCOUNT + 1);
     let count = 0;
     while (count++ < PEEKCOUNT) {
       this.nextChar();
     }
-
-    return this;
   }
 
   /**
    * 最後の要素かどうかを判別し、応答するメソッド
-   * @return {Boolean} 真偽値
    */
-  atEnd() {
+  atEnd(): boolean {
     return this.peekChar() == null;
   }
 
   /**
    * 文字を連結するメソッド
-   * @return {Null} 何も返さない
    */
-  concatCharacter() {
+  concatCharacter(): null {
     this.tokenString = this.tokenString.concat(String(this.nexts[0]));
     return null;
   }
 
   /**
    * パースする文字列のある1文字を引数とし、パースするメソッド
-   * @param {*} aCharacter パースする1文字
-   * @return {Null} 何も返さない
    */
-  input(
-    aCharacter = (() => {
-      let aCharacter = this.nextChar();
-      return aCharacter != null ? aCharacter : null;
-    })(),
-  ) {
-    // Mapオブジェクト「states」から変数stateに合ったTableオブジェクトを取得し、変数inputsに束縛する。
-    let inputs = new Map();
-    inputs = this.states.get(Number(this.state));
+  input(aCharacter?: string | null): null {
+    if (aCharacter === undefined) {
+      const c = this.nextChar();
+      aCharacter = c != null ? c : null;
+    }
+    if (aCharacter == null) {
+      throw new Error('Syntax Error!');
+    }
 
-    // Tableオブジェクト「inputs」から引数の1文字「aCharacter」の文字コードに対応したメソッドを実行し、値を取得する。
-    let aNumber = new Number();
-    aNumber = inputs.has(String(aCharacter.charCodeAt(0)))
-      ? inputs.get(String(aCharacter.charCodeAt(0))).next(this)
-      : inputs.get(String(128)).next(this);
+    let inputs = this.states.get(Number(this.state));
+    if (inputs == null) {
+      throw new Error('Syntax Error!');
+    }
+
+    const aNumber = inputs.has(String(aCharacter.charCodeAt(0)))
+      ? (inputs.get(String(aCharacter.charCodeAt(0))) as NextState).next(this)
+      : (inputs.get(String(128)) as NextState).next(this);
 
     if (aNumber < 0) {
       throw new Error('Syntax Error!');
@@ -95,24 +85,21 @@ export class Parser extends Object {
 
   /**
    * パースする文字列から次にパースする1文字を応答するメソッド
-   * @return {String} 次にパースする1文字
    */
-  nextChar() {
-    // 文字を文字コードに変換して変数aNumberに格納する。
-    let aCharacter = null;
+  nextChar(): string | null {
+    let aCharacter: string | null = null;
     try {
-      let aNumber = (() => {
-        let value = this.stream.next().value;
-        return value != null ? value.charCodeAt() : -1;
+      const aNumber = (() => {
+        const value = this.stream.next().value;
+        return value != null ? (value as string).charCodeAt(0) : -1;
       })();
       if (aNumber >= 0) {
         aCharacter = String.fromCodePoint(aNumber);
       }
-    } catch (e) {
+    } catch {
       throw new Error('Read Error!');
     }
 
-    // 解析する文字列を1文字ずらす。
     let count = 0;
     while (count < PEEKCOUNT) {
       this.nexts[count] = this.nexts[count + 1];
@@ -125,19 +112,18 @@ export class Parser extends Object {
 
   /**
    * 次のトークンを確認し、応答するメソッド
-   * @return {Cons} トークン
    */
-  nextToken() {
+  nextToken(): LispValue {
     this.token = null;
 
-    while (this.atEnd() == false) {
-      if (this.state == 0 && this.token != null) {
+    while (!this.atEnd()) {
+      if (this.state === 0 && this.token != null) {
         break;
       }
       this.input();
     }
     if (this.atEnd()) {
-      if (this.state != 0) {
+      if (this.state !== 0) {
         throw new Error('Syntax Error!');
       }
     }
@@ -148,26 +134,22 @@ export class Parser extends Object {
 
   /**
    * クラス「NextState」をインスタンス化し、応答するメソッド
-   * @return {NextState} 次の状態
    */
-  nextState(aNumber, aString) {
+  nextState(aNumber: number | null, aString: string | null): NextState {
     return new NextState(aNumber, aString);
   }
 
   /**
    * 引数の文字列をパースし、応答するメソッド
-   * @param {String} aString
-   * @return {Cons}
    */
-  static parse(aString) {
+  static parse(aString: string): LispValue {
     return new Parser(aString).nextToken();
   }
 
   /**
    * 次の文字が存在するかどうかを判断し、次の文字を応答するメソッド
-   * @return {String} 次の文字
    */
-  peekChar(aNumber = 1) {
+  peekChar(aNumber: number = 1): string | null {
     if (aNumber > this.nexts.length) {
       throw new Error('Read Error!');
     }
@@ -176,18 +158,16 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、文字連結を行うメソッド
-   * @return {Null} 何も返さない
    */
-  concat() {
+  concat(): null {
     this.concatCharacter();
     return null;
   }
 
   /**
    * NextStateによって呼び出される、Number型(倍精度浮動小数点数：擬似的なDouble型)のトークン番号で応答するメソッド
-   * @return {Number} トークン番号
    */
-  doubleToken() {
+  doubleToken(): number {
     this.concat();
     if (this.rightParen()) {
       this.tokenToDouble();
@@ -199,9 +179,8 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、Number型(倍精度浮動小数点数：擬似的なDouble型)のトークン番号で応答するメソッド
-   * @return {Number} トークン番号
    */
-  doubleTokenAUX() {
+  doubleTokenAUX(): number {
     this.concat();
     if (this.rightParen()) {
       this.tokenToDouble();
@@ -213,9 +192,8 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、Number型(整数値：擬似的なInteger型)のトークン番号で応答するメソッド
-   * @return {Number} トークン番号
    */
-  integerToken() {
+  integerToken(): number {
     this.concat();
     if (this.rightParen()) {
       this.tokenToInteger();
@@ -227,9 +205,8 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、トークンをリスト（Cons）にし、トークンをリスト（Cons）のトークン番号で応答するメソッド
-   * @return {Number} トークン番号
    */
-  parseList() {
+  parseList(): number {
     this.skippingSpaces();
     if (this.rightParen()) {
       this.nextChar();
@@ -243,12 +220,11 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、トークンをリスト（Cons）にするためのメソッド
-   * @return {Cons} 作ったリスト（Cons）
    */
-  parseListAUX() {
+  parseListAUX(): LispValue {
     this.skippingSpaces();
-    if (this.peekChar() == '#' || this.peekChar() == '%') {
-      while (this.peekChar() != '\n') {
+    if (this.peekChar() === '#' || this.peekChar() === '%') {
+      while (this.peekChar() !== '\n') {
         this.nextChar();
       }
       this.nextChar();
@@ -257,12 +233,12 @@ export class Parser extends Object {
     if (this.rightParen()) {
       this.nextChar();
       return Cons.nil;
-    } else if (this.peekChar() == '.') {
+    } else if (this.peekChar() === '.') {
       this.nextChar();
       this.state = 0;
-      let cdr = this.nextToken();
+      const cdr = this.nextToken();
       this.skippingSpaces();
-      if (this.rightParen() == false) {
+      if (!this.rightParen()) {
         throw new Error('Syntax Error!');
       }
       this.nextChar();
@@ -276,22 +252,20 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、クォートを認識し、トークンをリスト（Cons）にしてトークン番号を応答するメソッド
-   * @return {Number} トークン番号
    */
-  quote() {
-    let anObject = new Cons(this.nextToken(), Cons.nil);
+  quote(): number {
+    const anObject = new Cons(this.nextToken(), Cons.nil);
     this.token = new Cons(InterpretedSymbol.of('quote'), anObject);
 
-    return Number(0);
+    return 0;
   }
 
   /**
    * NextStateによって呼び出される、クォートまたはString型の0オリジン(擬似的なCharacter型)のトークン番号を応答するメソッド
-   * @return {Number} トークン番号
    */
-  quoteOrChar() {
-    let aNumber = this.peekChar() == '\\' ? 3 : 2;
-    if (this.peekChar(aNumber) == "'") {
+  quoteOrChar(): number {
+    let aNumber = this.peekChar() === '\\' ? 3 : 2;
+    if (this.peekChar(aNumber) === "'") {
       aNumber = 11;
     } else {
       aNumber = this.quote();
@@ -302,17 +276,15 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、右括弧(')', ']', '}')を判別し、応答するメソッド
-   * @return {Boolean} 真偽値
    */
-  rightParen() {
-    return this.peekChar() == ')' || this.peekChar() == ']' || this.peekChar() == '}';
+  rightParen(): boolean {
+    return this.peekChar() === ')' || this.peekChar() === ']' || this.peekChar() === '}';
   }
 
   /**
    * NextStateによって呼び出される、記号（'+', '-'）のトークン番号で応答するメソッド
-   * @return {Number} トークン番号
    */
-  sign() {
+  sign(): number {
     this.concat();
     if (this.rightParen()) {
       this.tokenToInteger();
@@ -324,16 +296,15 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、空白文字を無視するメソッド
-   * @return {Null} 何も返さない
    */
-  skippingSpaces() {
+  skippingSpaces(): null {
     while (
-      this.nexts[1] == String.fromCodePoint(9) ||
-      this.nexts[1] == String.fromCodePoint(10) ||
-      this.nexts[1] == String.fromCodePoint(11) ||
-      this.nexts[1] == String.fromCodePoint(12) ||
-      this.nexts[1] == String.fromCodePoint(13) ||
-      this.nexts[1] == String.fromCodePoint(32)
+      this.nexts[1] === String.fromCodePoint(9) ||
+      this.nexts[1] === String.fromCodePoint(10) ||
+      this.nexts[1] === String.fromCodePoint(11) ||
+      this.nexts[1] === String.fromCodePoint(12) ||
+      this.nexts[1] === String.fromCodePoint(13) ||
+      this.nexts[1] === String.fromCodePoint(32)
     ) {
       this.nextChar();
     }
@@ -343,9 +314,8 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、InterpretedSymbol型のトークン番号で応答するメソッド
-   * @return {Number} トークン番号
    */
-  symbolToken() {
+  symbolToken(): number {
     this.concat();
     if (this.rightParen()) {
       this.tokenToSymbol();
@@ -357,61 +327,55 @@ export class Parser extends Object {
 
   /**
    * NextStateによって呼び出される、トークンをString型の0オリジン(擬似的なCharacter型)にするメソッド
-   * @return {Null} 何も返さない
    */
-  tokenToCharacter() {
+  tokenToCharacter(): null {
     this.token = String(this.tokenString[0]);
-    return;
+    return null;
   }
 
   /**
    * NextStateによって呼び出される、トークンをNumber型(倍精度浮動小数点数：擬似的なDouble型)にするメソッド
-   * @return {Null} 何も返さない
    */
-  tokenToDouble() {
+  tokenToDouble(): null {
     this.token = Number(this.tokenString);
-    return;
+    return null;
   }
 
   /**
    * NextStateによって呼び出される、トークンをNumber型(倍精度浮動小数点数：擬似的なDouble型)にするメソッド
-   * @return {Null} 何も返さない
    */
-  tokenToDoubleAUX() {
+  tokenToDoubleAUX(): null {
     this.concat();
     this.token = Number(this.tokenString);
-    return;
+    return null;
   }
 
   /**
    * NextStateによって呼び出される、トークンをNumber型(整数値：擬似的なInteger型)にするメソッド
-   * @return {Null} 何も返さない
    */
-  tokenToInteger() {
-    let aCharacter = this.tokenString[0];
-    if (aCharacter == '+') {
+  tokenToInteger(): null {
+    const aCharacter = this.tokenString[0];
+    if (aCharacter === '+') {
       this.tokenString = this.tokenString.substring(1, this.tokenString.length);
     }
     this.token = Number(this.tokenString);
-    return;
+    return null;
   }
 
   /**
    * NextStateによって呼び出される、トークンをString型にするメソッド
-   * @return {Null} 何も返さない
    */
-  tokenToString() {
+  tokenToString(): null {
     this.token = this.tokenString;
     return null;
   }
 
   /**
    * NextStateによって呼び出される、トークンをInterpretedSymbol型にするメソッド
-   * @return {Null} 何も返さない
    */
-  tokenToSymbol() {
+  tokenToSymbol(): null {
     this.token = InterpretedSymbol.of(this.tokenString);
-    if (this.token == InterpretedSymbol.of('nil')) {
+    if (this.token === InterpretedSymbol.of('nil')) {
       this.token = Cons.nil;
     }
     return null;
@@ -419,10 +383,9 @@ export class Parser extends Object {
 
   /**
    * 文字コードと対応するメソッド（トークン）の対応表を生成するメソッド
-   * @return {Null} 何も返さない。
    */
-  initializeStateTransitionTable() {
-    let aTable = new Map();
+  initializeStateTransitionTable(): null {
+    let aTable = new Map<string, NextState>();
     IntStream.rangeClosed(0, 8).forEach((index) =>
       aTable.set(String(index), this.nextState(-1, null)),
     );
@@ -469,9 +432,9 @@ export class Parser extends Object {
     aTable.set(String(126), this.nextState(8, 'symbolToken'));
     aTable.set(String(127), this.nextState(-1, null));
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(0), aTable);
+    this.states.set(0, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(0, 8).forEach((index) =>
       aTable.set(String(index), this.nextState(-1, null)),
     );
@@ -482,9 +445,9 @@ export class Parser extends Object {
     );
     aTable.set(String(127), this.nextState(-1, null));
     aTable.set(String(128), this.nextState(1, null));
-    this.states.set(Number(1), aTable);
+    this.states.set(1, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(9, 13).forEach((index) =>
       aTable.set(String(index), this.nextState(0, 'tokenToInteger')),
     );
@@ -496,9 +459,9 @@ export class Parser extends Object {
     aTable.set(String(69), this.nextState(4, 'concat'));
     aTable.set(String(101), this.nextState(4, 'concat'));
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(2), aTable);
+    this.states.set(2, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(9, 13).forEach((index) =>
       aTable.set(String(index), this.nextState(0, 'tokenToDouble')),
     );
@@ -511,18 +474,18 @@ export class Parser extends Object {
     aTable.set(String(100), this.nextState(0, 'tokenToDoubleAUX'));
     aTable.set(String(101), this.nextState(4, 'concat'));
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(3), aTable);
+    this.states.set(3, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     aTable.set(String(43), this.nextState(6, 'concat'));
     aTable.set(String(45), this.nextState(6, 'concat'));
     IntStream.rangeClosed(48, 57).forEach((index) =>
       aTable.set(String(index), this.nextState(5, 'doubleTokenAUX')),
     );
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(4), aTable);
+    this.states.set(4, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(9, 13).forEach((index) =>
       aTable.set(String(index), this.nextState(0, 'tokenToDouble')),
     );
@@ -531,16 +494,16 @@ export class Parser extends Object {
       aTable.set(String(index), this.nextState(5, 'doubleTokenAUX')),
     );
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(5), aTable);
+    this.states.set(5, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(48, 57).forEach((index) =>
       aTable.set(String(index), this.nextState(5, 'doubleTokenAUX')),
     );
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(6), aTable);
+    this.states.set(6, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(9, 13).forEach((index) =>
       aTable.set(String(index), this.nextState(0, 'tokenToSymbol')),
     );
@@ -567,9 +530,9 @@ export class Parser extends Object {
     aTable.set(String(124), this.nextState(8, 'symbolToken'));
     aTable.set(String(126), this.nextState(8, 'symbolToken'));
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(7), aTable);
+    this.states.set(7, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(9, 13).forEach((index) =>
       aTable.set(String(index), this.nextState(0, 'tokenToSymbol')),
     );
@@ -596,9 +559,9 @@ export class Parser extends Object {
     aTable.set(String(124), this.nextState(8, 'symbolToken'));
     aTable.set(String(126), this.nextState(8, 'symbolToken'));
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(8), aTable);
+    this.states.set(8, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(0, 31).forEach((index) =>
       aTable.set(String(index), this.nextState(-1, null)),
     );
@@ -606,17 +569,17 @@ export class Parser extends Object {
     aTable.set(String(92), this.nextState(10, null));
     aTable.set(String(127), this.nextState(-1, null));
     aTable.set(String(128), this.nextState(9, 'concat'));
-    this.states.set(Number(9), aTable);
+    this.states.set(9, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(0, 31).forEach((index) =>
       aTable.set(String(index), this.nextState(-1, null)),
     );
     aTable.set(String(127), this.nextState(-1, null));
     aTable.set(String(128), this.nextState(9, 'concat'));
-    this.states.set(Number(10), aTable);
+    this.states.set(10, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(32, 38).forEach((index) =>
       aTable.set(String(index), this.nextState(12, 'concat')),
     );
@@ -628,14 +591,14 @@ export class Parser extends Object {
       aTable.set(String(index), this.nextState(12, 'concat')),
     );
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(11), aTable);
+    this.states.set(11, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     aTable.set(String(39), this.nextState(0, 'tokenToCharacter'));
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(12), aTable);
+    this.states.set(12, aTable);
 
-    aTable = new Map();
+    aTable = new Map<string, NextState>();
     IntStream.rangeClosed(32, 38).forEach((index) =>
       aTable.set(String(index), this.nextState(12, 'concat')),
     );
@@ -643,7 +606,7 @@ export class Parser extends Object {
       aTable.set(String(index), this.nextState(12, 'concat')),
     );
     aTable.set(String(128), this.nextState(-1, null));
-    this.states.set(Number(13), aTable);
+    this.states.set(13, aTable);
 
     return null;
   }

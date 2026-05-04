@@ -1,9 +1,6 @@
-// #!/usr/bin/env node
-
 'use strict';
 
-//モジュール「Cons」を読み込む。
-import { Cons } from './Cons.js';
+import { Cons, type LispValue } from '../Cons/index.js';
 
 /**
  * @class
@@ -11,29 +8,27 @@ import { Cons } from './Cons.js';
  * @author Keisuke Ikeda
  * @this {Table}
  */
-export class Table extends Map {
+export class Table extends Map<unknown, LispValue> {
+  source: Table | null;
+  root: boolean;
+
   /**
    * コンストラクタメソッド
-   * @constructor
-   * @param {Table} aTable この環境が生まれた環境
-   * @return {Table} 自身
+   * @param aTable この環境が生まれた環境
    */
-  constructor(aTable = null) {
+  constructor(aTable: Table | null = null) {
     super();
     this.source = aTable;
-    this.root = aTable == null ? true : false;
-
-    return this;
+    this.root = aTable == null;
   }
 
   /**
    * 自身（Table）を複製し、応答するメソッド
-   * @return {Table} 複製したTable
    */
-  clone() {
-    let aTable = new Table(this);
-    for (let key of this.keys) {
-      let value = Cons.cloneValue(this.get(key));
+  clone(): Table {
+    const aTable = new Table(this);
+    for (const key of this.keys()) {
+      const value = Cons.cloneValue(this.get(key));
       if (value != null) {
         aTable.set(key, value);
       } else {
@@ -46,10 +41,8 @@ export class Table extends Map {
 
   /**
    * 引数のプロパティ（キー）が束縛しているものがあるかどうかを判別し、応答するメソッド
-   * @param {Symbol} aSymbol プロパティ（キー）
-   * @return {Boolean} 真偽値
    */
-  has(aSymbol) {
+  has(aSymbol: unknown): boolean {
     if (super.has(aSymbol)) {
       return true;
     }
@@ -57,56 +50,49 @@ export class Table extends Map {
       return false;
     }
 
-    return this.source.has(aSymbol);
+    return this.source != null && this.source.has(aSymbol);
   }
 
   /**
    * 自身と引数が等しいかどうかを判別し、応答するメソッド
-   * @param {*} anObject 判別するオブジェクト
-   * @return {Boolean} 真偽値
    */
-  equals(anObject) {
-    return super.equals(anObject);
+  equals(anObject: unknown): boolean {
+    return this === anObject;
   }
 
   /**
    * インタプリテッドシンボルが束縛しているものを応答するメソッド
-   * @return {Symbol} インタプリテッドシンボル
-   * @return {Object} インタプリテッドシンボルが束縛している値
    */
-  get(aSymbol) {
+  get(aSymbol: unknown): LispValue {
     if (super.has(aSymbol)) {
-      return super.get(aSymbol);
+      return super.get(aSymbol) as LispValue;
     }
     if (this.isRoot()) {
       return null;
     }
 
-    return this.source.get(aSymbol);
+    return this.source != null ? this.source.get(aSymbol) : null;
   }
 
   /**
    * このインスタンスが環境の根であるかどうかを判別し、応答するメソッド
-   * @return {Boolean} 真偽値
    */
-  isRoot() {
+  isRoot(): boolean {
     return this.root;
   }
 
   /**
    * この環境にインタプリテッドシンボルは登録されていなければ、上書きするメソッド
-   * @param {Symbol} aSymbol 登録するインタプリテッドシンボル
-   * @param {*} anObject 束縛する値
-   * @return {*} 結果
    */
-  setIfExit(aSymbol, anObject) {
-    let answer;
+  setIfExit(aSymbol: unknown, anObject: LispValue): LispValue {
+    let answer: LispValue = null;
     if (super.has(aSymbol)) {
-      answer = this.set(aSymbol, anObject);
+      this.set(aSymbol, anObject);
+      answer = anObject;
     }
     if (this.isRoot()) {
       answer = null;
-    } else {
+    } else if (this.source != null) {
       answer = this.source.setIfExit(aSymbol, anObject);
     }
 
@@ -115,20 +101,16 @@ export class Table extends Map {
 
   /**
    * このインスタンス環境の根があるかどうかを判別し、応答するメソッド
-   * @param {*} aBoolean
-   * @return {Null} 何も返さない
    */
-  setRoot(aBoolean) {
+  setRoot(aBoolean: boolean): null {
     this.root = aBoolean;
     return null;
   }
 
   /**
    * 環境を設定するメソッド
-   * @param {Table} aTable
-   * @return {Null} 何も返さない
    */
-  setSource(aTable) {
+  setSource(aTable: Table | null): null {
     this.source = aTable;
     return null;
   }
