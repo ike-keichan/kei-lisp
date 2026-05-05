@@ -1,8 +1,7 @@
 'use strict';
 
-import { createRequire } from 'node:module';
-
-import * as R from 'ramda';
+import v8 from 'node:v8';
+import vm from 'node:vm';
 
 import { Applier } from '../Applier/index.js';
 import { Cons, type LispValue } from '../Cons/index.js';
@@ -10,9 +9,20 @@ import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
 import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 
-const require = createRequire(import.meta.url);
-
 const notSymbolMessage = (value: LispValue): string => '"' + String(value) + '" is not symbol';
+
+/**
+ * 旧 `expose-gc/function` 相当: `--expose-gc` フラグ無しでも GC を呼べるようにする。
+ * 元パッケージは require 時に同等の処理を実行していたため、初回の gc() 呼び出しで遅延初期化する。
+ */
+let cachedGc: (() => void) | null = null;
+const triggerGc = (): void => {
+  if (cachedGc == null) {
+    v8.setFlagsFromString('--expose_gc');
+    cachedGc = vm.runInNewContext('gc') as () => void;
+  }
+  cachedGc();
+};
 
 /**
  * @class
@@ -337,8 +347,7 @@ export class Evaluator {
   }
 
   gc(): InterpretedSymbol {
-    const gc = require('expose-gc/function') as () => void;
-    gc();
+    triggerGc();
     return InterpretedSymbol.of('t');
   }
 
@@ -634,7 +643,13 @@ export class Evaluator {
       throw new Error('Not Found Method: ' + methodName);
     }
 
-    const answer = R.invoker(1, methodName)(aCons, this) as LispValue;
+    // 原本踏襲: 旧 R.invoker(1, methodName)(aCons, this) は this[methodName].apply(this, [aCons]) と等価。
+    const target = this as unknown as Record<string, unknown>;
+    const fn = target[methodName];
+    if (typeof fn !== 'function') {
+      throw new TypeError(String(target) + ' does not have a method named "' + methodName + '"');
+    }
+    const answer = (fn as (a: Cons) => LispValue).apply(target, [aCons]);
 
     if (this.isSpy(aSymbol)) {
       this.setDepth(this.depth - 1);

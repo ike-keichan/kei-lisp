@@ -1,7 +1,5 @@
 'use strict';
 
-import * as R from 'ramda';
-
 import { Cons, type LispValue } from '../Cons/index.js';
 import { Evaluator } from '../Evaluator/index.js';
 import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
@@ -174,7 +172,14 @@ export class Applier {
       console.log('Not Found Method: ' + methodName);
     }
 
-    const answer = R.invoker(1, methodName)(args, this) as LispValue;
+    // 原本踏襲: 旧 R.invoker(1, methodName)(args, this) は this[methodName].apply(this, [args]) と等価。
+    // メソッドが関数でない場合は TypeError を投げる挙動も含めて再現する。
+    const target = this as unknown as Record<string, unknown>;
+    const fn = target[methodName];
+    if (typeof fn !== 'function') {
+      throw new TypeError(String(target) + ' does not have a method named "' + methodName + '"');
+    }
+    const answer = (fn as (a: LispValue) => LispValue).apply(target, [args]);
 
     if (this.isSpy(procedure)) {
       this.setDepth(this.depth - 1);

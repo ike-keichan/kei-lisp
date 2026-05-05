@@ -1,7 +1,5 @@
 'use strict';
 
-import * as R from 'ramda';
-
 import type { Parser } from '../Parser/index.js';
 
 /**
@@ -46,7 +44,9 @@ export class NextState {
       if (this.nextState != null) {
         aNumber = this.nextState;
       }
-      const anObject = R.invoker(0, this.methodName)(this.automaton);
+      const anObject = (this.automaton as unknown as Record<string, () => unknown>)[
+        this.methodName
+      ]();
       if (anObject != null) {
         aNumber = Number(anObject);
       }
