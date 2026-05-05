@@ -19,7 +19,8 @@ export class Table extends Map<unknown, LispValue> {
   constructor(aTable: Table | null = null) {
     super();
     this.source = aTable;
-    this.root = aTable == null;
+    // 原本踏襲: 三項演算子のまま
+    this.root = aTable == null ? true : false;
   }
 
   /**
@@ -27,8 +28,10 @@ export class Table extends Map<unknown, LispValue> {
    */
   clone(): Table {
     const aTable = new Table(this);
-    for (const key of this.keys()) {
+    // 原本踏襲: this.keys は関数参照そのもので括弧無しでは反復不能 (TypeError)
+    for (const key of this.keys as unknown as Iterable<unknown>) {
       const value = Cons.cloneValue(this.get(key));
+      // eslint-disable-next-line unicorn/no-negated-condition
       if (value != null) {
         aTable.set(key, value);
       } else {
@@ -50,14 +53,16 @@ export class Table extends Map<unknown, LispValue> {
       return false;
     }
 
-    return this.source != null && this.source.has(aSymbol);
+    // 原本踏襲: source が null なら実行時に TypeError (実際には isRoot=false なら source は非 null)
+    return (this.source as Table).has(aSymbol);
   }
 
   /**
    * 自身と引数が等しいかどうかを判別し、応答するメソッド
    */
   equals(anObject: unknown): boolean {
-    return this === anObject;
+    // 原本踏襲: super.equals は Map に存在しないため呼び出すと TypeError
+    return (Map.prototype as unknown as { equals(o: unknown): boolean }).equals(anObject);
   }
 
   /**
@@ -71,7 +76,8 @@ export class Table extends Map<unknown, LispValue> {
       return null;
     }
 
-    return this.source != null ? this.source.get(aSymbol) : null;
+    // 原本踏襲: source が null なら実行時に TypeError
+    return (this.source as Table).get(aSymbol);
   }
 
   /**
@@ -84,20 +90,23 @@ export class Table extends Map<unknown, LispValue> {
   /**
    * この環境にインタプリテッドシンボルは登録されていなければ、上書きするメソッド
    */
+  /* eslint-disable no-useless-assignment, sonarjs/no-dead-store, unicorn/prefer-ternary */
   setIfExit(aSymbol: unknown, anObject: LispValue): LispValue {
     let answer: LispValue = null;
     if (super.has(aSymbol)) {
-      this.set(aSymbol, anObject);
-      answer = anObject;
+      // 原本踏襲: this.set の戻り値 (Map 自身) を answer に代入 (直後で上書きされる)
+      answer = this.set(aSymbol, anObject) as unknown as LispValue;
     }
     if (this.isRoot()) {
       answer = null;
-    } else if (this.source != null) {
-      answer = this.source.setIfExit(aSymbol, anObject);
+    } else {
+      // 原本踏襲: source が null なら実行時に TypeError
+      answer = (this.source as Table).setIfExit(aSymbol, anObject);
     }
 
     return answer;
   }
+  /* eslint-enable no-useless-assignment, sonarjs/no-dead-store, unicorn/prefer-ternary */
 
   /**
    * このインスタンス環境の根があるかどうかを判別し、応答するメソッド

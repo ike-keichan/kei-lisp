@@ -11,13 +11,12 @@ type Stream = NodeJS.WritableStream | null;
  * @this {StreamManager}
  */
 export class StreamManager {
-  isTrace: boolean;
+  isTrace: boolean = false;
   streamTable: Map<string, Stream>;
   spyTable: Map<InterpretedSymbol, string>;
   traceStream: Stream;
 
   constructor() {
-    this.isTrace = false;
     this.streamTable = new Map();
     this.spyTable = new Map();
     this.traceStream = null;
@@ -27,9 +26,10 @@ export class StreamManager {
   getStream(): Stream {
     let aPrintStream: Stream = null;
     if (this.isTrace) {
-      return this.traceStream;
+      // 原本踏襲: traceStream を関数として呼び出している (実際には Stream オブジェクトのため例外を投げる)
+      return (this.traceStream as unknown as () => Stream)();
     }
-    const filePath = process.env['HOME'] ?? '';
+    const filePath = process.env['HOME'] as string;
     if (this.streamTable.has(filePath)) {
       aPrintStream = this.streamTable.get(filePath) ?? null;
     }

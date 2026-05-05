@@ -11,7 +11,7 @@ import type { Parser } from '../Parser/index.js';
  * @this {NextState}
  */
 export class NextState {
-  automaton: Parser | null;
+  automaton: Parser | null = null;
   nextState: number | null;
   method: unknown;
   methodName: string | null;
@@ -20,7 +20,6 @@ export class NextState {
    * コンストラクタメソッド
    */
   constructor(aNumber: number | null, aString: string | null) {
-    this.automaton = null;
     this.nextState = aNumber;
     this.method = null;
     this.methodName = aString;

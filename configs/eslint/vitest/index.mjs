@@ -1,4 +1,4 @@
-import vitest from '@vitest/eslint-plugin';
+import pluginVitest from '@vitest/eslint-plugin';
 import { FILES, RULE_LEVEL } from '../const/index.mjs';
 
 const { TEST } = FILES;
@@ -10,9 +10,9 @@ const { ERROR, WARN } = RULE_LEVEL;
 export const vitestConfigs = [
   {
     files: TEST,
-    plugins: { vitest },
+    plugins: { vitest: pluginVitest },
     rules: {
-      ...vitest.configs.recommended.rules,
+      ...pluginVitest.configs.recommended.rules,
       // .only の残存を禁止（CI 全体に影響するため）
       'vitest/no-focused-tests': ERROR,
       // .skip の残存を警告

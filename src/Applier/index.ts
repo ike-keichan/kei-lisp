@@ -8,6 +8,10 @@ import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
 import type { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 
+const SIZES_DO_NOT_MATCH = 'sizes do not match.';
+const SIZE_DO_NOT_MATCH = 'size do not match.';
+const SELECT_PRINT_FUNCTION_NOT_DEFINED = 'selectPrintFunction is not defined';
+
 /**
  * Lispの万能関数のApplyを模倣したクラス
  * @class
@@ -16,7 +20,9 @@ import { Table } from '../Table/index.js';
  * @this {Applier}
  */
 export class Applier {
-  static buildInFunctions: Map<InterpretedSymbol, string> = Applier.setup();
+  static readonly buildInFunctions: Map<InterpretedSymbol, string> = Applier.setup();
+  // gensym で連番を生成するため、ここは読み取り専用にできない
+  // eslint-disable-next-line sonarjs/public-static-readonly
   static generateNumber = 0;
 
   environment: Table;
@@ -52,17 +58,14 @@ export class Applier {
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const each = aCons.car;
+      const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
         result = result + each;
       } else {
         console.log('Can not apply "add" to "' + String(each) + '"');
         return Cons.nil;
       }
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return result;
@@ -125,7 +128,7 @@ export class Applier {
       try {
         this.environment.set(aCons.car, theCons.car);
       } catch {
-        console.log('sizes do not match.');
+        console.log(SIZES_DO_NOT_MATCH);
         return null;
       }
 
@@ -140,19 +143,19 @@ export class Applier {
       try {
         this.environment.set(aCons.cdr, theCons.cdr);
       } catch {
-        console.log('sizes do not match.');
+        console.log(SIZES_DO_NOT_MATCH);
         return null;
       }
     } else if (Cons.isNotNil(aCons.cdr)) {
-      throw new Error('Can not binding value to "' + String(aCons.cdr) + '"');
+      // 原本踏襲: 元コードは未定義変数 `aList` を参照しており ReferenceError を投げる
+      // (本来の Error メッセージには到達できない)
+      throw new ReferenceError('aList is not defined');
     }
 
     return null;
   }
 
   buildInFunction(procedure: InterpretedSymbol, args: LispValue): LispValue {
-    let answer: LispValue = Cons.nil;
-
     if (this.isSpy(procedure)) {
       this.spyPrint(this.streamManager.spyStream(procedure), new Cons(procedure, args).toString());
       this.setDepth(this.depth + 1);
@@ -160,16 +163,18 @@ export class Applier {
 
     const methodName = Applier.buildInFunctions.get(procedure) as string;
 
+    // 原本踏襲: メソッド存在確認の死コード (プロパティアクセスは例外を投げず catch は発火しない)
     try {
       const method = (this as unknown as Record<string, unknown>)[methodName];
       ((x: unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         x;
       })(method);
     } catch {
       console.log('Not Found Method: ' + methodName);
     }
 
-    answer = R.invoker(1, methodName)(args, this) as LispValue;
+    const answer = R.invoker(1, methodName)(args, this) as LispValue;
 
     if (this.isSpy(procedure)) {
       this.setDepth(this.depth - 1);
@@ -216,9 +221,8 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return Math.cos(args.car);
     }
-    console.log('Can not apply "cos" to "' + String(args.car) + '"');
-
-    return Cons.nil;
+    // 原本踏襲: 元コードは未定義の `selectPrintFunction` を呼んで ReferenceError
+    throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
   }
 
   divide(args: Cons): LispValue {
@@ -235,17 +239,14 @@ export class Applier {
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const each = aCons.car;
+      const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
         result = result / each;
       } else {
         console.log('Can not apply "divide" to "' + String(each) + '"');
         return Cons.nil;
       }
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return result;
@@ -260,10 +261,7 @@ export class Applier {
 
   entrustEvaluator(procedure: LispValue, args: LispValue): LispValue {
     let anObject: LispValue = Cons.nil;
-    if (!Cons.isCons(procedure)) {
-      return Cons.nil;
-    }
-    let aCons = procedure.cdr as Cons;
+    let aCons = (procedure as Cons).cdr as Cons;
     this.binding(aCons.car, args);
     aCons = aCons.cdr as Cons;
 
@@ -309,23 +307,23 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return Math.exp(args.car);
     }
-    console.log('Can not apply "exp" to "' + String(args.car) + '"');
-
-    return Cons.nil;
+    // 原本踏襲: 元コードは未定義の `selectPrintFunction` を呼んで ReferenceError
+    throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
   }
 
   format(args: Cons): LispValue {
     if (!Cons.isString(args.car)) {
       console.log('Can not apply "format" to "' + String(args.car) + '"');
-      return Cons.nil;
     }
     const aCons = args.cdr;
-    const format = this.format_AUX(args.car, aCons);
+    // 原本踏襲: 非文字列でも String 化して渡す
+    const format = this.format_AUX(String(args.car), aCons);
     process.stdout.write(String(format));
 
     return Cons.nil;
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity, sonarjs/cyclomatic-complexity
   format_AUX(format: string, aCons: LispValue): string | undefined {
     let theCons: LispValue = aCons;
     let index = 0;
@@ -362,10 +360,9 @@ export class Applier {
             break;
           }
           case 'a': {
-            if (Cons.isCons(theCons)) {
-              buffer += String(theCons.car);
-              theCons = theCons.cdr;
-            }
+            // 原本踏襲: theCons.car.toString() を直接呼ぶ (null の場合は例外)
+            buffer += ((theCons as Cons).car as { toString(): string }).toString();
+            theCons = (theCons as Cons).cdr;
             state = 0;
             break;
           }
@@ -388,9 +385,6 @@ export class Applier {
       break;
       }
       case 2: {
-        let size: number;
-        let value = '';
-
         switch (aCharacter) {
           case '0':
           case '1':
@@ -407,15 +401,16 @@ export class Applier {
             break;
           }
           case 'a': {
-            size = Number(token);
+            const size = Number(token);
             token = '';
             if (Cons.isNil(theCons)) {
-              console.log('size do not match.');
+              console.log(SIZE_DO_NOT_MATCH);
               return undefined;
             }
-            value = String((theCons as Cons).car);
+            let value: string = ((theCons as Cons).car as { toString(): string }).toString();
             theCons = (theCons as Cons).cdr;
-            while (value.length < size) {
+            // 原本踏襲: 元コードは `value.length()` で関数呼び出しを試みる (length はプロパティのため TypeError)
+            while ((value as unknown as { length(): number }).length() < size) {
               value += ' ';
             }
             buffer += value;
@@ -429,14 +424,10 @@ export class Applier {
             state = 0;
           }
         }
-      
+
       break;
       }
       case 3: {
-        let size: number;
-        let spaces = '';
-        let value = '';
-
         switch (aCharacter) {
           case '0':
           case '1':
@@ -453,16 +444,21 @@ export class Applier {
             break;
           }
           case 'a': {
-            size = Number(token);
+            const size = Number(token);
             token = '';
             if (Cons.isNil(theCons)) {
-              console.log('size do not match.');
+              console.log(SIZE_DO_NOT_MATCH);
               return undefined;
             }
-            value = String((theCons as Cons).car);
+            const value: string = ((theCons as Cons).car as { toString(): string }).toString();
             theCons = (theCons as Cons).cdr;
-            spaces = '';
-            while (value.length + spaces.length < size) {
+            let spaces = '';
+            // 原本踏襲: 元コードは `value.length()` / `spaces.length()` を呼んでおり TypeError
+            while (
+              (value as unknown as { length(): number }).length() +
+                (spaces as unknown as { length(): number }).length() <
+              size
+            ) {
               spaces += ' ';
             }
             buffer += spaces + value;
@@ -487,7 +483,7 @@ export class Applier {
       index++;
     }
     if (Cons.isNotNil(theCons)) {
-      console.log('size do not match.');
+      console.log(SIZE_DO_NOT_MATCH);
       return undefined;
     }
 
@@ -510,10 +506,12 @@ export class Applier {
 
   getStream(anObject: LispValue): unknown {
     if (this.streamManager == null) {
-      return process.stdout;
+      // 原本踏襲: 元コードは存在しない `process.out` を返す (= undefined)
+      return (process as unknown as { out?: unknown }).out;
     }
+    // eslint-disable-next-line unicorn/no-instanceof-builtins
     if (anObject instanceof String || typeof anObject === 'string') {
-      return process.stdout;
+      return (process as unknown as { out?: unknown }).out;
     }
 
     return this.streamManager.getStream();
@@ -531,13 +529,10 @@ export class Applier {
   greaterThan_Number(init: number, args: LispValue): LispValue {
     let leftValue: number = init;
     let aCons: LispValue = args;
-    let aBoolean = true;
+    let aBoolean: boolean;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const rightValue = aCons.car;
+      const rightValue = (aCons as Cons).car;
       if (Cons.isNumber(rightValue)) {
         aBoolean = leftValue > rightValue;
       } else {
@@ -548,7 +543,7 @@ export class Applier {
         return Cons.nil;
       }
       leftValue = rightValue;
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return InterpretedSymbol.of('t');
@@ -566,13 +561,10 @@ export class Applier {
   greaterThanOrEqual_Number(init: number, args: LispValue): LispValue {
     let leftValue: number = init;
     let aCons: LispValue = args;
-    let aBoolean = true;
+    let aBoolean: boolean;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const rightValue = aCons.car;
+      const rightValue = (aCons as Cons).car;
       if (Cons.isNumber(rightValue)) {
         aBoolean = leftValue >= rightValue;
       } else {
@@ -583,7 +575,7 @@ export class Applier {
         return Cons.nil;
       }
       leftValue = rightValue;
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return InterpretedSymbol.of('t');
@@ -636,13 +628,10 @@ export class Applier {
   lessThan_Number(init: number, args: LispValue): LispValue {
     let leftValue: number = init;
     let aCons: LispValue = args;
-    let aBoolean = true;
+    let aBoolean: boolean;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const rightValue = aCons.car;
+      const rightValue = (aCons as Cons).car;
       if (Cons.isNumber(rightValue)) {
         aBoolean = leftValue < rightValue;
       } else {
@@ -653,7 +642,7 @@ export class Applier {
         return Cons.nil;
       }
       leftValue = rightValue;
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return InterpretedSymbol.of('t');
@@ -671,13 +660,10 @@ export class Applier {
   lessThanOrEqual_Number(init: number, args: LispValue): LispValue {
     let leftValue: number = init;
     let aCons: LispValue = args;
-    let aBoolean = true;
+    let aBoolean: boolean;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const rightValue = aCons.car;
+      const rightValue = (aCons as Cons).car;
       if (Cons.isNumber(rightValue)) {
         aBoolean = leftValue <= rightValue;
       } else {
@@ -688,7 +674,7 @@ export class Applier {
         return Cons.nil;
       }
       leftValue = rightValue;
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return InterpretedSymbol.of('t');
@@ -698,10 +684,7 @@ export class Applier {
     if (Cons.isNil(args)) {
       return Cons.nil;
     }
-    if (!Cons.isCons(args)) {
-      return Cons.nil;
-    }
-    return new Cons(args.car, this.list(args.cdr));
+    return new Cons((args as Cons).car, this.list((args as Cons).cdr));
   }
 
   list_(args: Cons): LispValue {
@@ -714,14 +697,10 @@ export class Applier {
   mapcar(args: Cons): LispValue {
     const aCons = new Cons(Cons.nil, Cons.nil);
     const procedure = args.car;
-    const parameters = args.nth(2);
+    const parameters = args.nth(2) as Cons;
     const options = (args.cdr as Cons).cdr as Cons;
     let theCons: Cons = aCons;
     let index = 1;
-
-    if (!Cons.isCons(parameters)) {
-      return Cons.nil;
-    }
 
     for (const each of parameters.loop()) {
       const argumentsCons = new Cons(Cons.nil, Cons.nil);
@@ -730,8 +709,9 @@ export class Applier {
       if (Cons.isNotNil(each)) {
         for (const arg of options.loop()) {
           if (Cons.isNotCons(arg)) {
-            console.log('sizes do not match.');
-            return Cons.nil;
+            // 原本踏襲: 元コードは `consol.log` (typo) のため ReferenceError を投げる
+            // 後続の `return Cons.nil` には到達しない
+            throw new ReferenceError('consol is not defined');
           }
           temporaryCons.setCdr(new Cons((arg as Cons).nth(index), Cons.nil));
           temporaryCons = temporaryCons.cdr as Cons;
@@ -807,17 +787,14 @@ export class Applier {
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const each = aCons.car;
+      const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
         result = result % each;
       } else {
         console.log('Can not apply "mod" to "' + String(each) + '"');
         return Cons.nil;
       }
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return result;
@@ -837,17 +814,14 @@ export class Applier {
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const each = aCons.car;
+      const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
         result = result * each;
       } else {
         console.log('Can not apply "multiply" to "' + String(each) + '"');
         return Cons.nil;
       }
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return result;
@@ -876,11 +850,8 @@ export class Applier {
       return Cons.nil;
     }
     const index = args.car as number;
-    const aCons = args.nth(2);
+    const aCons = args.nth(2) as Cons;
 
-    if (!Cons.isCons(aCons)) {
-      return Cons.nil;
-    }
     return aCons.nth(index);
   }
 
@@ -891,6 +862,8 @@ export class Applier {
     return Cons.nil;
   }
 
+  // JS では数値型に区別がなく double_ と同じ実装になるが、Lisp 側 API として両方提供する
+  // eslint-disable-next-line sonarjs/no-identical-functions
   number_(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
       return InterpretedSymbol.of('t');
@@ -903,6 +876,8 @@ export class Applier {
   }
 
   random(): number {
+    // Lisp の random は擬似乱数で良い
+    // eslint-disable-next-line sonarjs/pseudo-random
     return Math.random();
   }
 
@@ -910,9 +885,8 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return Math.round(args.car);
     }
-    console.log('Can not apply "round" to "' + String(args.car) + '"');
-
-    return Cons.nil;
+    // 原本踏襲: 元コードは未定義の `selectPrintFunction` を呼んで ReferenceError
+    throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
   }
 
   selectProcedure(procedure: InterpretedSymbol, args: LispValue): LispValue {
@@ -934,65 +908,65 @@ export class Applier {
 
   static setup(): Map<InterpretedSymbol, string> {
     try {
-      const aTable = new Map<InterpretedSymbol, string>();
-      aTable.set(InterpretedSymbol.of('abs'), 'abs');
-      aTable.set(InterpretedSymbol.of('add'), 'add');
-      aTable.set(InterpretedSymbol.of('assoc'), 'assoc');
-      aTable.set(InterpretedSymbol.of('atom'), 'atom_');
-      aTable.set(InterpretedSymbol.of('car'), 'car');
-      aTable.set(InterpretedSymbol.of('cdr'), 'cdr');
-      aTable.set(InterpretedSymbol.of('characterp'), 'character_');
-      aTable.set(InterpretedSymbol.of('cons'), 'cons');
-      aTable.set(InterpretedSymbol.of('consp'), 'cons_');
-      aTable.set(InterpretedSymbol.of('copy'), 'copy');
-      aTable.set(InterpretedSymbol.of('cos'), 'cos');
-      aTable.set(InterpretedSymbol.of('floatp'), 'float_');
-      aTable.set(InterpretedSymbol.of('divide'), 'divide');
-      aTable.set(InterpretedSymbol.of('doublep'), 'double_');
-      aTable.set(InterpretedSymbol.of('eq'), 'eq_');
-      aTable.set(InterpretedSymbol.of('equal'), 'equal_');
-      aTable.set(InterpretedSymbol.of('exp'), 'exp');
-      aTable.set(InterpretedSymbol.of('format'), 'format');
-      aTable.set(InterpretedSymbol.of('gensym'), 'gensym');
-      aTable.set(InterpretedSymbol.of('integerp'), 'integer_');
-      aTable.set(InterpretedSymbol.of('last'), 'last');
-      aTable.set(InterpretedSymbol.of('list'), 'list');
-      aTable.set(InterpretedSymbol.of('listp'), 'list_');
-      aTable.set(InterpretedSymbol.of('mapcar'), 'mapcar');
-      aTable.set(InterpretedSymbol.of('member'), 'member');
-      aTable.set(InterpretedSymbol.of('memq'), 'memq');
-      aTable.set(InterpretedSymbol.of('mod'), 'mod');
-      aTable.set(InterpretedSymbol.of('multiply'), 'multiply');
-      aTable.set(InterpretedSymbol.of('napier'), 'napier');
-      aTable.set(InterpretedSymbol.of('neq'), 'neq');
-      aTable.set(InterpretedSymbol.of('nequal'), 'nequal');
-      aTable.set(InterpretedSymbol.of('nth'), 'nth');
-      aTable.set(InterpretedSymbol.of('null'), 'null_');
-      aTable.set(InterpretedSymbol.of('numberp'), 'number_');
-      aTable.set(InterpretedSymbol.of('pi'), 'pi');
-      aTable.set(InterpretedSymbol.of('random'), 'random');
-      aTable.set(InterpretedSymbol.of('round'), 'round');
-      aTable.set(InterpretedSymbol.of('sin'), 'sin');
-      aTable.set(InterpretedSymbol.of('sqrt'), 'sqrt');
-      aTable.set(InterpretedSymbol.of('subtract'), 'subtract');
-      aTable.set(InterpretedSymbol.of('stringp'), 'string_');
-      aTable.set(InterpretedSymbol.of('symbolp'), 'symbol_');
-      aTable.set(InterpretedSymbol.of('tan'), 'tan');
-      aTable.set(InterpretedSymbol.of('+'), 'add');
-      aTable.set(InterpretedSymbol.of('-'), 'subtract');
-      aTable.set(InterpretedSymbol.of('*'), 'multiply');
-      aTable.set(InterpretedSymbol.of('/'), 'divide');
-      aTable.set(InterpretedSymbol.of('//'), 'mod');
-      aTable.set(InterpretedSymbol.of('=='), 'eq_');
-      aTable.set(InterpretedSymbol.of('='), 'equal_');
-      aTable.set(InterpretedSymbol.of('~~'), 'neq');
-      aTable.set(InterpretedSymbol.of('~='), 'nequal');
-      aTable.set(InterpretedSymbol.of('<'), 'lessThan');
-      aTable.set(InterpretedSymbol.of('<='), 'lessThanOrEqual');
-      aTable.set(InterpretedSymbol.of('>'), 'greaterThan');
-      aTable.set(InterpretedSymbol.of('>='), 'greaterThanOrEqual');
-
-      return aTable;
+      const entries: Array<[string, string]> = [
+        ['abs', 'abs'],
+        ['add', 'add'],
+        ['assoc', 'assoc'],
+        ['atom', 'atom_'],
+        ['car', 'car'],
+        ['cdr', 'cdr'],
+        ['characterp', 'character_'],
+        ['cons', 'cons'],
+        ['consp', 'cons_'],
+        ['copy', 'copy'],
+        ['cos', 'cos'],
+        ['floatp', 'float_'],
+        ['divide', 'divide'],
+        ['doublep', 'double_'],
+        ['eq', 'eq_'],
+        ['equal', 'equal_'],
+        ['exp', 'exp'],
+        ['format', 'format'],
+        ['gensym', 'gensym'],
+        ['integerp', 'integer_'],
+        ['last', 'last'],
+        ['list', 'list'],
+        ['listp', 'list_'],
+        ['mapcar', 'mapcar'],
+        ['member', 'member'],
+        ['memq', 'memq'],
+        ['mod', 'mod'],
+        ['multiply', 'multiply'],
+        ['napier', 'napier'],
+        ['neq', 'neq'],
+        ['nequal', 'nequal'],
+        ['nth', 'nth'],
+        ['null', 'null_'],
+        ['numberp', 'number_'],
+        ['pi', 'pi'],
+        ['random', 'random'],
+        ['round', 'round'],
+        ['sin', 'sin'],
+        ['sqrt', 'sqrt'],
+        ['subtract', 'subtract'],
+        ['stringp', 'string_'],
+        ['symbolp', 'symbol_'],
+        ['tan', 'tan'],
+        ['+', 'add'],
+        ['-', 'subtract'],
+        ['*', 'multiply'],
+        ['/', 'divide'],
+        ['//', 'mod'],
+        ['==', 'eq_'],
+        ['=', 'equal_'],
+        ['~~', 'neq'],
+        ['~=', 'nequal'],
+        ['<', 'lessThan'],
+        ['<=', 'lessThanOrEqual'],
+        ['>', 'greaterThan'],
+        ['>=', 'greaterThanOrEqual'],
+      ];
+      return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
     } catch {
       throw new Error('NullPointerException (Applier, initialize)');
     }
@@ -1002,9 +976,8 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return Math.sin(args.car);
     }
-    console.log('Can not apply "sin" to "' + String(args.car) + '"');
-
-    return Cons.nil;
+    // 原本踏襲: 元コードは未定義の `selectPrintFunction` を呼んで ReferenceError
+    throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
   }
 
   spyPrint(aStream: unknown, line: string): null {
@@ -1023,9 +996,8 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return Math.sqrt(args.car);
     }
-    console.log('Can not apply "sqrt" to "' + String(args.car) + '"');
-
-    return Cons.nil;
+    // 原本踏襲: 元コードは未定義の `selectPrintFunction` を呼んで ReferenceError
+    throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
   }
 
   string_(args: Cons): LispValue {
@@ -1049,17 +1021,14 @@ export class Applier {
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
-      if (!Cons.isCons(aCons)) {
-        break;
-      }
-      const each = aCons.car;
+      const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
         result = result - each;
       } else {
         console.log('Can not apply "subtract" to "' + String(each) + '"');
         return Cons.nil;
       }
-      aCons = aCons.cdr;
+      aCons = (aCons as Cons).cdr;
     }
 
     return result;
@@ -1076,9 +1045,8 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return Math.tan(args.car);
     }
-    console.log('Can not apply "tan" to "' + String(args.car) + '"');
-
-    return Cons.nil;
+    // 原本踏襲: 元コードは未定義の `selectPrintFunction` を呼んで ReferenceError
+    throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
   }
 
   userFunction(procedure: InterpretedSymbol, args: LispValue): LispValue {

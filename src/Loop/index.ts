@@ -59,13 +59,15 @@ export class Loop {
           this.remove();
           return { value: nextValue, done: false };
         }
-        return { value: undefined, done: true };
+        // 原本踏襲: value フィールドを含めない
+        return { done: true } as IteratorResult<LispValue>;
       },
     };
   }
 
   /**
    * 非同期反復可能プロトコルasyncIteratorの実装
+   * for...ofなどでのイテレートが可能になる。
    */
   [Symbol.asyncIterator](): AsyncIterator<LispValue> {
     return {
@@ -75,7 +77,8 @@ export class Loop {
           this.remove();
           return Promise.resolve({ value: nextValue, done: false });
         }
-        return Promise.resolve({ value: undefined, done: true });
+        // 原本踏襲: value フィールドを含めない
+        return Promise.resolve({ done: true } as IteratorResult<LispValue>);
       },
     };
   }

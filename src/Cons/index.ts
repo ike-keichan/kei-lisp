@@ -5,15 +5,7 @@ import { Loop } from '../Loop/index.js';
 import { Parser } from '../Parser/index.js';
 import { Table } from '../Table/index.js';
 
-export type LispValue =
-  | Cons
-  | InterpretedSymbol
-  | Table
-  | number
-  | string
-  | boolean
-  | null
-  | undefined;
+export type LispValue = Cons | InterpretedSymbol | Table | number | string | null;
 
 /**
  * @class
@@ -22,7 +14,7 @@ export type LispValue =
  * @this {Cons}
  */
 export class Cons {
-  static nil: Cons = new Cons();
+  static readonly nil: Cons = new Cons();
 
   car: LispValue;
   cdr: LispValue;
@@ -175,6 +167,8 @@ export class Cons {
    * 引数が数字かどうかを判別し、応答するメソッド
    */
   static isNumber(anObject: LispValue): anObject is number {
+    // ボックス化された Number も真とする (原本踏襲)
+    // eslint-disable-next-line unicorn/no-instanceof-builtins
     return anObject instanceof Number || typeof anObject === 'number';
   }
 
@@ -182,6 +176,8 @@ export class Cons {
    * 引数が文字列かどうかを判別し、応答するメソッド
    */
   static isString(anObject: LispValue): anObject is string {
+    // ボックス化された String も真とする (原本踏襲)
+    // eslint-disable-next-line unicorn/no-instanceof-builtins
     return anObject instanceof String || typeof anObject === 'string';
   }
 
@@ -205,6 +201,7 @@ export class Cons {
    */
   last(): Cons {
     let theCons: Cons = new Cons(Cons.nil, this);
+    // eslint-disable-next-line unicorn/no-this-assignment, @typescript-eslint/no-this-alias
     let aCons: Cons = this;
 
     while (Cons.isCons(aCons)) {
@@ -232,6 +229,7 @@ export class Cons {
    */
   length(): number {
     let count = 0;
+    // eslint-disable-next-line unicorn/no-this-assignment, @typescript-eslint/no-this-alias
     let aCons: LispValue = this;
 
     while (Cons.isCons(aCons)) {
@@ -262,6 +260,7 @@ export class Cons {
       return Cons.nil;
     }
     let count = 1;
+    // eslint-disable-next-line unicorn/no-this-assignment, @typescript-eslint/no-this-alias
     let aCons: LispValue = this;
     while (Cons.isCons(aCons)) {
       if (count >= aNumber) {
@@ -310,6 +309,7 @@ export class Cons {
   /**
    * 自身を整形し、文字列として返すメソッド
    */
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   toString(): string {
     let aString = '';
     if (Cons.isNil(this)) {
@@ -319,9 +319,7 @@ export class Cons {
 
       if (Cons.isNil(this.cdr)) {
         aString += ')';
-      } else if (!(this.cdr instanceof Cons)) {
-        aString += ' . ' + Cons.toString(this.cdr) + ')';
-      } else {
+      } else if (this.cdr instanceof Cons) {
         let aCons: Cons = this.cdr;
         while (true) {
           const head = aCons.car;
@@ -339,6 +337,8 @@ export class Cons {
           }
           aCons = tail;
         }
+      } else {
+        aString += ' . ' + Cons.toString(this.cdr) + ')';
       }
     }
 
@@ -353,10 +353,13 @@ export class Cons {
     let aString = '';
     if (Cons.isNil(anObject)) {
       aString += 'nil';
+      // 原本踏襲: ボックス化された String のみクォート
+      // eslint-disable-next-line unicorn/no-instanceof-builtins
     } else if (anObject instanceof String) {
       aString += '"' + anObject.toString() + '"';
     } else {
-      aString += String(anObject);
+      // 原本: 直接 toString を呼ぶ
+      aString += (anObject as { toString(): string }).toString();
     }
 
     return aString;

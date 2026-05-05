@@ -60,17 +60,11 @@ export class LispInterpreter {
         if (leftParentheses <= 0) {
           aCons = this.parse(aString);
           try {
-            if (Cons.isCons(aCons)) {
-              for (const each of aCons.loop()) {
-                console.log(String(this.eval(each)));
-              }
+            for (const each of (aCons as Cons).loop()) {
+              console.log((this.eval(each) as { toString(): string }).toString());
             }
           } catch {
-            console.log(
-              '*** can not eval ' +
-                (Cons.isCons(aCons) ? aCons.toString() : String(aCons)) +
-                ' ***',
-            );
+            console.log('*** can not eval ' + (aCons as Cons).toString() + ' ***');
             console.log(Cons.nil.toString());
           }
           leftParentheses = 0;
@@ -80,6 +74,7 @@ export class LispInterpreter {
       })
       .on('close', () => {
         console.log('\nBye!');
+        // eslint-disable-next-line n/no-process-exit, unicorn/no-process-exit
         process.exit(0);
       });
 
@@ -90,17 +85,12 @@ export class LispInterpreter {
    * 引数のリストを評価し、評価値を応答するメソッド
    */
   eval(aCons: LispValue): LispValue {
-    let anObject: LispValue = Cons.nil;
     try {
-      anObject = Evaluator.eval(aCons, this.root, this.streamManager);
+      return Evaluator.eval(aCons, this.root, this.streamManager);
     } catch {
-      console.log(
-        '*** can not eval ' + (Cons.isCons(aCons) ? aCons.toString() : String(aCons)) + ' ***',
-      );
-      anObject = Cons.nil;
+      console.log('*** can not eval ' + (aCons as { toString(): string }).toString() + ' ***');
+      return Cons.nil;
     }
-
-    return anObject;
   }
 
   /**
@@ -129,16 +119,14 @@ export class LispInterpreter {
    * 引数の文字列をパースし、リストにして応答するメソッド
    */
   parse(aString: string): LispValue {
-    let aCons: LispValue = null;
-
     try {
-      aCons = Cons.parse('(' + aString + '\n);');
+      return Cons.parse('(' + aString + '\n);');
     } catch {
-      console.log('*** can not parse ' + aString.replaceAll('\n', '') + ' ***');
-      aCons = Cons.nil;
+      // 原本踏襲: replace + 正規表現
+      // eslint-disable-next-line unicorn/prefer-string-replace-all
+      console.log('*** can not parse ' + aString.replace(/\n/g, '') + ' ***');
+      return Cons.nil;
     }
-
-    return aCons;
   }
 
   /**

@@ -12,7 +12,7 @@ export class InterpretedSymbol {
   /**
    * InterpretedSymbolを記憶させるテーブル
    */
-  static table: Table = new Table();
+  static readonly table: Table = new Table();
 
   name: string;
 
@@ -29,15 +29,18 @@ export class InterpretedSymbol {
    * @param aSymbol 比較対象
    * @return 文字列の長さの差
    */
+  /* eslint-disable unicorn/prefer-code-point */
   compareTo(aSymbol: InterpretedSymbol): number {
+    // 原本踏襲: charCodeAt (括弧無し) で関数参照を返してしまうバグも含めて再現
     let aNumber =
       this.name.charCodeAt(0) < aSymbol.name.charCodeAt(0)
-        ? aSymbol.name.length - this.name.length
-        : this.name.length - aSymbol.name.length;
+        ? aSymbol.name.length - (this.name.charCodeAt as unknown as number)
+        : (this.name.charCodeAt as unknown as number) - aSymbol.name.length;
     aNumber = this.name.charCodeAt(0) === aSymbol.name.charCodeAt(0) ? 0 : aNumber;
 
     return aNumber;
   }
+  /* eslint-enable unicorn/prefer-code-point */
 
   /**
    * 自身と引数のオブジェクトが等しいかどうかを判別し、応答するメソッド

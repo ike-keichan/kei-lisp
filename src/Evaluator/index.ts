@@ -12,6 +12,8 @@ import { Table } from '../Table/index.js';
 
 const require = createRequire(import.meta.url);
 
+const notSymbolMessage = (value: LispValue): string => '"' + String(value) + '" is not symbol';
+
 /**
  * @class
  * @classdesc Lispの万能関数のEvaluateを模倣したクラス
@@ -19,7 +21,7 @@ const require = createRequire(import.meta.url);
  * @this {Evaluator}
  */
 export class Evaluator {
-  static buildInFunctions: Map<InterpretedSymbol, string> = Evaluator.setup();
+  static readonly buildInFunctions: Map<InterpretedSymbol, string> = Evaluator.setup();
 
   environment: Table;
   streamManager: StreamManager;
@@ -76,7 +78,8 @@ export class Evaluator {
         break;
       }
       const theObject: LispValue = aTable.get(aSymbol);
-      if (theObject !== anObject) {
+      // 原本踏襲: != (緩い比較)
+      if (theObject != anObject) {
         count++;
         anObject = theObject;
       }
@@ -88,16 +91,14 @@ export class Evaluator {
 
   binding(parameters: Cons, aTable: Table): null {
     for (const each of parameters.loop()) {
-      if (!Cons.isCons(each)) {
-        continue;
-      }
+      const theCons = each as Cons;
       let key: InterpretedSymbol | null = null;
-      if (Cons.isSymbol(each.car)) {
-        key = each.car;
+      if (Cons.isSymbol(theCons.car)) {
+        key = theCons.car;
       } else {
-        console.log('"' + String(each.car) + '" is not symbol');
+        console.log(notSymbolMessage(theCons.car));
       }
-      const value = Evaluator.eval(each.nth(2), aTable, this.streamManager, this.depth);
+      const value = Evaluator.eval(theCons.nth(2), aTable, this.streamManager, this.depth);
       aTable.set(key, value);
     }
 
@@ -107,16 +108,14 @@ export class Evaluator {
   bindingParallel(parameters: Cons, aTable: Table): null {
     const theTable = new Map<unknown, LispValue>();
     for (const each of parameters.loop()) {
-      if (!Cons.isCons(each)) {
-        continue;
-      }
+      const theCons = each as Cons;
       let key: InterpretedSymbol | null = null;
-      if (Cons.isSymbol(each.car)) {
-        key = each.car;
+      if (Cons.isSymbol(theCons.car)) {
+        key = theCons.car;
       } else {
-        console.log('"' + String(each.car) + '" is not symbol');
+        console.log(notSymbolMessage(theCons.car));
       }
-      const value = Evaluator.eval(each.nth(2), aTable, this.streamManager, this.depth);
+      const value = Evaluator.eval(theCons.nth(2), aTable, this.streamManager, this.depth);
       theTable.set(key, value);
     }
 
@@ -131,10 +130,8 @@ export class Evaluator {
     if (Cons.isNil(aCons)) {
       return Cons.nil;
     }
-    if (!Cons.isCons(aCons)) {
-      return Cons.nil;
-    }
-    const clause = aCons.car as Cons;
+    const consCell = aCons as Cons;
+    const clause = consCell.car as Cons;
     let anObject: LispValue = Evaluator.eval(
       clause.car,
       this.environment,
@@ -142,7 +139,7 @@ export class Evaluator {
       this.depth,
     );
     if (Cons.isNil(anObject)) {
-      return this.cond(aCons.cdr);
+      return this.cond(consCell.cdr);
     }
     const consequent = clause.cdr as Cons;
     for (const each of consequent.loop()) {
@@ -176,16 +173,14 @@ export class Evaluator {
         Evaluator.eval(each, this.environment, this.streamManager, this.depth);
       }
       for (const each of parameters.loop()) {
-        if (!Cons.isCons(each)) {
-          continue;
+        const theCons = each as Cons;
+        if (Cons.isNotSymbol(theCons.car)) {
+          console.log(notSymbolMessage(theCons.car));
         }
-        if (Cons.isNotSymbol(each.car)) {
-          console.log('"' + String(each.car) + '" is not symbol');
-        }
-        const key = each.car as InterpretedSymbol;
-        if (Cons.isNotNil(each.nth(3))) {
+        const key = theCons.car as InterpretedSymbol;
+        if (Cons.isNotNil(theCons.nth(3))) {
           const value = Evaluator.eval(
-            each.nth(3),
+            theCons.nth(3),
             this.environment,
             this.streamManager,
             this.depth,
@@ -203,10 +198,7 @@ export class Evaluator {
   doList(aCons: Cons): LispValue {
     const parameter = aCons.car as Cons;
     const theCons = aCons.cdr as Cons;
-    const args = Evaluator.eval(parameter.nth(2), this.environment, this.streamManager, this.depth);
-    if (!Cons.isCons(args)) {
-      return Cons.nil;
-    }
+    const args = Evaluator.eval(parameter.nth(2), this.environment, this.streamManager, this.depth) as Cons;
     for (const element of args.loop()) {
       this.environment.set(parameter.car, element);
       for (const each of theCons.loop()) {
@@ -231,16 +223,14 @@ export class Evaluator {
         Evaluator.eval(each, this.environment, this.streamManager, this.depth);
       }
       for (const each of parameters.loop()) {
-        if (!Cons.isCons(each)) {
-          continue;
+        const theCons = each as Cons;
+        if (Cons.isNotSymbol(theCons.car)) {
+          console.log(notSymbolMessage(theCons.car));
         }
-        if (Cons.isNotSymbol(each.car)) {
-          console.log('"' + String(each.car) + '" is not symbol');
-        }
-        const key = each.car as InterpretedSymbol;
-        if (Cons.isNotNil(each.nth(3))) {
+        const key = theCons.car as InterpretedSymbol;
+        if (Cons.isNotNil(theCons.nth(3))) {
           const value = Evaluator.eval(
-            each.nth(3),
+            theCons.nth(3),
             this.environment,
             this.streamManager,
             this.depth,
@@ -342,6 +332,7 @@ export class Evaluator {
 
   exit(): never {
     console.log('Bye!');
+    // eslint-disable-next-line n/no-process-exit, unicorn/no-process-exit
     process.exit(0);
   }
 
@@ -352,9 +343,8 @@ export class Evaluator {
   }
 
   if_(aCons: Cons): LispValue {
-    let anObject: LispValue;
     const bool = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
-    anObject = Cons.isNil(bool) ? aCons.nth(3) : aCons.nth(2);
+    const anObject: LispValue = Cons.isNil(bool) ? aCons.nth(3) : aCons.nth(2);
 
     return Evaluator.eval(anObject, this.environment, this.streamManager, this.depth);
   }
@@ -530,7 +520,7 @@ export class Evaluator {
       if (Cons.isSymbol(args.nth(index + 2))) {
         key = anIterator.next() as InterpretedSymbol;
       } else {
-        console.log('"' + String(args.car) + '" is not symbol');
+        console.log(notSymbolMessage(args.car));
       }
 
       if (!anIterator.hasNext()) {
@@ -559,7 +549,7 @@ export class Evaluator {
       if (Cons.isSymbol(args.nth(index + 2))) {
         key = anIterator.next() as InterpretedSymbol;
       } else {
-        console.log('"' + String(args.car) + '" is not symbol');
+        console.log(notSymbolMessage(args.car));
       }
       anObject = Evaluator.eval(
         anIterator.next(),
@@ -567,9 +557,8 @@ export class Evaluator {
         this.streamManager,
         this.depth,
       );
-      if (key != null) {
-        this.environment.setIfExit(key, anObject);
-      }
+      // 原本踏襲: key が null でも setIfExit を呼ぶ (Map は null キーを許容)
+      this.environment.setIfExit(key, anObject);
     }
 
     return anObject;
@@ -582,42 +571,42 @@ export class Evaluator {
 
   static setup(): Map<InterpretedSymbol, string> {
     try {
-      const aTable = new Map<InterpretedSymbol, string>();
-      aTable.set(InterpretedSymbol.of('and'), 'and');
-      aTable.set(InterpretedSymbol.of('apply'), 'apply_lisp');
-      aTable.set(InterpretedSymbol.of('bind'), 'bind');
-      aTable.set(InterpretedSymbol.of('cond'), 'cond');
-      aTable.set(InterpretedSymbol.of('defun'), 'defun');
-      aTable.set(InterpretedSymbol.of('do'), 'do_');
-      aTable.set(InterpretedSymbol.of('dolist'), 'doList');
-      aTable.set(InterpretedSymbol.of('do*'), 'doStar');
-      aTable.set(InterpretedSymbol.of('eval'), 'eval_lisp');
-      aTable.set(InterpretedSymbol.of('exit'), 'exit');
-      aTable.set(InterpretedSymbol.of('gc'), 'gc');
-      aTable.set(InterpretedSymbol.of('if'), 'if_');
-      aTable.set(InterpretedSymbol.of('lambda'), 'lambda');
-      aTable.set(InterpretedSymbol.of('let'), 'let');
-      aTable.set(InterpretedSymbol.of('let*'), 'letStar');
-      aTable.set(InterpretedSymbol.of('not'), 'not');
-      aTable.set(InterpretedSymbol.of('notrace'), 'notrace');
-      aTable.set(InterpretedSymbol.of('or'), 'or');
-      aTable.set(InterpretedSymbol.of('pop'), 'pop_');
-      aTable.set(InterpretedSymbol.of('progn'), 'progn');
-      aTable.set(InterpretedSymbol.of('princ'), 'princ');
-      aTable.set(InterpretedSymbol.of('print'), 'print');
-      aTable.set(InterpretedSymbol.of('push'), 'push_');
-      aTable.set(InterpretedSymbol.of('quote'), 'quote');
-      aTable.set(InterpretedSymbol.of('rplaca'), 'rplaca');
-      aTable.set(InterpretedSymbol.of('rplacd'), 'rplacd');
-      aTable.set(InterpretedSymbol.of('setq'), 'setq');
-      aTable.set(InterpretedSymbol.of('set-allq'), 'set_allq');
-      aTable.set(InterpretedSymbol.of('terpri'), 'terpri');
-      aTable.set(InterpretedSymbol.of('time'), 'time');
-      aTable.set(InterpretedSymbol.of('trace'), 'trace');
-      aTable.set(InterpretedSymbol.of('unless'), 'unless');
-      aTable.set(InterpretedSymbol.of('when'), 'when');
-
-      return aTable;
+      const entries: Array<[string, string]> = [
+        ['and', 'and'],
+        ['apply', 'apply_lisp'],
+        ['bind', 'bind'],
+        ['cond', 'cond'],
+        ['defun', 'defun'],
+        ['do', 'do_'],
+        ['dolist', 'doList'],
+        ['do*', 'doStar'],
+        ['eval', 'eval_lisp'],
+        ['exit', 'exit'],
+        ['gc', 'gc'],
+        ['if', 'if_'],
+        ['lambda', 'lambda'],
+        ['let', 'let'],
+        ['let*', 'letStar'],
+        ['not', 'not'],
+        ['notrace', 'notrace'],
+        ['or', 'or'],
+        ['pop', 'pop_'],
+        ['progn', 'progn'],
+        ['princ', 'princ'],
+        ['print', 'print'],
+        ['push', 'push_'],
+        ['quote', 'quote'],
+        ['rplaca', 'rplaca'],
+        ['rplacd', 'rplacd'],
+        ['setq', 'setq'],
+        ['set-allq', 'set_allq'],
+        ['terpri', 'terpri'],
+        ['time', 'time'],
+        ['trace', 'trace'],
+        ['unless', 'unless'],
+        ['when', 'when'],
+      ];
+      return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
     } catch {
       throw new Error('NullPointerException (Evaluator, initialize)');
     }
@@ -634,9 +623,11 @@ export class Evaluator {
     const aCons = form.cdr as Cons;
     const methodName = Evaluator.buildInFunctions.get(aSymbol) as string;
 
+    // 原本踏襲: メソッド存在確認の死コード (プロパティアクセスは例外を投げず catch は発火しない)
     try {
       const method = (this as unknown as Record<string, unknown>)[methodName];
       ((x: unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         x;
       })(method);
     } catch {
