@@ -1,5 +1,3 @@
-'use strict';
-
 import { Cons, type LispValue } from '../Cons/index.js';
 import { Evaluator } from '../Evaluator/index.js';
 import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
@@ -339,151 +337,151 @@ export class Applier {
     while (index < format.length) {
       const aCharacter = format[index];
       switch (state) {
-      case 0: {
-        if (aCharacter === '~') {
-          state = 1;
-        } else {
-          buffer += aCharacter;
-        }
-      
-      break;
-      }
-      case 1: {
-        switch (aCharacter) {
-          case '0':
-          case '1':
-          case '2':
-          case '3':
-          case '4':
-          case '5':
-          case '6':
-          case '7':
-          case '8':
-          case '9': {
-            token += aCharacter;
-            state = 2;
-            break;
-          }
-          case 'a': {
-            // 原本踏襲: theCons.car.toString() を直接呼ぶ (null の場合は例外)
-            buffer += ((theCons as Cons).car as { toString(): string }).toString();
-            theCons = (theCons as Cons).cdr;
-            state = 0;
-            break;
-          }
-          case '%': {
-            buffer += '\n';
-            state = 0;
-            break;
-          }
-          case '-': {
-            state = 3;
-            break;
-          }
-          default: {
-            buffer += '~';
+        case 0: {
+          if (aCharacter === '~') {
+            state = 1;
+          } else {
             buffer += aCharacter;
-            state = 0;
           }
-        }
-      
-      break;
-      }
-      case 2: {
-        switch (aCharacter) {
-          case '0':
-          case '1':
-          case '2':
-          case '3':
-          case '4':
-          case '5':
-          case '6':
-          case '7':
-          case '8':
-          case '9': {
-            token += aCharacter;
-            state = 2;
-            break;
-          }
-          case 'a': {
-            const size = Number(token);
-            token = '';
-            if (Cons.isNil(theCons)) {
-              console.log(SIZE_DO_NOT_MATCH);
-              return undefined;
-            }
-            let value: string = ((theCons as Cons).car as { toString(): string }).toString();
-            theCons = (theCons as Cons).cdr;
-            // 原本踏襲: 元コードは `value.length()` で関数呼び出しを試みる (length はプロパティのため TypeError)
-            while ((value as unknown as { length(): number }).length() < size) {
-              value += ' ';
-            }
-            buffer += value;
-            state = 0;
-            break;
-          }
-          default: {
-            buffer += '~';
-            buffer += token + aCharacter;
-            token = '';
-            state = 0;
-          }
-        }
 
-      break;
-      }
-      case 3: {
-        switch (aCharacter) {
-          case '0':
-          case '1':
-          case '2':
-          case '3':
-          case '4':
-          case '5':
-          case '6':
-          case '7':
-          case '8':
-          case '9': {
-            token += aCharacter;
-            state = 3;
-            break;
-          }
-          case 'a': {
-            const size = Number(token);
-            token = '';
-            if (Cons.isNil(theCons)) {
-              console.log(SIZE_DO_NOT_MATCH);
-              return undefined;
-            }
-            const value: string = ((theCons as Cons).car as { toString(): string }).toString();
-            theCons = (theCons as Cons).cdr;
-            let spaces = '';
-            // 原本踏襲: 元コードは `value.length()` / `spaces.length()` を呼んでおり TypeError
-            while (
-              (value as unknown as { length(): number }).length() +
-                (spaces as unknown as { length(): number }).length() <
-              size
-            ) {
-              spaces += ' ';
-            }
-            buffer += spaces + value;
-            state = 0;
-            break;
-          }
-          default: {
-            buffer += '~';
-            buffer += '-';
-            buffer += token + aCharacter;
-            token = '';
-            state = 0;
-          }
+          break;
         }
-      
-      break;
-      }
-      default: {
-        console.log('Error!');
-      }
+        case 1: {
+          switch (aCharacter) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9': {
+              token += aCharacter;
+              state = 2;
+              break;
+            }
+            case 'a': {
+              // 原本踏襲: theCons.car.toString() を直接呼ぶ (null の場合は例外)
+              buffer += ((theCons as Cons).car as { toString(): string }).toString();
+              theCons = (theCons as Cons).cdr;
+              state = 0;
+              break;
+            }
+            case '%': {
+              buffer += '\n';
+              state = 0;
+              break;
+            }
+            case '-': {
+              state = 3;
+              break;
+            }
+            default: {
+              buffer += '~';
+              buffer += aCharacter;
+              state = 0;
+            }
+          }
+
+          break;
+        }
+        case 2: {
+          switch (aCharacter) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9': {
+              token += aCharacter;
+              state = 2;
+              break;
+            }
+            case 'a': {
+              const size = Number(token);
+              token = '';
+              if (Cons.isNil(theCons)) {
+                console.log(SIZE_DO_NOT_MATCH);
+                return undefined;
+              }
+              let value: string = ((theCons as Cons).car as { toString(): string }).toString();
+              theCons = (theCons as Cons).cdr;
+              // 原本踏襲: 元コードは `value.length()` で関数呼び出しを試みる (length はプロパティのため TypeError)
+              while ((value as unknown as { length(): number }).length() < size) {
+                value += ' ';
+              }
+              buffer += value;
+              state = 0;
+              break;
+            }
+            default: {
+              buffer += '~';
+              buffer += token + aCharacter;
+              token = '';
+              state = 0;
+            }
+          }
+
+          break;
+        }
+        case 3: {
+          switch (aCharacter) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9': {
+              token += aCharacter;
+              state = 3;
+              break;
+            }
+            case 'a': {
+              const size = Number(token);
+              token = '';
+              if (Cons.isNil(theCons)) {
+                console.log(SIZE_DO_NOT_MATCH);
+                return undefined;
+              }
+              const value: string = ((theCons as Cons).car as { toString(): string }).toString();
+              theCons = (theCons as Cons).cdr;
+              let spaces = '';
+              // 原本踏襲: 元コードは `value.length()` / `spaces.length()` を呼んでおり TypeError
+              while (
+                (value as unknown as { length(): number }).length() +
+                  (spaces as unknown as { length(): number }).length() <
+                size
+              ) {
+                spaces += ' ';
+              }
+              buffer += spaces + value;
+              state = 0;
+              break;
+            }
+            default: {
+              buffer += '~';
+              buffer += '-';
+              buffer += token + aCharacter;
+              token = '';
+              state = 0;
+            }
+          }
+
+          break;
+        }
+        default: {
+          console.log('Error!');
+        }
       }
       index++;
     }
@@ -497,8 +495,8 @@ export class Applier {
 
   float_(args: Cons): LispValue {
     if (Cons.isNumber(args.car) && -3.4e38 <= args.car && args.car <= 3.4e38) {
-        return InterpretedSymbol.of('t');
-      }
+      return InterpretedSymbol.of('t');
+    }
     return Cons.nil;
   }
 
@@ -510,6 +508,8 @@ export class Applier {
   }
 
   getStream(anObject: LispValue): unknown {
+    // 原本踏襲: streamManager は常に非 null だが、原本に同チェックがあるため残す
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.streamManager == null) {
       // 原本踏襲: 元コードは存在しない `process.out` を返す (= undefined)
       return (process as unknown as { out?: unknown }).out;

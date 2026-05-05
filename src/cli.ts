@@ -1,5 +1,3 @@
-'use strict';
-
 import { LispInterpreter } from './LispInterpreter/index.js';
 
 // 原本踏襲: 配列のままで includes チェック

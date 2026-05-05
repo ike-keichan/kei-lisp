@@ -1,5 +1,3 @@
-'use strict';
-
 import { Table } from '../Table/index.js';
 
 /**
@@ -29,7 +27,7 @@ export class InterpretedSymbol {
    * @param aSymbol 比較対象
    * @return 文字列の長さの差
    */
-  /* eslint-disable unicorn/prefer-code-point */
+  /* eslint-disable unicorn/prefer-code-point, @typescript-eslint/unbound-method */
   compareTo(aSymbol: InterpretedSymbol): number {
     // 原本踏襲: charCodeAt (括弧無し) で関数参照を返してしまうバグも含めて再現
     let aNumber =
@@ -40,7 +38,7 @@ export class InterpretedSymbol {
 
     return aNumber;
   }
-  /* eslint-enable unicorn/prefer-code-point */
+  /* eslint-enable unicorn/prefer-code-point, @typescript-eslint/unbound-method */
 
   /**
    * 自身と引数のオブジェクトが等しいかどうかを判別し、応答するメソッド

@@ -1,5 +1,3 @@
-'use strict';
-
 import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
 import { Loop } from '../Loop/index.js';
 import { Parser } from '../Parser/index.js';
@@ -321,7 +319,10 @@ export class Cons {
         aString += ')';
       } else if (this.cdr instanceof Cons) {
         let aCons: Cons = this.cdr;
-        while (true) {
+        // 原本踏襲: 元コードは `let flag = true; while (flag) { ... break ... }` のループ
+        const flag = true;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        while (flag) {
           const head = aCons.car;
           const tail = aCons.cdr;
           if (!(head instanceof Table)) {

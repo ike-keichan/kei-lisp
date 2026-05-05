@@ -1,5 +1,3 @@
-'use strict';
-
 import v8 from 'node:v8';
 import vm from 'node:vm';
 
@@ -161,7 +159,10 @@ export class Evaluator {
   defun(aCons: Cons): LispValue {
     const variable = aCons.car;
     let lambda: LispValue = aCons.cdr;
-    lambda = aCons.length() === 2 ? (lambda as Cons).car : new Cons(InterpretedSymbol.of('lambda'), lambda);
+    lambda =
+      aCons.length() === 2
+        ? (lambda as Cons).car
+        : new Cons(InterpretedSymbol.of('lambda'), lambda);
     lambda = Evaluator.eval(lambda, new Table(this.environment), this.streamManager, this.depth);
     this.environment.set(variable, lambda);
 
@@ -208,7 +209,12 @@ export class Evaluator {
   doList(aCons: Cons): LispValue {
     const parameter = aCons.car as Cons;
     const theCons = aCons.cdr as Cons;
-    const args = Evaluator.eval(parameter.nth(2), this.environment, this.streamManager, this.depth) as Cons;
+    const args = Evaluator.eval(
+      parameter.nth(2),
+      this.environment,
+      this.streamManager,
+      this.depth,
+    ) as Cons;
     for (const element of args.loop()) {
       this.environment.set(parameter.car, element);
       for (const each of theCons.loop()) {
@@ -315,6 +321,8 @@ export class Evaluator {
 
   evaluateSymbol(aSymbol: InterpretedSymbol): LispValue {
     let answer: LispValue = Cons.nil;
+    // 原本踏襲: aSymbol の null チェックも保持
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (aSymbol != null && this.environment.has(aSymbol)) {
       if (this.isSpy(aSymbol)) {
         this.spyPrint(this.streamManager.spyStream(aSymbol), aSymbol.toString());

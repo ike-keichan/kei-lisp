@@ -1,5 +1,3 @@
-'use strict';
-
 import type { Cons, LispValue } from '../Cons/index.js';
 
 /**

@@ -1,5 +1,3 @@
-'use strict';
-
 import type { InterpretedSymbol } from '../InterpretedSymbol/index.js';
 
 type Stream = NodeJS.WritableStream | null;

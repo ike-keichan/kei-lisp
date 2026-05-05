@@ -1,5 +1,3 @@
-'use strict';
-
 import { LispInterpreter } from '../LispInterpreter/index.js';
 
 /**

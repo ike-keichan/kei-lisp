@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * `unicorn/prefer-spread` は `this.concat()` を `Array.prototype.concat` と誤認して
  * `[...this]` に書き換えるため、このファイルでは無効化する。
@@ -99,7 +97,7 @@ export class Parser {
     let aCharacter: string | null = null;
     try {
       const aNumber = (() => {
-        const value = this.stream.next().value;
+        const value = this.stream.next().value as unknown;
         // 原本踏襲: charCodeAt (引数省略は 0 と同じ)
         // eslint-disable-next-line unicorn/no-negated-condition, unicorn/prefer-code-point
         return value != null ? (value as string).charCodeAt(0) : -1;
@@ -128,14 +126,16 @@ export class Parser {
     this.token = null;
 
     while (!this.atEnd()) {
+      // this.input() がループ内で this.token を書き換えるため、null チェックは必要
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (this.state === 0 && this.token != null) {
         break;
       }
       this.input();
     }
     if (this.atEnd() && this.state !== 0) {
-        throw new Error(SYNTAX_ERROR);
-      }
+      throw new Error(SYNTAX_ERROR);
+    }
     this.tokenString = '';
 
     return this.token;
@@ -396,12 +396,12 @@ export class Parser {
   // eslint-disable-next-line sonarjs/cognitive-complexity, sonarjs/cyclomatic-complexity
   initializeStateTransitionTable(): null {
     let aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(0, 8)) aTable.set(String(index), this.nextState(-1, null))
-    ;
-    for (const index of IntStream.rangeClosed(9, 13)) aTable.set(String(index), this.nextState(0, null))
-    ;
-    for (const index of IntStream.rangeClosed(14, 31)) aTable.set(String(index), this.nextState(-1, null))
-    ;
+    for (const index of IntStream.rangeClosed(0, 8))
+      aTable.set(String(index), this.nextState(-1, null));
+    for (const index of IntStream.rangeClosed(9, 13))
+      aTable.set(String(index), this.nextState(0, null));
+    for (const index of IntStream.rangeClosed(14, 31))
+      aTable.set(String(index), this.nextState(-1, null));
     aTable.set(String(32), this.nextState(0, null));
     aTable.set(String(33), this.nextState(8, 'symbolToken'));
     aTable.set(String(34), this.nextState(9, null));
@@ -418,18 +418,18 @@ export class Parser {
     aTable.set(String(45), this.nextState(7, 'sign'));
     aTable.set(String(46), this.nextState(-1, null));
     aTable.set(String(47), this.nextState(8, 'symbolToken'));
-    for (const index of IntStream.rangeClosed(48, 57)) aTable.set(String(index), this.nextState(2, 'integerToken'))
-    ;
-    for (const index of IntStream.rangeClosed(58, 90)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
+    for (const index of IntStream.rangeClosed(48, 57))
+      aTable.set(String(index), this.nextState(2, 'integerToken'));
+    for (const index of IntStream.rangeClosed(58, 90))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(91), this.nextState(-1, 'parseList'));
     aTable.set(String(92), this.nextState(-1, null));
     aTable.set(String(93), this.nextState(-1, null));
     aTable.set(String(94), this.nextState(8, 'symbolToken'));
     aTable.set(String(95), this.nextState(8, 'symbolToken'));
     aTable.set(String(96), this.nextState(0, 'quote'));
-    for (const index of IntStream.rangeClosed(97, 122)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
+    for (const index of IntStream.rangeClosed(97, 122))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(123), this.nextState(-1, 'parseList'));
     aTable.set(String(124), this.nextState(8, 'symbolToken'));
     aTable.set(String(125), this.nextState(-1, null));
@@ -439,34 +439,34 @@ export class Parser {
     this.states.set(0, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(0, 8)) aTable.set(String(index), this.nextState(-1, null))
-    ;
+    for (const index of IntStream.rangeClosed(0, 8))
+      aTable.set(String(index), this.nextState(-1, null));
     aTable.set(String(10), this.nextState(0, null));
     aTable.set(String(13), this.nextState(0, null));
-    for (const index of IntStream.rangeClosed(14, 31)) aTable.set(String(index), this.nextState(-1, null))
-    ;
+    for (const index of IntStream.rangeClosed(14, 31))
+      aTable.set(String(index), this.nextState(-1, null));
     aTable.set(String(127), this.nextState(-1, null));
     aTable.set(String(128), this.nextState(1, null));
     this.states.set(1, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(9, 13)) aTable.set(String(index), this.nextState(0, 'tokenToInteger'))
-    ;
+    for (const index of IntStream.rangeClosed(9, 13))
+      aTable.set(String(index), this.nextState(0, 'tokenToInteger'));
     aTable.set(String(32), this.nextState(0, 'tokenToInteger'));
     aTable.set(String(46), this.nextState(3, 'doubleToken'));
-    for (const index of IntStream.rangeClosed(48, 57)) aTable.set(String(index), this.nextState(2, 'integerToken'))
-    ;
+    for (const index of IntStream.rangeClosed(48, 57))
+      aTable.set(String(index), this.nextState(2, 'integerToken'));
     aTable.set(String(69), this.nextState(4, 'concat'));
     aTable.set(String(101), this.nextState(4, 'concat'));
     aTable.set(String(128), this.nextState(-1, null));
     this.states.set(2, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(9, 13)) aTable.set(String(index), this.nextState(0, 'tokenToDouble'))
-    ;
+    for (const index of IntStream.rangeClosed(9, 13))
+      aTable.set(String(index), this.nextState(0, 'tokenToDouble'));
     aTable.set(String(32), this.nextState(0, 'tokenToDouble'));
-    for (const index of IntStream.rangeClosed(48, 57)) aTable.set(String(index), this.nextState(3, 'doubleToken'))
-    ;
+    for (const index of IntStream.rangeClosed(48, 57))
+      aTable.set(String(index), this.nextState(3, 'doubleToken'));
     aTable.set(String(68), this.nextState(0, 'tokenToDoubleAUX'));
     aTable.set(String(69), this.nextState(4, 'concat'));
     aTable.set(String(100), this.nextState(0, 'tokenToDoubleAUX'));
@@ -477,75 +477,75 @@ export class Parser {
     aTable = new Map<string, NextState>();
     aTable.set(String(43), this.nextState(6, 'concat'));
     aTable.set(String(45), this.nextState(6, 'concat'));
-    for (const index of IntStream.rangeClosed(48, 57)) aTable.set(String(index), this.nextState(5, 'doubleTokenAUX'))
-    ;
+    for (const index of IntStream.rangeClosed(48, 57))
+      aTable.set(String(index), this.nextState(5, 'doubleTokenAUX'));
     aTable.set(String(128), this.nextState(-1, null));
     this.states.set(4, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(9, 13)) aTable.set(String(index), this.nextState(0, 'tokenToDouble'))
-    ;
+    for (const index of IntStream.rangeClosed(9, 13))
+      aTable.set(String(index), this.nextState(0, 'tokenToDouble'));
     aTable.set(String(32), this.nextState(0, 'tokenToDouble'));
-    for (const index of IntStream.rangeClosed(48, 57)) aTable.set(String(index), this.nextState(5, 'doubleTokenAUX'))
-    ;
+    for (const index of IntStream.rangeClosed(48, 57))
+      aTable.set(String(index), this.nextState(5, 'doubleTokenAUX'));
     aTable.set(String(128), this.nextState(-1, null));
     this.states.set(5, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(48, 57)) aTable.set(String(index), this.nextState(5, 'doubleTokenAUX'))
-    ;
+    for (const index of IntStream.rangeClosed(48, 57))
+      aTable.set(String(index), this.nextState(5, 'doubleTokenAUX'));
     aTable.set(String(128), this.nextState(-1, null));
     this.states.set(6, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(9, 13)) aTable.set(String(index), this.nextState(0, 'tokenToSymbol'))
-    ;
+    for (const index of IntStream.rangeClosed(9, 13))
+      aTable.set(String(index), this.nextState(0, 'tokenToSymbol'));
     aTable.set(String(32), this.nextState(0, 'tokenToSymbol'));
     aTable.set(String(33), this.nextState(8, 'symbolToken'));
-    for (const index of IntStream.rangeClosed(35, 38)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
-    for (const index of IntStream.rangeClosed(42, 45)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
+    for (const index of IntStream.rangeClosed(35, 38))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
+    for (const index of IntStream.rangeClosed(42, 45))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(47), this.nextState(8, 'symbolToken'));
-    for (const index of IntStream.rangeClosed(48, 57)) aTable.set(String(index), this.nextState(2, 'integerToken'))
-    ;
-    for (const index of IntStream.rangeClosed(58, 90)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
+    for (const index of IntStream.rangeClosed(48, 57))
+      aTable.set(String(index), this.nextState(2, 'integerToken'));
+    for (const index of IntStream.rangeClosed(58, 90))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(94), this.nextState(8, 'symbolToken'));
     aTable.set(String(95), this.nextState(8, 'symbolToken'));
-    for (const index of IntStream.rangeClosed(97, 122)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
+    for (const index of IntStream.rangeClosed(97, 122))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(124), this.nextState(8, 'symbolToken'));
     aTable.set(String(126), this.nextState(8, 'symbolToken'));
     aTable.set(String(128), this.nextState(-1, null));
     this.states.set(7, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(9, 13)) aTable.set(String(index), this.nextState(0, 'tokenToSymbol'))
-    ;
+    for (const index of IntStream.rangeClosed(9, 13))
+      aTable.set(String(index), this.nextState(0, 'tokenToSymbol'));
     aTable.set(String(32), this.nextState(0, 'tokenToSymbol'));
     aTable.set(String(33), this.nextState(8, 'symbolToken'));
-    for (const index of IntStream.rangeClosed(35, 38)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
-    for (const index of IntStream.rangeClosed(42, 45)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
+    for (const index of IntStream.rangeClosed(35, 38))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
+    for (const index of IntStream.rangeClosed(42, 45))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(47), this.nextState(8, 'symbolToken'));
-    for (const index of IntStream.rangeClosed(48, 57)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
-    for (const index of IntStream.rangeClosed(58, 90)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
+    for (const index of IntStream.rangeClosed(48, 57))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
+    for (const index of IntStream.rangeClosed(58, 90))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(94), this.nextState(8, 'symbolToken'));
     aTable.set(String(95), this.nextState(8, 'symbolToken'));
-    for (const index of IntStream.rangeClosed(97, 122)) aTable.set(String(index), this.nextState(8, 'symbolToken'))
-    ;
+    for (const index of IntStream.rangeClosed(97, 122))
+      aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(124), this.nextState(8, 'symbolToken'));
     aTable.set(String(126), this.nextState(8, 'symbolToken'));
     aTable.set(String(128), this.nextState(-1, null));
     this.states.set(8, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(0, 31)) aTable.set(String(index), this.nextState(-1, null))
-    ;
+    for (const index of IntStream.rangeClosed(0, 31))
+      aTable.set(String(index), this.nextState(-1, null));
     aTable.set(String(34), this.nextState(0, 'tokenToString'));
     aTable.set(String(92), this.nextState(10, null));
     aTable.set(String(127), this.nextState(-1, null));
@@ -553,20 +553,20 @@ export class Parser {
     this.states.set(9, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(0, 31)) aTable.set(String(index), this.nextState(-1, null))
-    ;
+    for (const index of IntStream.rangeClosed(0, 31))
+      aTable.set(String(index), this.nextState(-1, null));
     aTable.set(String(127), this.nextState(-1, null));
     aTable.set(String(128), this.nextState(9, 'concat'));
     this.states.set(10, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(32, 38)) aTable.set(String(index), this.nextState(12, 'concat'))
-    ;
-    for (const index of IntStream.rangeClosed(40, 91)) aTable.set(String(index), this.nextState(12, 'concat'))
-    ;
+    for (const index of IntStream.rangeClosed(32, 38))
+      aTable.set(String(index), this.nextState(12, 'concat'));
+    for (const index of IntStream.rangeClosed(40, 91))
+      aTable.set(String(index), this.nextState(12, 'concat'));
     aTable.set(String(92), this.nextState(13, null));
-    for (const index of IntStream.rangeClosed(93, 126)) aTable.set(String(index), this.nextState(12, 'concat'))
-    ;
+    for (const index of IntStream.rangeClosed(93, 126))
+      aTable.set(String(index), this.nextState(12, 'concat'));
     aTable.set(String(128), this.nextState(-1, null));
     this.states.set(11, aTable);
 
@@ -576,10 +576,10 @@ export class Parser {
     this.states.set(12, aTable);
 
     aTable = new Map<string, NextState>();
-    for (const index of IntStream.rangeClosed(32, 38)) aTable.set(String(index), this.nextState(12, 'concat'))
-    ;
-    for (const index of IntStream.rangeClosed(40, 126)) aTable.set(String(index), this.nextState(12, 'concat'))
-    ;
+    for (const index of IntStream.rangeClosed(32, 38))
+      aTable.set(String(index), this.nextState(12, 'concat'));
+    for (const index of IntStream.rangeClosed(40, 126))
+      aTable.set(String(index), this.nextState(12, 'concat'));
     aTable.set(String(128), this.nextState(-1, null));
     this.states.set(13, aTable);
 

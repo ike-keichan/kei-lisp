@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * @class
  * @classdesc JavaのIntStreamを模倣したクラス

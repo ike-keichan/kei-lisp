@@ -1,5 +1,3 @@
-'use strict';
-
 import type { Parser } from '../Parser/index.js';
 
 /**
