@@ -1,7 +1,7 @@
 import pluginSonarjs from 'eslint-plugin-sonarjs';
 import { RULE_LEVEL } from '../const/index.mjs';
 
-const { WARN } = RULE_LEVEL;
+const { WARN, OFF } = RULE_LEVEL;
 
 /**
  * ESLint config for eslint-plugin-sonarjs.
@@ -16,6 +16,9 @@ export const sonarjsConfigs = [
       'sonarjs/cyclomatic-complexity': [WARN, { threshold: 10 }],
       // ネストした if 文の簡略化を強制
       'sonarjs/no-collapsible-if': WARN,
+      // 関数が常に同じ型を返すことを強制
+      // TODO: ルール有効化 / 該当箇所の修正どちらで対応するか判断
+      'sonarjs/function-return-type': OFF,
     },
   },
 ];

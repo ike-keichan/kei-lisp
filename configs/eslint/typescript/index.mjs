@@ -1,22 +1,38 @@
 import tseslint from 'typescript-eslint';
 import { FILES, RULE_LEVEL } from '../const/index.mjs';
 
-const { TEST } = FILES;
-const { ERROR, WARN } = RULE_LEVEL;
+const { SRC, TEST } = FILES;
+const { ERROR, WARN, OFF } = RULE_LEVEL;
 
 /**
  * ESLint config for typescript-eslint.
- *
- * TODO: tsconfig の parserOptions.project 設定後、strictTypeChecked に切り替える。
  */
 export const typescriptConfigs = [
-  ...tseslint.configs.strict,
+  ...tseslint.configs.strictTypeChecked.map((config) => ({
+    ...config,
+    files: [...SRC, ...TEST],
+  })),
   {
+    files: [...SRC, ...TEST],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+      },
+    },
     rules: {
       // any の使用を禁止
       '@typescript-eslint/no-explicit-any': ERROR,
       // null 非許容アサーション（!）の使用を禁止
       '@typescript-eslint/no-non-null-assertion': ERROR,
+      // デフォルトの toString のみを持つ値の文字列化を禁止
+      // TODO: ルール有効化 / 該当箇所の修正どちらで対応するか判断
+      '@typescript-eslint/no-base-to-string': OFF,
+      // 同型への不要な型変換 (Number(num), String(str) 等) を禁止
+      // TODO: ルール有効化 / 該当箇所の修正どちらで対応するか判断
+      '@typescript-eslint/no-unnecessary-type-conversion': OFF,
+      // メソッドの戻り値型に `this` 型の使用を強制
+      // TODO: ルール有効化 / 該当箇所の修正どちらで対応するか判断
+      '@typescript-eslint/prefer-return-this-type': OFF,
     },
   },
   {

@@ -13,9 +13,8 @@ export const importXConfigs = [
       'import-x/resolver': { typescript: true, node: true },
     },
     rules: {
-      // 解決できないインポートパスを警告
-      // TODO: TS 移行完了後は ERROR に変更
-      'import-x/no-unresolved': WARN,
+      // 解決できないインポートパスを禁止
+      'import-x/no-unresolved': ERROR,
       // 同一モジュールの重複インポートを禁止
       'import-x/no-duplicates': ERROR,
       // モジュール間の循環依存を警告

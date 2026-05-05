@@ -17,7 +17,8 @@ export const unusedImportsConfigs = [
     rules: {
       // unused-imports/no-unused-vars に委譲するため無効化
       'no-unused-vars': OFF,
-      // TODO: TS 移行完了後は @typescript-eslint/no-unused-vars との競合を避けるため無効化を維持
+      // 未使用変数を禁止
+      // TODO: unused-imports/no-unused-vars との競合をどう解消するか判断
       '@typescript-eslint/no-unused-vars': OFF,
       // 未使用の import 文を禁止
       'unused-imports/no-unused-imports': ERROR,

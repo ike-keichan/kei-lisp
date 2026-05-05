@@ -18,7 +18,6 @@ export default [
   },
 
   // Language options
-  // TODO: TS 移行完了後は parserOptions.project を設定する
   {
     languageOptions: {
       ecmaVersion: 'latest',

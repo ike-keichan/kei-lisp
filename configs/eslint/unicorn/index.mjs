@@ -17,9 +17,6 @@ export const unicornConfigs = [
       'unicorn/filename-case': OFF,
       // Lisp 実装のため null を多用するため無効化
       'unicorn/no-null': OFF,
-      // CommonJS 混在期間中は抑制
-      // TODO: TS 移行完了後に有効化を検討
-      'unicorn/prefer-module': OFF,
       // 正規表現の最適化を強制
       'unicorn/better-regex': ERROR,
     },
