@@ -868,6 +868,7 @@ class Table extends Map<unknown, LispValue> {
 ```
 
 これで:
+
 - `LispValue` の全分岐が独自 `toString()` を持つ → ルール OK
 - エラーメッセージや REPL 出力が **Lisp 慣習に沿った形**で表示される
 
@@ -892,6 +893,7 @@ class Table extends Map<unknown, LispValue> {
 このルールを有効化すると **28 箇所**でエラー。すべて Lisp の組み込み関数。
 
 例: `abs`
+
 ```ts
 abs(args: Cons): LispValue {
   if (Cons.isNumber(args.car)) {
@@ -902,6 +904,7 @@ abs(args: Cons): LispValue {
 ```
 
 `abs` は引数が数値なら数値を返し、そうでなければ nil を返す。**Lisp 仕様としてそれが正解**:
+
 - `(abs 5)` → `5` （number）
 - `(abs "hello")` → `nil` （Cons）
 
@@ -910,12 +913,14 @@ abs(args: Cons): LispValue {
 #### 動的型言語の処理系として
 
 **動的型言語の組み込み関数は、引数の型によって戻り型が変わるのが基本仕様**:
+
 - 数値が来たら数値計算
 - 文字列が来たら文字列処理
 - 不正値ならエラー値（nil 等）
 
 これを「単一型を返せ」と修正すると、**Lisp の自然な実装を破壊**する。
 他に手としては:
+
 - 例外を投げる（仕様変更）
 - always Cons.nil（機能放棄）
 - union 型を狭める（無限の場合分け）
