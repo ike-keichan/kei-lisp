@@ -831,6 +831,113 @@ class Parser {
 
 ---
 
+### 例 K: TS のルールが Lisp 処理系の出力品質改善を促した
+
+`@typescript-eslint/no-base-to-string` というルールがある:
+
+> 値を文字列化（template literal や `String()`）する際、独自 `toString()` を持たず **デフォルトの `Object.prototype.toString` だけ**を持つ値だと `"[object Object]"` になってしまうので、それを禁止するルール。
+
+#### kei-lisp での発見
+
+このルールを有効化すると 33 箇所でエラー。原因は `LispValue` 型に含まれる **`Table` が独自 `toString()` を持っていなかった**こと:
+
+```ts
+type LispValue = Cons | InterpretedSymbol | Table | number | string | null;
+//                                          ^^^^^
+//                                  Map を継承だけで toString 未定義
+```
+
+`Table extends Map<unknown, LispValue>` だが、`Map.prototype.toString` は `Object.prototype.toString` を継承していて `"[object Map]"` を返す。これは LispValue を含むエラーメッセージで:
+
+```ts
+console.log('Can not apply "+" to "' + String(args.car) + '"');
+// args.car が Table だった場合: 'Can not apply "+" to "[object Map]"'  ← 醜い
+```
+
+#### 修正
+
+Common Lisp の慣習に合わせて `#<Environment>` を返す `toString()` を追加:
+
+```ts
+class Table extends Map<unknown, LispValue> {
+  // ...
+  toString(): string {
+    return '#<Environment>';
+  }
+}
+```
+
+これで:
+- `LispValue` の全分岐が独自 `toString()` を持つ → ルール OK
+- エラーメッセージや REPL 出力が **Lisp 慣習に沿った形**で表示される
+
+#### スライドでのメッセージ
+
+> ESLint のルールを「**コード規約の押し付け**」と捉えがちだが、**Lisp 処理系の出力品質改善のヒント**として活きることがある。
+>
+> `Map` を継承しただけだと `"[object Map]"` になる罠を、TS が「型上は OK だが文字列化したらおかしいよ」と教えてくれた。
+>
+> 言語処理系のように **「内部値が外（エラーメッセージ等）に出ていく」プロジェクト**では、こういうルールが特に役立つ。
+
+---
+
+### 例 L: 動的型言語処理系の本質と「関数は単一型を返せ」ルールの衝突
+
+`sonarjs/function-return-type` というルール:
+
+> 関数が常に同じ型を返すことを強制（return パスごとに型が違うと警告）
+
+#### kei-lisp での発見
+
+このルールを有効化すると **28 箇所**でエラー。すべて Lisp の組み込み関数。
+
+例: `abs`
+```ts
+abs(args: Cons): LispValue {
+  if (Cons.isNumber(args.car)) {
+    return Math.abs(args.car);  // ← number 型
+  }
+  return Cons.nil;              // ← Cons 型
+}
+```
+
+`abs` は引数が数値なら数値を返し、そうでなければ nil を返す。**Lisp 仕様としてそれが正解**:
+- `(abs 5)` → `5` （number）
+- `(abs "hello")` → `nil` （Cons）
+
+これは `add`、`car`、`cdr`、`length` ... 大半の Lisp 組み込み関数で同じパターン。
+
+#### 動的型言語の処理系として
+
+**動的型言語の組み込み関数は、引数の型によって戻り型が変わるのが基本仕様**:
+- 数値が来たら数値計算
+- 文字列が来たら文字列処理
+- 不正値ならエラー値（nil 等）
+
+これを「単一型を返せ」と修正すると、**Lisp の自然な実装を破壊**する。
+他に手としては:
+- 例外を投げる（仕様変更）
+- always Cons.nil（機能放棄）
+- union 型を狭める（無限の場合分け）
+
+いずれも Lisp として不適切。
+
+#### 結論
+
+このルールは **動的型言語の処理系実装と本質的に相性が悪い**。`OFF` で確定。
+
+#### スライドでのメッセージ
+
+> 静的型言語のベストプラクティスを **動的型言語の処理系**にそのまま適用できないことがある。
+>
+> 「関数は単一型を返せ」は**多くの場面で正しい**が、Lisp / Python / Ruby などを実装する側は **引数によって戻り型が変わる関数群**を書くのが必然。
+>
+> TS の型システムは `LispValue` という union 型でこれを表現できるが、それを**「単一型」と捉えるかどうか**でルール解釈が分かれる。
+>
+> **TS で動的型言語処理系を書くなら、こうしたルールを意識的に OFF にする判断**が必要。
+
+---
+
 ### 例 H: Lisp の linked list 走査と ESLint ルールの想定のズレ
 
 `Cons` の `last` / `length` / `nth` はリスト走査の core。Common Lisp の `(do ((c cons (cdr c))) ...)` を素直に書き下した:

@@ -20,8 +20,8 @@ export const sonarjsConfigs = [
       // NOTE: Lisp処理系として本質的に複雑な状態機械・パーサ・評価器を含むため無効化
       // 認知的複雑度の上限を警告
       'sonarjs/cognitive-complexity': OFF,
+      // NOTE: Lisp の組み込み関数は引数の型によって異なる具象型を返すのが仕様 (例: (abs 5) → number, (abs "x") → nil/Cons)。動的型言語処理系の実装と本質的に相性が悪いため無効化
       // 関数が常に同じ型を返すことを強制
-      // TODO: ルール有効化 / 該当箇所の修正どちらで対応するか判断
       'sonarjs/function-return-type': OFF,
       // NOTE: Lispの (random) は数値計算用途で疑似乱数で十分なため無効化
       // 暗号用途で安全でない疑似乱数の使用を禁止

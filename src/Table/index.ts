@@ -112,4 +112,11 @@ export class Table extends Map<unknown, LispValue> {
     this.source = aTable;
     return null;
   }
+
+  /**
+   * 自身を整形し、文字列として返すメソッド
+   */
+  toString(): string {
+    return '#<Environment>';
+  }
 }

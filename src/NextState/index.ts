@@ -52,6 +52,6 @@ export class NextState {
       throw new Error('Not Invoke Method: ' + this.methodName);
     }
 
-    return Number(aNumber);
+    return aNumber;
   }
 }

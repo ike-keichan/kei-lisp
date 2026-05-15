@@ -641,7 +641,7 @@ export class Evaluator {
     const target = this as unknown as Record<string, unknown>;
     const fn = target[methodName];
     if (typeof fn !== 'function') {
-      throw new TypeError(String(target) + ' does not have a method named "' + methodName + '"');
+      throw new TypeError(`${this.constructor.name} does not have a method named "${methodName}"`);
     }
     const answer = (fn as (a: Cons) => LispValue).apply(target, [aCons]);
 

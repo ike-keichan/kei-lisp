@@ -24,7 +24,7 @@ export class Loop {
   /**
    * 自身を応答するメソッド
    */
-  iterator(): Loop {
+  iterator(): this {
     return this;
   }
 

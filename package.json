@@ -51,14 +51,14 @@
     "check:format": "prettier \"./src/**/*.ts\" --check",
     "check:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" \"./.github/**/*.yml\" --check",
     "check:lint": "eslint \"./src/**/*.ts\"",
-    "check:lint-config": "eslint ./*.{js,mjs}",
+    "check:lint-config": "eslint ./*.{js,mjs} \"./configs/**/*.{js,mjs}\"",
     "check:spell": "cspell \"./src/**/*.ts\"",
     "check:spell-config": "cspell \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" \"./.github/**/*.yml\"",
     "fix": "run-s fix:*",
     "fix:format": "prettier \"./src/**/*.ts\" --write",
     "fix:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" \"./.github/**/*.yml\" --write",
     "fix:lint": "eslint \"./src/**/*.ts\" --fix",
-    "fix:lint-config": "eslint ./*.{js,mjs} --fix",
+    "fix:lint-config": "eslint ./*.{js,mjs} \"./configs/**/*.{js,mjs}\" --fix",
     "doc": "jsdoc src/**/*.ts && open -a \"/Applications/Google Chrome.app\" out/index.html"
   },
   "devDependencies": {

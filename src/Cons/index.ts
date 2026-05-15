@@ -33,7 +33,7 @@ export class Cons {
    * @param anObject 加えるオブジェクト
    * @return 要素を加えたCons
    */
-  add(anObject: LispValue): Cons {
+  add(anObject: LispValue): this {
     const aCons = new Cons(anObject, Cons.nil);
     return this.nconc(aCons);
   }
@@ -59,10 +59,10 @@ export class Cons {
       return Cons.nil;
     }
     if (Cons.isNumber(value)) {
-      return Number(value);
+      return value;
     }
     if (Cons.isString(value)) {
-      return String(value);
+      return value;
     }
     if (Cons.isSymbol(value)) {
       return value;
@@ -237,7 +237,7 @@ export class Cons {
    * @param aCons 結合するCons
    * @return 自身
    */
-  nconc(aCons: Cons): Cons {
+  nconc(aCons: Cons): this {
     this.last().setCdr(aCons);
     return this;
   }
@@ -291,7 +291,7 @@ export class Cons {
   /**
    * Consを設定するメソッド
    */
-  setCons(car: LispValue, cdr: LispValue): Cons {
+  setCons(car: LispValue, cdr: LispValue): this {
     this.car = car;
     this.cdr = cdr;
     return this;

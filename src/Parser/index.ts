@@ -58,7 +58,7 @@ export class Parser {
    */
   input(aCharacter: string | null = this.nextChar()): LispValue {
     // 原本踏襲: inputs が undefined なら .has 呼び出し時に TypeError
-    const inputs = this.states.get(Number(this.state)) as Map<string, NextState>;
+    const inputs = this.states.get(this.state) as Map<string, NextState>;
 
     // 原本踏襲: aCharacter が null なら codePointAt 呼び出し時に TypeError
     const codePoint = (aCharacter as string).codePointAt(0) ?? 0;
@@ -312,7 +312,7 @@ export class Parser {
    * NextStateによって呼び出される、トークンをString型の0オリジン(擬似的なCharacter型)にするメソッド
    */
   tokenToCharacter(): null {
-    this.token = String(this.tokenString[0]);
+    this.token = this.tokenString.charAt(0);
     return null;
   }
 
