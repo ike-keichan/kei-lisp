@@ -27,18 +27,14 @@ export class InterpretedSymbol {
    * @param aSymbol 比較対象
    * @return 文字列の長さの差
    */
-  /* eslint-disable unicorn/prefer-code-point, @typescript-eslint/unbound-method */
   compareTo(aSymbol: InterpretedSymbol): number {
-    // 原本踏襲: charCodeAt (括弧無し) で関数参照を返してしまうバグも含めて再現
-    let aNumber =
-      this.name.charCodeAt(0) < aSymbol.name.charCodeAt(0)
-        ? aSymbol.name.length - (this.name.charCodeAt as unknown as number)
-        : (this.name.charCodeAt as unknown as number) - aSymbol.name.length;
-    aNumber = this.name.charCodeAt(0) === aSymbol.name.charCodeAt(0) ? 0 : aNumber;
+    const left = this.name.codePointAt(0) ?? 0;
+    const right = aSymbol.name.codePointAt(0) ?? 0;
+    let aNumber = left < right ? aSymbol.name.length - left : left - aSymbol.name.length;
+    aNumber = left === right ? 0 : aNumber;
 
     return aNumber;
   }
-  /* eslint-enable unicorn/prefer-code-point, @typescript-eslint/unbound-method */
 
   /**
    * 自身と引数のオブジェクトが等しいかどうかを判別し、応答するメソッド

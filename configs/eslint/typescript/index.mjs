@@ -33,6 +33,12 @@ export const typescriptConfigs = [
       // メソッドの戻り値型に `this` 型の使用を強制
       // TODO: ルール有効化 / 該当箇所の修正どちらで対応するか判断
       '@typescript-eslint/prefer-return-this-type': OFF,
+      // NOTE: コードベース全体でクラス形式に統一しているため無効化
+      // インスタンスを持たないクラスを禁止
+      '@typescript-eslint/no-extraneous-class': OFF,
+      // NOTE: Lisp の linked list 走査で `let aCons = this; while (...) { aCons = aCons.cdr }` パターンが必然的に発生するため無効化
+      // this のエイリアスを禁止
+      '@typescript-eslint/no-this-alias': OFF,
     },
   },
   {

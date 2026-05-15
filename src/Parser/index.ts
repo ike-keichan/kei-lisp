@@ -1,10 +1,3 @@
-/**
- * `unicorn/prefer-spread` は `this.concat()` を `Array.prototype.concat` と誤認して
- * `[...this]` に書き換えるため、このファイルでは無効化する。
- * `unicorn/no-immediate-mutation` は状態遷移表の段階的な構築と相性が悪いため無効化する。
- */
-/* eslint-disable unicorn/prefer-spread, unicorn/no-immediate-mutation */
-
 import { Cons, type LispValue } from '../Cons/index.js';
 import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
 import { IntStream } from '../IntStream/index.js';
@@ -37,9 +30,7 @@ export class Parser {
     this.tokenString = '';
     this.states = new Map();
     this.state = 0;
-    // 原本踏襲: 疎配列で初期化 (nexts[i] は当初 undefined)
-    // eslint-disable-next-line unicorn/no-new-array
-    this.nexts = new Array<string | null>(PEEKCOUNT + 1);
+    this.nexts = Array.from({ length: PEEKCOUNT + 1 }, (): string | null => null);
     this.initializeStateTransitionTable();
     let count = 0;
     while (count++ < PEEKCOUNT) {
@@ -65,29 +56,22 @@ export class Parser {
   /**
    * パースする文字列のある1文字を引数とし、パースするメソッド
    */
-  input(
-    aCharacter: string | null = (() => {
-      const c = this.nextChar();
-      // eslint-disable-next-line unicorn/no-negated-condition
-      return c != null ? c : null;
-    })(),
-  ): null {
+  input(aCharacter: string | null = this.nextChar()): LispValue {
     // 原本踏襲: inputs が undefined なら .has 呼び出し時に TypeError
     const inputs = this.states.get(Number(this.state)) as Map<string, NextState>;
 
-    // 原本踏襲: charCodeAt / aCharacter が null なら .charCodeAt 呼び出し時に TypeError
-    /* eslint-disable unicorn/prefer-code-point */
-    const aNumber = inputs.has(String((aCharacter as string).charCodeAt(0)))
-      ? (inputs.get(String((aCharacter as string).charCodeAt(0))) as NextState).next(this)
+    // 原本踏襲: aCharacter が null なら codePointAt 呼び出し時に TypeError
+    const codePoint = (aCharacter as string).codePointAt(0) ?? 0;
+    const aNumber = inputs.has(String(codePoint))
+      ? (inputs.get(String(codePoint)) as NextState).next(this)
       : (inputs.get(String(128)) as NextState).next(this);
-    /* eslint-enable unicorn/prefer-code-point */
 
     if (aNumber < 0) {
       throw new Error(SYNTAX_ERROR);
     }
     this.state = aNumber;
 
-    return null;
+    return this.token;
   }
 
   /**
@@ -96,12 +80,7 @@ export class Parser {
   nextChar(): string | null {
     let aCharacter: string | null = null;
     try {
-      const aNumber = (() => {
-        const value = this.stream.next().value as unknown;
-        // 原本踏襲: charCodeAt (引数省略は 0 と同じ)
-        // eslint-disable-next-line unicorn/no-negated-condition, unicorn/prefer-code-point
-        return value != null ? (value as string).charCodeAt(0) : -1;
-      })();
+      const aNumber = (this.stream.next().value as string | undefined)?.codePointAt(0) ?? -1;
       if (aNumber >= 0) {
         aCharacter = String.fromCodePoint(aNumber);
       }
@@ -124,21 +103,20 @@ export class Parser {
    */
   nextToken(): LispValue {
     this.token = null;
+    let token: LispValue = null;
 
     while (!this.atEnd()) {
-      // this.input() がループ内で this.token を書き換えるため、null チェックは必要
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (this.state === 0 && this.token != null) {
+      if (this.state === 0 && token != null) {
         break;
       }
-      this.input();
+      token = this.input();
     }
     if (this.atEnd() && this.state !== 0) {
       throw new Error(SYNTAX_ERROR);
     }
     this.tokenString = '';
 
-    return this.token;
+    return token;
   }
 
   /**
@@ -333,43 +311,39 @@ export class Parser {
   /**
    * NextStateによって呼び出される、トークンをString型の0オリジン(擬似的なCharacter型)にするメソッド
    */
-  /* eslint-disable sonarjs/no-redundant-jump */
-  tokenToCharacter(): void {
+  tokenToCharacter(): null {
     this.token = String(this.tokenString[0]);
-    // 原本踏襲: 戻り値なし (undefined を返す)
-    return;
+    return null;
   }
 
   /**
    * NextStateによって呼び出される、トークンをNumber型(倍精度浮動小数点数：擬似的なDouble型)にするメソッド
    */
-  tokenToDouble(): void {
+  tokenToDouble(): null {
     this.token = Number(this.tokenString);
-    return;
+    return null;
   }
 
   /**
    * NextStateによって呼び出される、トークンをNumber型(倍精度浮動小数点数：擬似的なDouble型)にするメソッド
    */
-  tokenToDoubleAUX(): void {
+  tokenToDoubleAUX(): null {
     this.concat();
     this.token = Number(this.tokenString);
-    return;
+    return null;
   }
 
   /**
    * NextStateによって呼び出される、トークンをNumber型(整数値：擬似的なInteger型)にするメソッド
    */
-  tokenToInteger(): void {
+  tokenToInteger(): null {
     const aCharacter = this.tokenString[0];
     if (aCharacter === '+') {
-      // eslint-disable-next-line unicorn/prefer-string-slice
-      this.tokenString = this.tokenString.substring(1, this.tokenString.length);
+      this.tokenString = this.tokenString.slice(1);
     }
     this.token = Number(this.tokenString);
-    return;
+    return null;
   }
-  /* eslint-enable sonarjs/no-redundant-jump */
 
   /**
    * NextStateによって呼び出される、トークンをString型にするメソッド
@@ -393,7 +367,6 @@ export class Parser {
   /**
    * 文字コードと対応するメソッド（トークン）の対応表を生成するメソッド
    */
-  // eslint-disable-next-line sonarjs/cognitive-complexity, sonarjs/cyclomatic-complexity
   initializeStateTransitionTable(): null {
     let aTable = new Map<string, NextState>();
     for (const index of IntStream.rangeClosed(0, 8))

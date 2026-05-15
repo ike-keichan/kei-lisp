@@ -26,16 +26,12 @@ export class Table extends Map<unknown, LispValue> {
    */
   clone(): Table {
     const aTable = new Table(this);
-    // 原本踏襲: this.keys は関数参照そのもので括弧無しでは反復不能 (TypeError)
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    for (const key of this.keys as unknown as Iterable<unknown>) {
+    for (const key of this.keys()) {
       const value = Cons.cloneValue(this.get(key));
-      // eslint-disable-next-line unicorn/no-negated-condition
-      if (value != null) {
-        aTable.set(key, value);
-      } else {
+      if (value == null) {
         throw new Error('RuntimeException!');
       }
+      aTable.set(key, value);
     }
 
     return aTable;
@@ -87,25 +83,19 @@ export class Table extends Map<unknown, LispValue> {
   }
 
   /**
-   * この環境にインタプリテッドシンボルは登録されていなければ、上書きするメソッド
+   * 最も内側のスコープで束縛されているシンボルを再代入するメソッド (Common Lisp の setq 相当)。
+   * 現スコープに束縛があれば現スコープを更新して終了し、無ければ親スコープに再帰する。
    */
-  /* eslint-disable no-useless-assignment, sonarjs/no-dead-store, unicorn/prefer-ternary, @typescript-eslint/no-unnecessary-type-assertion */
   setIfExit(aSymbol: unknown, anObject: LispValue): LispValue {
-    let answer: LispValue = null;
     if (super.has(aSymbol)) {
-      // 原本踏襲: this.set の戻り値 (Map 自身) を answer に代入 (直後で上書きされる)
-      answer = this.set(aSymbol, anObject) as unknown as LispValue;
+      this.set(aSymbol, anObject);
+      return anObject;
     }
     if (this.isRoot()) {
-      answer = null;
-    } else {
-      // 原本踏襲: source が null なら実行時に TypeError
-      answer = (this.source as Table).setIfExit(aSymbol, anObject);
+      return null;
     }
-
-    return answer;
+    return (this.source as Table).setIfExit(aSymbol, anObject);
   }
-  /* eslint-enable no-useless-assignment, sonarjs/no-dead-store, unicorn/prefer-ternary */
 
   /**
    * このインスタンス環境の根があるかどうかを判別し、応答するメソッド

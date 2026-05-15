@@ -17,9 +17,7 @@ const SELECT_PRINT_FUNCTION_NOT_DEFINED = 'selectPrintFunction is not defined';
  */
 export class Applier {
   static readonly buildInFunctions: Map<InterpretedSymbol, string> = Applier.setup();
-  // gensym で連番を生成するため、ここは読み取り専用にできない
-  // eslint-disable-next-line sonarjs/public-static-readonly
-  static generateNumber = 0;
+  static #generateNumber = 0;
 
   environment: Table;
   streamManager: StreamManager;
@@ -159,19 +157,6 @@ export class Applier {
 
     const methodName = Applier.buildInFunctions.get(procedure) as string;
 
-    // 原本踏襲: メソッド存在確認の死コード (プロパティアクセスは例外を投げず catch は発火しない)
-    try {
-      const method = (this as unknown as Record<string, unknown>)[methodName];
-      ((x: unknown) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        x;
-      })(method);
-    } catch {
-      console.log('Not Found Method: ' + methodName);
-    }
-
-    // 原本踏襲: 旧 R.invoker(1, methodName)(args, this) は this[methodName].apply(this, [args]) と等価。
-    // メソッドが関数でない場合は TypeError を投げる挙動も含めて再現する。
     const target = this as unknown as Record<string, unknown>;
     const fn = target[methodName];
     if (typeof fn !== 'function') {
@@ -255,13 +240,6 @@ export class Applier {
     return result;
   }
 
-  double_(args: Cons): LispValue {
-    if (Cons.isNumber(args.car)) {
-      return InterpretedSymbol.of('t');
-    }
-    return Cons.nil;
-  }
-
   entrustEvaluator(procedure: LispValue, args: LispValue): LispValue {
     let anObject: LispValue = Cons.nil;
     let aCons = (procedure as Cons).cdr as Cons;
@@ -326,7 +304,6 @@ export class Applier {
     return Cons.nil;
   }
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity, sonarjs/cyclomatic-complexity
   format_AUX(format: string, aCons: LispValue): string | undefined {
     let theCons: LispValue = aCons;
     let index = 0;
@@ -501,21 +478,14 @@ export class Applier {
   }
 
   gensym(): InterpretedSymbol {
-    const aSymbol = InterpretedSymbol.of('id' + String(Applier.generateNumber));
+    const aSymbol = InterpretedSymbol.of('id' + String(Applier.#generateNumber));
     Applier.incrementGenerateNumber();
 
     return aSymbol;
   }
 
   getStream(anObject: LispValue): unknown {
-    // 原本踏襲: streamManager は常に非 null だが、原本に同チェックがあるため残す
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (this.streamManager == null) {
-      // 原本踏襲: 元コードは存在しない `process.out` を返す (= undefined)
-      return (process as unknown as { out?: unknown }).out;
-    }
-    // eslint-disable-next-line unicorn/no-instanceof-builtins
-    if (anObject instanceof String || typeof anObject === 'string') {
+    if (typeof anObject === 'string') {
       return (process as unknown as { out?: unknown }).out;
     }
 
@@ -587,7 +557,7 @@ export class Applier {
   }
 
   static incrementGenerateNumber(): null {
-    Applier.generateNumber++;
+    Applier.#generateNumber++;
     return null;
   }
 
@@ -867,8 +837,9 @@ export class Applier {
     return Cons.nil;
   }
 
-  // JS では数値型に区別がなく double_ と同じ実装になるが、Lisp 側 API として両方提供する
-  // eslint-disable-next-line sonarjs/no-identical-functions
+  // NOTE: Lisp の numberp と doublep は本来別述語だが、JS の数値型が double 一種のため同一実装で対応する。
+  //       Applier.setup() で numberp / doublep の両 Lisp 関数名がこのメソッドにマップされる。
+  //       将来 BigInt 等の数値型を扱うようになった場合は別メソッドに分離する。
   number_(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
       return InterpretedSymbol.of('t');
@@ -881,8 +852,6 @@ export class Applier {
   }
 
   random(): number {
-    // Lisp の random は擬似乱数で良い
-    // eslint-disable-next-line sonarjs/pseudo-random
     return Math.random();
   }
 
@@ -927,7 +896,7 @@ export class Applier {
         ['cos', 'cos'],
         ['floatp', 'float_'],
         ['divide', 'divide'],
-        ['doublep', 'double_'],
+        ['doublep', 'number_'],
         ['eq', 'eq_'],
         ['equal', 'equal_'],
         ['exp', 'exp'],

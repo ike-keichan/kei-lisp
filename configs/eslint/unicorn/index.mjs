@@ -19,6 +19,18 @@ export const unicornConfigs = [
       'unicorn/no-null': OFF,
       // 正規表現の最適化を強制
       'unicorn/better-regex': ERROR,
+      // NOTE: Parser.concat()を誤検知するため無効化
+      // Array.concat() / Array.from() のスプレッド構文への統一を強制
+      'unicorn/prefer-spread': OFF,
+      // NOTE: Parserの状態遷移表構築と相性が悪いため無効化
+      // new Map()/Set() 等の直後のミューテーションを禁止
+      'unicorn/no-immediate-mutation': OFF,
+      // NOTE: コードベース全体でクラス形式に統一しているため無効化
+      // staticメソッドのみのクラスを禁止
+      'unicorn/no-static-only-class': OFF,
+      // NOTE: Lisp の linked list 走査で `let aCons = this; while (...) { aCons = aCons.cdr }` パターンが必然的に発生するため無効化
+      // this のエイリアス代入を禁止
+      'unicorn/no-this-assignment': OFF,
     },
   },
 ];

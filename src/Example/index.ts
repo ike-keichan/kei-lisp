@@ -13,13 +13,10 @@ function main(): null {
 
 const globalAny = globalThis as Record<string, unknown>;
 
-// 原本踏襲: typeof による未定義チェック
-/* eslint-disable unicorn/no-typeof-undefined */
-if (typeof globalAny['document'] === 'undefined') {
+if (globalAny['document'] === undefined) {
   main();
 }
 
-if (typeof globalAny['window'] !== 'undefined') {
+if (globalAny['window'] !== undefined) {
   (globalAny['window'] as Record<string, unknown>)['main'] = main;
 }
-/* eslint-enable unicorn/no-typeof-undefined */

@@ -3,6 +3,7 @@ import vm from 'node:vm';
 
 import { Applier } from '../Applier/index.js';
 import { Cons, type LispValue } from '../Cons/index.js';
+import { ExitError } from '../ExitError/index.js';
 import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
 import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
@@ -321,9 +322,7 @@ export class Evaluator {
 
   evaluateSymbol(aSymbol: InterpretedSymbol): LispValue {
     let answer: LispValue = Cons.nil;
-    // 原本踏襲: aSymbol の null チェックも保持
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (aSymbol != null && this.environment.has(aSymbol)) {
+    if (this.environment.has(aSymbol)) {
       if (this.isSpy(aSymbol)) {
         this.spyPrint(this.streamManager.spyStream(aSymbol), aSymbol.toString());
         this.setDepth(this.depth + 1);
@@ -350,8 +349,7 @@ export class Evaluator {
 
   exit(): never {
     console.log('Bye!');
-    // eslint-disable-next-line n/no-process-exit, unicorn/no-process-exit
-    process.exit(0);
+    throw new ExitError();
   }
 
   gc(): InterpretedSymbol {
@@ -640,18 +638,6 @@ export class Evaluator {
     const aCons = form.cdr as Cons;
     const methodName = Evaluator.buildInFunctions.get(aSymbol) as string;
 
-    // 原本踏襲: メソッド存在確認の死コード (プロパティアクセスは例外を投げず catch は発火しない)
-    try {
-      const method = (this as unknown as Record<string, unknown>)[methodName];
-      ((x: unknown) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        x;
-      })(method);
-    } catch {
-      throw new Error('Not Found Method: ' + methodName);
-    }
-
-    // 原本踏襲: 旧 R.invoker(1, methodName)(aCons, this) は this[methodName].apply(this, [aCons]) と等価。
     const target = this as unknown as Record<string, unknown>;
     const fn = target[methodName];
     if (typeof fn !== 'function') {

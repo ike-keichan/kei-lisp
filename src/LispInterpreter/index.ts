@@ -3,6 +3,7 @@ import type { Interface as ReadlineInterface } from 'node:readline';
 
 import { Cons, type LispValue } from '../Cons/index.js';
 import { Evaluator } from '../Evaluator/index.js';
+import { ExitError } from '../ExitError/index.js';
 import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
 import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
@@ -39,6 +40,7 @@ export class LispInterpreter {
     let aCons: LispValue = new Cons();
     let aString = '';
     let leftParentheses = 0;
+    let exitedViaLisp = false;
 
     this.rl.prompt();
     this.rl
@@ -61,7 +63,12 @@ export class LispInterpreter {
             for (const each of (aCons as Cons).loop()) {
               console.log((this.eval(each) as { toString(): string }).toString());
             }
-          } catch {
+          } catch (error) {
+            if (error instanceof ExitError) {
+              exitedViaLisp = true;
+              this.rl.close();
+              return;
+            }
             console.log('*** can not eval ' + (aCons as Cons).toString() + ' ***');
             console.log(Cons.nil.toString());
           }
@@ -71,9 +78,10 @@ export class LispInterpreter {
         }
       })
       .on('close', () => {
-        console.log('\nBye!');
-        // eslint-disable-next-line n/no-process-exit, unicorn/no-process-exit
-        process.exit(0);
+        // (exit) 経由の場合は Evaluator.exit() が既に "Bye!" を出力しているためスキップ
+        if (!exitedViaLisp) {
+          console.log('\nBye!');
+        }
       });
 
     return null;
@@ -85,7 +93,8 @@ export class LispInterpreter {
   eval(aCons: LispValue): LispValue {
     try {
       return Evaluator.eval(aCons, this.root, this.streamManager);
-    } catch {
+    } catch (error) {
+      if (error instanceof ExitError) throw error;
       console.log('*** can not eval ' + (aCons as { toString(): string }).toString() + ' ***');
       return Cons.nil;
     }
@@ -120,9 +129,7 @@ export class LispInterpreter {
     try {
       return Cons.parse('(' + aString + '\n);');
     } catch {
-      // 原本踏襲: replace + 正規表現
-      // eslint-disable-next-line unicorn/prefer-string-replace-all
-      console.log('*** can not parse ' + aString.replace(/\n/g, '') + ' ***');
+      console.log('*** can not parse ' + aString.replaceAll('\n', '') + ' ***');
       return Cons.nil;
     }
   }
