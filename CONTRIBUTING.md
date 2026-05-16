@@ -115,6 +115,41 @@ Conventions:
    `<type>: <description>` (e.g. `fix:`, `feat:`, `docs:`, `test:`,
    `refactor:`).
 
+## Release process
+
+Releases are published to npm automatically when a `v*` tag is pushed.
+
+### Maintainer steps
+
+1. Update `CHANGELOG.md` — move pending entries under a new
+   `## [<new-version>] - <YYYY-MM-DD>` header.
+2. Bump `version` in `package.json` to match.
+3. Commit the version bump on `master`
+   (e.g. `chore: release v2.1.0`).
+4. Tag the commit and push:
+
+   ```sh
+   git tag v2.1.0
+   git push origin v2.1.0
+   ```
+
+5. The [`Release` workflow](./.github/workflows/release.yml) runs:
+   build → check → test → `pnpm publish --provenance --access public`
+   → GitHub Release with auto-generated notes.
+
+### Required GitHub secrets
+
+| Secret      | Where to obtain                                  |
+| ----------- | ------------------------------------------------ |
+| `NPM_TOKEN` | npm → Account → Access Tokens → Granular (write) |
+
+Set under **Repository → Settings → Secrets and variables → Actions**.
+
+The release workflow uses OIDC (`id-token: write`) to attach
+[npm provenance](https://docs.npmjs.com/generating-provenance-statements)
+to published packages — no additional configuration required beyond the
+permissions block already present in the workflow.
+
 ## Reporting issues
 
 When filing a bug report, please include:

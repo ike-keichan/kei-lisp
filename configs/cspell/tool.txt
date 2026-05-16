@@ -34,3 +34,6 @@ unicorn
 readline
 ramda
 expose-gc
+
+# GitHub Actions
+softprops
