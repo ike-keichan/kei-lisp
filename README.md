@@ -169,7 +169,7 @@ In-depth documentation of each language area:
 git clone https://github.com/ike-keichan/kei-lisp.git
 cd kei-lisp
 pnpm install
-pnpm dev
+pnpm start
 ```
 
 Requires [pnpm](https://pnpm.io/) and Node.js 24+
@@ -178,7 +178,6 @@ Requires [pnpm](https://pnpm.io/) and Node.js 24+
 | Command           | Description                               |
 | ----------------- | ----------------------------------------- |
 | `pnpm build`      | Build for distribution                    |
-| `pnpm dev`        | Build and run the CLI                     |
 | `pnpm start`      | Run the built CLI                         |
 | `pnpm test`       | Run tests                                 |
 | `pnpm test:watch` | Run tests in watch mode                   |

@@ -26,7 +26,7 @@ pnpm install
 pnpm check   # Runs format, lint, and spell checks
 pnpm test    # Runs the test suite
 pnpm build   # Builds for distribution
-pnpm dev     # Builds and starts the REPL
+pnpm start   # Runs the built CLI (REPL)
 ```
 
 ## Project layout
@@ -67,7 +67,6 @@ Code modules live as `<DirName>/index.ts`. Grouping directories
 | Command           | Description                                |
 | ----------------- | ------------------------------------------ |
 | `pnpm build`      | Build for distribution (CJS + ESM + types) |
-| `pnpm dev`        | Build and start the REPL                   |
 | `pnpm start`      | Run the built CLI                          |
 | `pnpm test`       | Run the test suite                         |
 | `pnpm test:watch` | Run tests in watch mode                    |

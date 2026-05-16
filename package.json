@@ -47,7 +47,6 @@
     "prepublishOnly": "pnpm check && pnpm test",
     "build": "tsup",
     "start": "node dist/cli.cjs",
-    "dev": "pnpm build && node dist/cli.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "doc": "typedoc",
