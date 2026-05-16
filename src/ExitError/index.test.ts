@@ -5,40 +5,38 @@ import { ExitError } from './index.js';
 describe('ExitError', () => {
   describe('constructor', () => {
     it('引数なしで構築できる', () => {
-      const e = new ExitError();
-      expect(e).toBeDefined();
+      expect(new ExitError()).toBeDefined();
     });
 
-    it('name は "ExitError"', () => {
-      const e = new ExitError();
-      expect(e.name).toBe('ExitError');
+    it('name に "ExitError" を設定する', () => {
+      expect(new ExitError().name).toBe('ExitError');
     });
 
-    it('message は "Exit"', () => {
-      const e = new ExitError();
-      expect(e.message).toBe('Exit');
+    it('message に "Exit" を設定する', () => {
+      expect(new ExitError().message).toBe('Exit');
     });
 
-    it('Error のサブクラス', () => {
-      const e = new ExitError();
-      expect(e).toBeInstanceOf(Error);
-      expect(e).toBeInstanceOf(ExitError);
+    it('Error のインスタンスである', () => {
+      expect(new ExitError()).toBeInstanceOf(Error);
     });
 
-    it('stack trace を持つ (Error 由来)', () => {
-      const e = new ExitError();
-      expect(e.stack).toBeDefined();
+    it('ExitError 自身のインスタンスである', () => {
+      expect(new ExitError()).toBeInstanceOf(ExitError);
+    });
+
+    it('stack trace を持つ', () => {
+      expect(new ExitError().stack).toBeDefined();
     });
   });
 
-  describe('throw / catch 動作', () => {
-    it('throw して catch でき、ExitError として識別される', () => {
+  describe('throw 挙動', () => {
+    it('throw して toThrow(ExitError) で検知する', () => {
       expect(() => {
         throw new ExitError();
       }).toThrow(ExitError);
     });
 
-    it('Error として catch しても識別可能', () => {
+    it('toThrow(Error) でも検知する', () => {
       expect(() => {
         throw new ExitError();
       }).toThrow(Error);

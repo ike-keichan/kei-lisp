@@ -5,75 +5,67 @@ import { Table } from './index.js';
 
 describe('Table', () => {
   describe('constructor', () => {
-    it('引数なしで root', () => {
+    it('引数なしで構築すると root を true にする', () => {
       const t = new Table();
       expect(t.isRoot()).toBe(true);
       expect(t.source).toBeNull();
     });
 
-    it('null を渡しても root', () => {
-      const t = new Table(null);
-      expect(t.isRoot()).toBe(true);
+    it('null を渡しても root を true にする', () => {
+      expect(new Table(null).isRoot()).toBe(true);
     });
 
-    it('親テーブルを渡すと非 root', () => {
+    it('親テーブルを渡すと非 root にする', () => {
       const parent = new Table();
       const child = new Table(parent);
       expect(child.isRoot()).toBe(false);
       expect(child.source).toBe(parent);
     });
 
-    it('Map を継承している (基底操作が動く)', () => {
-      const t = new Table();
-      expect(t.size).toBe(0);
+    it('Map を継承しているので初期 size は 0 を返す', () => {
+      expect(new Table().size).toBe(0);
     });
   });
 
   describe('clone', () => {
-    it('Round 4-D: クラッシュせず複製できる', () => {
+    it('Round 4-D: クラッシュせず複製を返す', () => {
       const t = new Table();
       const sym = InterpretedSymbol.of('x');
       t.set(sym, 42);
-      const cloned = t.clone();
-      expect(cloned.get(sym)).toBe(42);
+      expect(t.clone().get(sym)).toBe(42);
     });
 
     it('別インスタンスを返す', () => {
       const t = new Table();
-      const cloned = t.clone();
-      expect(cloned).not.toBe(t);
+      expect(t.clone()).not.toBe(t);
     });
 
-    it('clone 元の source を親として持つ', () => {
+    it('clone 元の Table を親として参照する', () => {
       const t = new Table();
       t.set(InterpretedSymbol.of('a'), 1);
-      const cloned = t.clone();
-      expect(cloned.source).toBe(t);
+      expect(t.clone().source).toBe(t);
     });
   });
 
   describe('equals', () => {
-    it('Map.prototype.equals が無いため呼ぶと TypeError (原本踏襲)', () => {
-      const a = new Table();
-      const b = new Table();
-      expect(() => a.equals(b)).toThrow();
+    it('Map.prototype.equals が存在しないため TypeError を投げる', () => {
+      expect(() => new Table().equals(new Table())).toThrow();
     });
   });
 
   describe('get', () => {
-    it('set した値を取得', () => {
+    it('set した値を返す', () => {
       const t = new Table();
       const sym = InterpretedSymbol.of('x');
       t.set(sym, 42);
       expect(t.get(sym)).toBe(42);
     });
 
-    it('未登録なら null (root)', () => {
-      const t = new Table();
-      expect(t.get(InterpretedSymbol.of('missing'))).toBeNull();
+    it('未登録キーには null を返す', () => {
+      expect(new Table().get(InterpretedSymbol.of('missing'))).toBeNull();
     });
 
-    it('親から取得 (非 root の場合)', () => {
+    it('非 root の場合は親から値を返す', () => {
       const parent = new Table();
       const child = new Table(parent);
       const sym = InterpretedSymbol.of('x');
@@ -81,7 +73,7 @@ describe('Table', () => {
       expect(child.get(sym)).toBe(99);
     });
 
-    it('shadowing: 子で定義していれば子のものが優先', () => {
+    it('子で定義があれば子の値を優先する', () => {
       const parent = new Table();
       const child = new Table(parent);
       const sym = InterpretedSymbol.of('x');
@@ -92,19 +84,18 @@ describe('Table', () => {
   });
 
   describe('has', () => {
-    it('未登録は false', () => {
-      const t = new Table();
-      expect(t.has(InterpretedSymbol.of('x'))).toBe(false);
+    it('未登録なら false を返す', () => {
+      expect(new Table().has(InterpretedSymbol.of('x'))).toBe(false);
     });
 
-    it('set すると true', () => {
+    it('set すると true を返す', () => {
       const t = new Table();
       const sym = InterpretedSymbol.of('x');
       t.set(sym, 1);
       expect(t.has(sym)).toBe(true);
     });
 
-    it('親に登録されていれば子でも true', () => {
+    it('親に登録があれば子でも true を返す', () => {
       const parent = new Table();
       const child = new Table(parent);
       const sym = InterpretedSymbol.of('x');
@@ -114,19 +105,17 @@ describe('Table', () => {
   });
 
   describe('isRoot', () => {
-    it('root テーブルなら true', () => {
-      const t = new Table();
-      expect(t.isRoot()).toBe(true);
+    it('root テーブルなら true を返す', () => {
+      expect(new Table().isRoot()).toBe(true);
     });
 
-    it('親があれば false', () => {
-      const child = new Table(new Table());
-      expect(child.isRoot()).toBe(false);
+    it('親がある場合は false を返す', () => {
+      expect(new Table(new Table()).isRoot()).toBe(false);
     });
   });
 
-  describe('setIfExit (Round 4-J-3 修正後: Common Lisp setq shadowing)', () => {
-    it('現スコープに束縛があれば現スコープを更新して終了', () => {
+  describe('setIfExit', () => {
+    it('現スコープに束縛があれば現スコープを更新して終了する', () => {
       const t = new Table();
       const sym = InterpretedSymbol.of('x');
       t.set(sym, 1);
@@ -134,7 +123,7 @@ describe('Table', () => {
       expect(t.get(sym)).toBe(999);
     });
 
-    it('現スコープに無ければ親に再帰', () => {
+    it('現スコープに無ければ親に再帰して更新する', () => {
       const parent = new Table();
       const child = new Table(parent);
       const sym = InterpretedSymbol.of('x');
@@ -143,7 +132,7 @@ describe('Table', () => {
       expect(parent.get(sym)).toBe(999);
     });
 
-    it('shadowing: 内側で束縛があれば内側のみ更新、外側は不変', () => {
+    it('Round 4-J-3: 内側に束縛があれば内側のみ更新する', () => {
       const outer = new Table();
       const inner = new Table(outer);
       const sym = InterpretedSymbol.of('x');
@@ -151,16 +140,24 @@ describe('Table', () => {
       inner.set(sym, 2);
       inner.setIfExit(sym, 999);
       expect(inner.get(sym)).toBe(999);
+    });
+
+    it('Round 4-J-3: 内側更新は外側を変更しない', () => {
+      const outer = new Table();
+      const inner = new Table(outer);
+      const sym = InterpretedSymbol.of('x');
+      outer.set(sym, 1);
+      inner.set(sym, 2);
+      inner.setIfExit(sym, 999);
       expect(outer.get(sym)).toBe(1);
     });
 
     it('どこにも束縛が無ければ null を返す', () => {
       const t = new Table();
-      const sym = InterpretedSymbol.of('undefined');
-      expect(t.setIfExit(sym, 999)).toBeNull();
+      expect(t.setIfExit(InterpretedSymbol.of('undefined'), 999)).toBeNull();
     });
 
-    it('代入した値を返す (現スコープで成功時)', () => {
+    it('現スコープで成功した場合は代入した値を返す', () => {
       const t = new Table();
       const sym = InterpretedSymbol.of('x');
       t.set(sym, 1);
@@ -169,55 +166,45 @@ describe('Table', () => {
   });
 
   describe('setRoot', () => {
-    it('true で root 化', () => {
+    it('true を渡すと root にする', () => {
       const t = new Table(new Table());
-      expect(t.isRoot()).toBe(false);
       t.setRoot(true);
       expect(t.isRoot()).toBe(true);
     });
 
-    it('false で非 root 化', () => {
+    it('false を渡すと非 root にする', () => {
       const t = new Table();
-      expect(t.isRoot()).toBe(true);
       t.setRoot(false);
       expect(t.isRoot()).toBe(false);
     });
 
     it('null を返す', () => {
-      const t = new Table();
-      expect(t.setRoot(true)).toBeNull();
+      expect(new Table().setRoot(true)).toBeNull();
     });
   });
 
   describe('setSource', () => {
-    it('source を設定する', () => {
+    it('source を指定したテーブルに更新する', () => {
       const t = new Table();
       const parent = new Table();
       t.setSource(parent);
       expect(t.source).toBe(parent);
     });
 
-    it('null を渡すと source が null に', () => {
+    it('null を渡すと source を null にする', () => {
       const t = new Table(new Table());
       t.setSource(null);
       expect(t.source).toBeNull();
     });
 
     it('null を返す', () => {
-      const t = new Table();
-      expect(t.setSource(null)).toBeNull();
+      expect(new Table().setSource(null)).toBeNull();
     });
   });
 
-  describe('toString (Round 5-1 で追加)', () => {
-    it('"#<Environment>" を返す', () => {
-      const t = new Table();
-      expect(t.toString()).toBe('#<Environment>');
-    });
-
-    it('入れ子テーブルでも同じ表示', () => {
-      const child = new Table(new Table());
-      expect(child.toString()).toBe('#<Environment>');
+  describe('toString', () => {
+    it('Round 5-1: "#<Environment>" を返す', () => {
+      expect(new Table().toString()).toBe('#<Environment>');
     });
   });
 });

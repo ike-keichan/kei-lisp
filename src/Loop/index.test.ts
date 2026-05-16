@@ -13,7 +13,7 @@ const makeList = (...values: number[]): Cons => {
 
 describe('Loop', () => {
   describe('constructor', () => {
-    it('Cons を受け取って初期化', () => {
+    it('Cons を受け取って初期化する', () => {
       const list = makeList(1, 2, 3);
       const loop = new Loop(list);
       expect(loop.aCons).toBe(list);
@@ -21,28 +21,25 @@ describe('Loop', () => {
       expect(loop.index).toBe(1);
     });
 
-    it('nil 単独でも構築可能 (length 0)', () => {
+    it('nil 単独でも構築する', () => {
       const loop = new Loop(Cons.nil);
       expect(loop.length).toBe(0);
-      expect(loop.hasNext()).toBe(false);
     });
   });
 
   describe('hasNext', () => {
-    it('要素が残っていれば true', () => {
-      const loop = new Loop(makeList(1, 2, 3));
-      expect(loop.hasNext()).toBe(true);
+    it('要素が残っていれば true を返す', () => {
+      expect(new Loop(makeList(1, 2)).hasNext()).toBe(true);
     });
 
-    it('全て消費したら false', () => {
+    it('全て消費したら false を返す', () => {
       const loop = new Loop(makeList(1));
       loop.next();
       expect(loop.hasNext()).toBe(false);
     });
 
-    it('空 (nil) は最初から false', () => {
-      const loop = new Loop(Cons.nil);
-      expect(loop.hasNext()).toBe(false);
+    it('空 (nil) なら最初から false を返す', () => {
+      expect(new Loop(Cons.nil).hasNext()).toBe(false);
     });
   });
 
@@ -61,55 +58,45 @@ describe('Loop', () => {
       expect(loop.next()).toBe(30);
     });
 
-    it('next が index を進める', () => {
+    it('呼び出すと index を 1 進める', () => {
       const loop = new Loop(makeList(1, 2));
-      expect(loop.index).toBe(1);
       loop.next();
       expect(loop.index).toBe(2);
-      loop.next();
-      expect(loop.index).toBe(3);
     });
   });
 
   describe('remove', () => {
     it('index を 1 進める', () => {
-      const loop = new Loop(makeList(1, 2, 3));
-      expect(loop.index).toBe(1);
+      const loop = new Loop(makeList(1, 2));
       loop.remove();
       expect(loop.index).toBe(2);
     });
 
     it('null を返す', () => {
-      const loop = new Loop(makeList(1));
-      expect(loop.remove()).toBeNull();
+      expect(new Loop(makeList(1)).remove()).toBeNull();
     });
   });
 
   describe('[Symbol.iterator]', () => {
-    it('for..of で順に取得', () => {
+    it('for..of で順に取得する', () => {
       const loop = new Loop(makeList(1, 2, 3));
       const collected: unknown[] = [];
-      for (const v of loop) {
-        collected.push(v);
-      }
+      for (const v of loop) collected.push(v);
       expect(collected).toEqual([1, 2, 3]);
     });
 
-    it('spread でも展開可能', () => {
-      const loop = new Loop(makeList(10, 20));
-      expect([...loop]).toEqual([10, 20]);
+    it('spread で全要素を展開する', () => {
+      expect([...new Loop(makeList(10, 20))]).toEqual([10, 20]);
     });
 
-    it('空 (nil) は反復ゼロ回', () => {
-      const loop = new Loop(Cons.nil);
-      expect([...loop]).toEqual([]);
+    it('空 (nil) なら反復ゼロ回で終了する', () => {
+      expect([...new Loop(Cons.nil)]).toEqual([]);
     });
   });
 
   describe('[Symbol.asyncIterator]', () => {
-    it('for await..of で順に取得', async () => {
-      const loop = new Loop(makeList(1, 2, 3));
-      const asyncIter = loop[Symbol.asyncIterator]();
+    it('for await..of で順に取得する', async () => {
+      const asyncIter = new Loop(makeList(1, 2, 3))[Symbol.asyncIterator]();
       const collected: unknown[] = [];
       let result = await asyncIter.next();
       while (!result.done) {
