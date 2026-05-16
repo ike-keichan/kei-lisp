@@ -1,18 +1,19 @@
 import { createRequire } from 'node:module';
 import type { Interface as ReadlineInterface } from 'node:readline';
 
-import { Cons, type LispValue } from '../Cons/index.js';
-import { Evaluator } from '../Evaluator/index.js';
-import { ExitError } from '../ExitError/index.js';
-import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
-import { StreamManager } from '../StreamManager/index.js';
-import { Table } from '../Table/index.js';
+import { Cons } from '../value/Cons/index.js';
+import { Evaluator } from '../runtime/Evaluator/index.js';
+import { ExitError } from '../runtime/ExitError/index.js';
+import { InterpretedSymbol } from '../value/InterpretedSymbol/index.js';
+import { StreamManager } from '../runtime/StreamManager/index.js';
+import { Table } from '../runtime/Table/index.js';
+import type { LispValue } from '../types/index.js';
 
 const require = createRequire(import.meta.url);
 
 /**
  * @class
- * @classdesc インタプリタのクラス
+ * @classdesc Class for the interpreter.
  * @author Keisuke Ikeda
  * @this {LispInterpreter}
  */
@@ -34,7 +35,7 @@ export class LispInterpreter {
   }
 
   /**
-   * インタプリタの起動メソッド
+   * Starts the interpreter.
    */
   run(): null {
     let aCons: LispValue = new Cons();
@@ -78,7 +79,7 @@ export class LispInterpreter {
         }
       })
       .on('close', () => {
-        // (exit) 経由の場合は Evaluator.exit() が既に "Bye!" を出力しているためスキップ
+        // Skip the message if (exit) was called, since Evaluator.exit() already printed "Bye!".
         if (!exitedViaLisp) {
           console.log('\nBye!');
         }
@@ -88,7 +89,7 @@ export class LispInterpreter {
   }
 
   /**
-   * 引数のリストを評価し、評価値を応答するメソッド
+   * Evaluates the given list and returns the evaluation result.
    */
   eval(aCons: LispValue): LispValue {
     try {
@@ -101,7 +102,7 @@ export class LispInterpreter {
   }
 
   /**
-   * ソース文字列をパースし、含まれる全ての式を評価して結果を配列で応答するメソッド
+   * Parses the source string, evaluates every expression it contains, and returns the results as an array.
    */
   evalAll(source: string): LispValue[] {
     const ast = this.parse(source);
@@ -115,7 +116,7 @@ export class LispInterpreter {
   }
 
   /**
-   * ソース文字列をパースし評価した上で、最後の式の評価値を応答するメソッド
+   * Parses and evaluates the source string and returns the value of the last expression.
    */
   evalString(source: string): LispValue {
     const results = this.evalAll(source);
@@ -123,7 +124,7 @@ export class LispInterpreter {
   }
 
   /**
-   * 引数の文字列をパースし、リストにして応答するメソッド
+   * Parses the given string into a list and returns it.
    */
   parse(aString: string): LispValue {
     try {
@@ -135,7 +136,7 @@ export class LispInterpreter {
   }
 
   /**
-   * 指定された環境を環境の根として設定する.
+   * Sets the given environment as the root of the environment chain.
    */
   setRoot(environment: Table): null {
     if (environment instanceof Table) {
@@ -147,7 +148,7 @@ export class LispInterpreter {
   }
 
   /**
-   * 環境のテーブルを初期化するメソッド
+   * Initializes the environment table.
    */
   initializeTable(): Table {
     const aList: string[] = [];

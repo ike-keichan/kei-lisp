@@ -26,6 +26,7 @@ cond
 lambda
 dolist
 gensym
+quasiquote
 
 # 述語
 characterp

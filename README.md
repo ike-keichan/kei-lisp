@@ -4,33 +4,43 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 
-A Lisp interpreter implemented in TypeScript.
+A Lisp interpreter implemented in TypeScript. Use it from the command line as
+an interactive REPL, or embed it in your application as a library.
+
+## Features
+
+- Common Lisp-inspired syntax (`setq`, `defun`, `let`, `cond`, ...)
+- CLI tool **and** embeddable library
+- ESM and CommonJS dual output with TypeScript types
+- Zero runtime dependencies
 
 ## Installation
 
-### CLI
-
 ```sh
+# Use as a CLI tool
 npm install -g kei-lisp
-```
 
-### Library
-
-```sh
+# Use as a library
 npm install kei-lisp
 ```
 
-## Usage
+Requires **Node.js >= 24**.
+
+## Quick start
 
 ### CLI
 
-Start the interactive REPL:
-
 ```sh
-kei-lisp
+$ kei-lisp
+>> (+ 1 2 3)
+6
+>> (defun square (x) (* x x))
+square
+>> (square 7)
+49
+>> (exit)
+Bye!
 ```
-
-Options:
 
 ```sh
 kei-lisp --version  # Show version
@@ -40,161 +50,120 @@ kei-lisp --help     # Show help
 ### Library
 
 ```ts
-// ESM (TypeScript / Modern Node)
-import { LispInterpreter, Cons, ExitError } from 'kei-lisp';
+import { LispInterpreter, Cons } from 'kei-lisp';
 
-// CommonJS
-const { LispInterpreter, Cons, ExitError } = require('kei-lisp');
-```
-
-#### REPL mode
-
-```ts
 const interpreter = new LispInterpreter();
-interpreter.run(); // Starts an interactive REPL on stdin/stdout
-```
-
-#### Programmatic evaluation
-
-```ts
-const interpreter = new LispInterpreter();
-
-// Evaluate a source string and return the last expression's result
 const result = interpreter.evalString('(+ 1 2 3)');
-console.log(Cons.toString(result)); // => "6"
-
-// Evaluate multiple expressions and get all results as an array
-const results = interpreter.evalAll('(setq x 10) (* x x)');
-console.log(results); // => [10, 100]
+console.log(Cons.toString(result)); // "6"
 ```
 
-#### Handling `(exit)` gracefully
+CommonJS is also supported:
+
+```js
+const { LispInterpreter, Cons } = require('kei-lisp');
+```
+
+## API
+
+| Export              | Description                                             |
+| ------------------- | ------------------------------------------------------- |
+| `LispInterpreter`   | Main interpreter class (REPL + programmatic evaluation) |
+| `Cons`              | Cons cell (pair) data type with type predicates         |
+| `InterpretedSymbol` | Lisp symbol (interned)                                  |
+| `ExitError`         | Thrown when `(exit)` is evaluated; catch to handle exit |
+
+### `LispInterpreter`
+
+```ts
+const interpreter = new LispInterpreter();
+
+// Start an interactive REPL on stdin/stdout
+interpreter.run();
+
+// Evaluate source and return the last expression's result
+interpreter.evalString('(+ 1 2)'); // 3
+
+// Evaluate multiple expressions and return all results
+interpreter.evalAll('(setq x 10) (* x x)'); // [10, 100]
+```
+
+### Handling `(exit)` gracefully
+
+When user-supplied Lisp code calls `(exit)`, an `ExitError` is thrown so the
+host application can clean up instead of being terminated by `process.exit`:
 
 ```ts
 import { LispInterpreter, ExitError } from 'kei-lisp';
 
 const interpreter = new LispInterpreter();
 try {
-  interpreter.evalString('(exit)');
+  interpreter.evalString(userInput);
 } catch (error) {
   if (error instanceof ExitError) {
-    // User code called (exit) — clean shutdown
-    console.log('Lisp program requested exit');
-  } else {
-    throw error;
+    // Lisp program requested exit — handle gracefully
+    return;
   }
+  throw error;
 }
 ```
 
-Available exports:
+## Examples
 
-| Export              | Description                                                   |
-| ------------------- | ------------------------------------------------------------- |
-| `LispInterpreter`   | Main interpreter class (REPL + programmatic API)              |
-| `Cons`              | Cons cell (pair) data type with type predicates               |
-| `InterpretedSymbol` | Lisp symbol data type (interned)                              |
-| `ExitError`         | Thrown when `(exit)` is evaluated; catch to handle gracefully |
+### Arithmetic
+
+```lisp
+(+ 1 2 3)   ;; => 6
+(- 10 3)    ;; => 7
+(* 4 5)     ;; => 20
+(/ 100 4)   ;; => 25
+(mod 10 3)  ;; => 1
+```
+
+### Lists
+
+```lisp
+(list 1 2 3)            ;; => (1 2 3)
+(car (list 1 2 3))      ;; => 1
+(cdr (list 1 2 3))      ;; => (2 3)
+(cons 0 (list 1 2 3))   ;; => (0 1 2 3)
+(length (list 1 2 3))   ;; => 3
+```
+
+### Defining functions
+
+```lisp
+(defun factorial (n)
+  (if (= n 0) 1 (* n (factorial (- n 1)))))
+
+(factorial 10)  ;; => 3628800
+```
+
+### Conditionals and bindings
+
+```lisp
+(if (= 1 1) "yes" "no")                       ;; => "yes"
+(cond ((= 1 2) "a") ((= 1 1) "b") (t "c"))    ;; => "b"
+(let ((x 10) (y 20)) (+ x y))                 ;; => 30
+```
+
+Runnable TypeScript examples live in [`examples/`](./examples/):
+
+```sh
+pnpm build  # build the package once
+pnpm exec tsx examples/basic-eval.ts
+pnpm exec tsx examples/exit-handling.ts
+```
 
 ## Reference
 
-- [Atom](./docs/README_Atom.md)
-- [Cons](./docs/README_Cons.md)
-- [Function](./docs/README_Function.md)
+In-depth documentation of each language area:
 
-## Examples
-
-### example1
-
-```
->> 1
-1
->> -1.2
--1.2
->> a
-a
->> nil
-nil
-```
-
-### example2
-
-```
->> ()
-nil
->> (+ 1 2)
-3
->> (+ 1 2.3)
-3.3
->> (+ 1.2 3)
-4.2
->> (+ 1.2 3.4)
-4.6
->> (+ 1.2 -3.4)
--2.2
-```
-
-### example3
-
-```
->> '(1 . 2)
-(1 . 2)
->> '(1 . 2.3)
-(1 . 2.3)
->> '(1.2 . 3)
-(1.2 . 3)
->> '(1.2 . 3.4)
-(1.2 . 3.4)
->> '(1 . nil)
-(1)
->> '(nil . 1)
-(nil . 1)
->> '(1.2 nil)
-(1.2)
->> '(nil 1.2)
-(nil 1.2)
-```
-
-### example4
-
-```
->> (car '(1 (2 (3 (4 5) 6) 7 (8 9))))
-1
->> (cdr '(1 (2 (3 (4 5) 6) 7 (8 9))))
-((2 (3 (4 5) 6) 7 (8 9)))
->> (+ (- (* 1 2) (* 3 4)) (- (* 5 6) (* 7 8)))
--36
->> (+
-     1
-  2
-      )(+ (- (* 1 2) (* 3 4)) (- (* 5 6) (* 7 8)))(
-   -
-   4
-3
-
-)
-3
--36
-1
-```
-
-### example5
-
-```
->> (defun tasu (a b) (+ a b))
-tasu
->> (tasu 7 8)
-15
-```
+- [API Reference](./docs/api.md) — TypeScript / JavaScript library API
+- [Atoms](./docs/atoms.md) — numbers, symbols, strings, nil
+- [Cons](./docs/cons.md) — pairs and lists
+- [Built-in Functions](./docs/built-in-functions.md) — full Lisp reference
 
 ## Development
-
-### Requirements
-
-- [nodenv](https://github.com/nodenv/nodenv) (Node.js version management)
-- Node.js >= 24.0.0 (see `.node-version`)
-- [pnpm](https://pnpm.io/)
-
-### Setup
 
 ```sh
 git clone https://github.com/ike-keichan/kei-lisp.git
@@ -203,20 +172,18 @@ pnpm install
 pnpm dev
 ```
 
-### Scripts
+Requires [pnpm](https://pnpm.io/) and Node.js 24+
+(see [`.node-version`](./.node-version) for the exact version).
 
-| Command           | Description                           |
-| ----------------- | ------------------------------------- |
-| `pnpm build`      | Build for distribution                |
-| `pnpm dev`        | Build and run                         |
-| `pnpm start`      | Run built CLI                         |
-| `pnpm test`       | Run tests                             |
-| `pnpm test:watch` | Run tests in watch mode               |
-| `pnpm check`      | Run all checks (format/lint/spell)    |
-| `pnpm fix`        | Auto-fix format and lint issues       |
-| `pnpm clean`      | Remove build artifacts                |
-| `pnpm wipe`       | Remove build artifacts + node_modules |
-| `pnpm doc`        | Generate API documentation            |
+| Command           | Description                               |
+| ----------------- | ----------------------------------------- |
+| `pnpm build`      | Build for distribution                    |
+| `pnpm dev`        | Build and run the CLI                     |
+| `pnpm start`      | Run the built CLI                         |
+| `pnpm test`       | Run tests                                 |
+| `pnpm test:watch` | Run tests in watch mode                   |
+| `pnpm check`      | Run all checks (format, lint, spell, ...) |
+| `pnpm fix`        | Auto-fix format and lint issues           |
 
 ## License
 
