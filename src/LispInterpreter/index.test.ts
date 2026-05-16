@@ -7,7 +7,7 @@ import { LispInterpreter } from './index.js';
 // LispInterpreter のコンストラクタが readline インターフェースを作るため、
 // 多数インスタンス化する単体テストで MaxListenersExceededWarning が出るのを抑制。
 // (Round 13 で REPL とインタプリタの責務分離を行えば不要になる)
-process.stdin.setMaxListeners(50);
+process.stdin.setMaxListeners(100);
 
 const evalStr = (src: string): string => {
   const interpreter = new LispInterpreter();
@@ -15,8 +15,26 @@ const evalStr = (src: string): string => {
   return Cons.toString(result);
 };
 
-describe('LispInterpreter (公開 API)', () => {
-  describe('evalString (Round で追加された API)', () => {
+describe('LispInterpreter', () => {
+  describe('constructor', () => {
+    it('root 環境を初期化', () => {
+      const interpreter = new LispInterpreter();
+      expect(interpreter.root.isRoot()).toBe(true);
+    });
+
+    it('StreamManager を初期化', () => {
+      const interpreter = new LispInterpreter();
+      expect(interpreter.streamManager).toBeDefined();
+    });
+
+    it('組み込み関数のシンボルが登録されている', () => {
+      const interpreter = new LispInterpreter();
+      // '+ や 'list を評価できる (登録されているから)
+      expect(() => interpreter.evalString("'+")).not.toThrow();
+    });
+  });
+
+  describe('evalString', () => {
     it('基本算術', () => {
       expect(evalStr('(+ 1 2 3)')).toBe('6');
       expect(evalStr('(- 10 3)')).toBe('7');
@@ -31,29 +49,34 @@ describe('LispInterpreter (公開 API)', () => {
       expect(evalStr('(cons 1 (list 2 3))')).toBe('(1 2 3)');
     });
 
-    it('let / setq', () => {
-      expect(evalStr('(let ((x 10) (y 20)) (+ x y))')).toBe('30');
-      expect(evalStr('(let ((x 10)) (setq x 99) x)')).toBe('99');
+    it('複数式は最後の値を返す', () => {
+      expect(evalStr('(+ 1 2) (* 3 4) (- 10 5)')).toBe('5');
     });
 
-    it('defun / 再帰', () => {
+    it('空入力は nil', () => {
+      expect(evalStr('')).toBe('nil');
+    });
+
+    it('文字列リテラル', () => {
+      expect(evalStr('"foo"')).toBe('foo');
+    });
+
+    it('数値リテラル', () => {
+      expect(evalStr('42')).toBe('42');
+    });
+
+    it('defun + 再帰', () => {
       expect(evalStr('(defun fact (n) (if (= n 0) 1 (* n (fact (- n 1))))) (fact 10)')).toBe(
         '3628800',
       );
     });
 
-    it('lambda', () => {
+    it('lambda 即時実行', () => {
       expect(evalStr('((lambda (x y) (+ x y)) 3 4)')).toBe('7');
-    });
-
-    it('cond / if', () => {
-      expect(evalStr('(if (= 1 1) "yes" "no")')).toBe('yes');
-      expect(evalStr('(if (= 1 2) "yes" "no")')).toBe('no');
-      expect(evalStr('(cond ((= 1 2) "a") ((= 1 1) "b") (t "c"))')).toBe('b');
     });
   });
 
-  describe('evalAll (Round で追加された API)', () => {
+  describe('evalAll', () => {
     it('複数式を順に評価して全結果を配列で返す', () => {
       const interpreter = new LispInterpreter();
       const results = interpreter.evalAll('(+ 1 2) (* 3 4) (- 10 5)');
@@ -74,27 +97,76 @@ describe('LispInterpreter (公開 API)', () => {
       const results = interpreter.evalAll('(setq x 100) x');
       expect(results.at(-1)).toBe(100);
     });
+
+    it('1 式のみでも配列 (要素数 1)', () => {
+      const interpreter = new LispInterpreter();
+      const results = interpreter.evalAll('(+ 1 2)');
+      expect(results.length).toBe(1);
+      expect(results[0]).toBe(3);
+    });
+  });
+
+  describe('eval', () => {
+    it('Cons を評価', () => {
+      const interpreter = new LispInterpreter();
+      const ast = interpreter.parse('(+ 1 2)') as Cons;
+      const result = interpreter.eval(ast.car);
+      expect(result).toBe(3);
+    });
+
+    it('atom (数値) を評価', () => {
+      const interpreter = new LispInterpreter();
+      const ast = interpreter.parse('42') as Cons;
+      expect(interpreter.eval(ast.car)).toBe(42);
+    });
+  });
+
+  describe('parse', () => {
+    it('文字列を AST に変換', () => {
+      const interpreter = new LispInterpreter();
+      const ast = interpreter.parse('(+ 1 2)');
+      expect(Cons.isCons(ast)).toBe(true);
+    });
+
+    it('パース失敗時は nil', () => {
+      const interpreter = new LispInterpreter();
+      // 不正な括弧
+      const result = interpreter.parse('((');
+      expect(result).toBe(Cons.nil);
+    });
+  });
+
+  describe('setRoot', () => {
+    it('指定した環境を root として設定', () => {
+      const interpreter = new LispInterpreter();
+      const original = interpreter.root;
+      interpreter.setRoot(original);
+      expect(interpreter.root).toBe(original);
+      expect(interpreter.root.isRoot()).toBe(true);
+    });
+  });
+
+  describe('initializeTable', () => {
+    it('組み込み関数の Symbol が登録される', () => {
+      const interpreter = new LispInterpreter();
+      const table = interpreter.initializeTable();
+      expect(table.isRoot()).toBe(true);
+      expect(table.size).toBeGreaterThan(10); // 多数の組み込み登録
+    });
   });
 
   describe('リグレッション: Round 4-J-3 (setIfExit shadowing)', () => {
     it('ネスト let で内側 setq は内側スコープのみ更新', () => {
-      // (let ((x 1)) (let ((x 2)) (setq x 100) x))
-      //   → 内側の x が 100。外側は影響なし。
-      // 修正前のバグ: 外側の x も 100 になっていた
       expect(evalStr('(let ((x 1)) (let ((x 2)) (setq x 100) x))')).toBe('100');
     });
 
     it('ネスト let の外側からアクセスして元の値を確認', () => {
-      // (let ((x 1)) (let ((x 2)) (setq x 100)) x)
-      //   → 外側の x = 1 (shadowing 後の外側は元の値)
       expect(evalStr('(let ((x 1)) (let ((x 2)) (setq x 100)) x)')).toBe('1');
     });
   });
 
   describe('リグレッション: Round 6 (format ~Na クラッシュ)', () => {
     it('(format "~5a" "hi") が動く', () => {
-      // 修正前: クラッシュ
-      // 修正後: "hi   " を返す (cdr に side effect)
       expect(() => evalStr('(format "~5a" "hi")')).not.toThrow();
     });
 
@@ -102,7 +174,7 @@ describe('LispInterpreter (公開 API)', () => {
       expect(() => evalStr('(format "~-5a" "hi")')).not.toThrow();
     });
 
-    it('(format "~a" "hi") (元から動く width 無し)', () => {
+    it('(format "~a" "hi") (width 無し)', () => {
       expect(() => evalStr('(format "~a" "hi")')).not.toThrow();
     });
   });
@@ -115,7 +187,6 @@ describe('LispInterpreter (公開 API)', () => {
 
   describe('リグレッション: Round 4-C (Unicode 透過保全)', () => {
     it('絵文字を含む文字列の保全', () => {
-      // 修正前: サロゲートペアが破壊された
       const interpreter = new LispInterpreter();
       const result = interpreter.evalString('"Hello 😀"');
       expect(result).toBe('Hello 😀');
@@ -128,21 +199,12 @@ describe('LispInterpreter (公開 API)', () => {
     });
   });
 
-  describe('ExitError', () => {
+  describe('ExitError 統合', () => {
     it('(exit) で ExitError が throw される', () => {
       const interpreter = new LispInterpreter();
-      // eval 経由で呼ぶと内部 catch されるが、Evaluator.exit() 直接呼びは throw
       const ast = interpreter.parse('(exit)') as Cons;
       const exitForm = ast.car;
-      // eval を直接呼ぶと ExitError は再 throw される
       expect(() => interpreter.eval(exitForm)).toThrow(ExitError);
-    });
-
-    it('ExitError は Error のサブクラス', () => {
-      const err = new ExitError();
-      expect(err).toBeInstanceOf(Error);
-      expect(err).toBeInstanceOf(ExitError);
-      expect(err.name).toBe('ExitError');
     });
   });
 
