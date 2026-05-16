@@ -75,6 +75,7 @@ Code modules live as `<DirName>/index.ts`. Grouping directories
 | `pnpm fix`        | Auto-fix format and lint issues            |
 | `pnpm clean`      | Remove build artifacts                     |
 | `pnpm wipe`       | Remove build artifacts and `node_modules`  |
+| `pnpm doc`        | Generate API documentation with TypeDoc    |
 
 ## Coding conventions
 

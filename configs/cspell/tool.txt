@@ -24,6 +24,8 @@ bignum
 
 # ドキュメント・Lint
 jsdoc
+classdesc
+typedoc
 tsconfig
 tseslint
 sonarjs

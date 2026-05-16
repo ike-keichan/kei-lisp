@@ -8,7 +8,6 @@ export default defineConfig([
     platform: 'node',
     target: 'node24',
     clean: true,
-    splitting: true,
     sourcemap: true,
     treeshake: true,
     shims: true,

@@ -41,7 +41,7 @@ export class Table extends Map<unknown, LispValue> {
   /**
    * Returns whether anything is bound to the given property (key).
    */
-  has(aSymbol: unknown): boolean {
+  override has(aSymbol: unknown): boolean {
     if (super.has(aSymbol)) {
       return true;
     }
@@ -65,7 +65,7 @@ export class Table extends Map<unknown, LispValue> {
   /**
    * Returns the value bound to the given interpreted symbol.
    */
-  get(aSymbol: unknown): LispValue {
+  override get(aSymbol: unknown): LispValue {
     if (super.has(aSymbol)) {
       return super.get(aSymbol) as LispValue;
     }
@@ -118,7 +118,7 @@ export class Table extends Map<unknown, LispValue> {
   /**
    * Returns a formatted string representation of this instance.
    */
-  toString(): string {
+  override toString(): string {
     return '#<Environment>';
   }
 }
