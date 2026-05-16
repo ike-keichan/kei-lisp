@@ -480,7 +480,7 @@ export class Evaluator {
 
   print(aCons: Cons): LispValue {
     const anObject = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
-    console.log(anObject);
+    process.stdout.write(String(anObject) + '\n');
 
     return anObject;
   }
@@ -675,7 +675,7 @@ export class Evaluator {
   }
 
   terpri(): InterpretedSymbol {
-    console.log('');
+    process.stdout.write('\n');
     return InterpretedSymbol.of('t');
   }
 

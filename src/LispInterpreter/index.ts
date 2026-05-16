@@ -62,7 +62,7 @@ export class LispInterpreter {
           aCons = this.parse(aString);
           try {
             for (const each of (aCons as Cons).loop()) {
-              console.log((this.eval(each) as { toString(): string }).toString());
+              process.stdout.write((this.eval(each) as { toString(): string }).toString() + '\n');
             }
           } catch (error) {
             if (error instanceof ExitError) {
@@ -70,8 +70,8 @@ export class LispInterpreter {
               this.rl.close();
               return;
             }
-            console.log('*** can not eval ' + (aCons as Cons).toString() + ' ***');
-            console.log(Cons.nil.toString());
+            console.error('*** can not eval ' + (aCons as Cons).toString() + ' ***');
+            process.stdout.write(Cons.nil.toString() + '\n');
           }
           leftParentheses = 0;
           aString = '';
@@ -96,7 +96,7 @@ export class LispInterpreter {
       return Evaluator.eval(aCons, this.root, this.streamManager);
     } catch (error) {
       if (error instanceof ExitError) throw error;
-      console.log('*** can not eval ' + (aCons as { toString(): string }).toString() + ' ***');
+      console.error('*** can not eval ' + (aCons as { toString(): string }).toString() + ' ***');
       return Cons.nil;
     }
   }
@@ -130,7 +130,7 @@ export class LispInterpreter {
     try {
       return Cons.parse('(' + aString + '\n);');
     } catch {
-      console.log('*** can not parse ' + aString.replaceAll('\n', '') + ' ***');
+      console.error('*** can not parse ' + aString.replaceAll('\n', '') + ' ***');
       return Cons.nil;
     }
   }

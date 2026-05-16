@@ -11,15 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Migrated implementation from JavaScript to TypeScript** with strict mode
   and `@typescript-eslint/strictTypeChecked` ruleset
-- Restructured source layout to `src/<ClassName>/index.ts` per-class
+- Restructured source layout into layer-based grouping:
+  - `src/parser/` (Parser / IntStream / NextState)
+  - `src/runtime/` (Evaluator / Applier / Table / StreamManager / ExitError)
+  - `src/value/` (Cons / InterpretedSymbol / Loop)
+  - `src/LispInterpreter/` (facade) at root
 - Migrated build tool from webpack to tsup (CJS + ESM dual output)
 - Migrated package manager from npm + Makefile to pnpm
 - Switched Node.js version management to nodenv (requires Node.js >= 24)
 - Restructured as npm-publishable package (library + CLI)
 - Migrated test framework to vitest with co-located test files
-  (`src/<ClassName>/index.test.ts`)
+  (`<ClassName>/index.test.ts` per class)
 - Switched ESLint to flat config (v10) with sonarjs / unicorn / security plugins
-- Moved documentation files to `docs/` directory
+- Moved documentation files to `docs/` directory (atoms / cons /
+  built-in-functions / api)
+- Translated all source comments and test descriptions to English
+- Routed all interpreter diagnostic output to `console.error` (stderr) while
+  keeping value/print output on stdout
+- Refactored CLI: version is now read from `package.json` via JSON import
+  (`resolveJsonModule`); unknown arguments exit with code 1
 
 ### Added
 
@@ -34,6 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   library consumers to catch and handle gracefully instead of `process.exit()`
 - **`Table.toString()`** — returns `"#<Environment>"` (Common Lisp convention)
   instead of the inherited `"[object Map]"`
+- **`LispValue`** type alias exported for TypeScript consumers
+- Centralized diagnostic message templates in `src/constants/`
+- Shared type definitions in `src/types/`
+- Runnable usage examples in `examples/` (`basic-eval.ts`, `exit-handling.ts`)
+- `CONTRIBUTING.md` with setup, layout, scripts, and PR conventions
+- `docs/api.md` with full TypeScript / library API reference
 - Comprehensive test suite (12 files, 370 tests) covering all public APIs
   and regression coverage for fixed bugs
 - MIT License

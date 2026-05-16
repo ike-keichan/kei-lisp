@@ -33,15 +33,34 @@ pnpm dev     # Builds and starts the REPL
 
 ```
 src/
-├── <ClassName>/
-│   ├── index.ts        # Implementation
-│   └── index.test.ts   # Co-located unit tests
-├── cli.ts              # CLI entry point
-└── index.ts            # Library entry point (named exports)
-configs/eslint/         # Per-plugin ESLint configurations
-docs/                   # User-facing language reference
-examples/               # Runnable usage examples (tsx)
+├── parser/                  # Source → AST
+│   ├── Parser/index.ts (+ index.test.ts)
+│   ├── IntStream/
+│   └── NextState/
+├── runtime/                 # Evaluation engine (eval/apply, env, I/O, exit)
+│   ├── Evaluator/
+│   ├── Applier/
+│   ├── Table/               # Environment frame
+│   ├── StreamManager/       # I/O stream management
+│   └── ExitError/           # (exit) signal
+├── value/                   # Lisp value types
+│   ├── Cons/
+│   ├── InterpretedSymbol/
+│   └── Loop/                # Cons iterator
+├── LispInterpreter/         # Public facade (binds the layers together)
+├── constants/               # Diagnostic message templates
+├── types/                   # Shared TypeScript types (LispValue, ...)
+├── cli.ts                   # CLI entry point
+└── index.ts                 # Library entry point (named exports)
+
+configs/eslint/              # Per-plugin ESLint configurations
+configs/cspell/              # cspell project dictionaries
+docs/                        # User-facing language reference
+examples/                    # Runnable usage examples (tsx)
 ```
+
+Code modules live as `<DirName>/index.ts`. Grouping directories
+(`parser/`, `runtime/`, `value/`) do not have their own `index.ts`.
 
 ## Scripts
 
