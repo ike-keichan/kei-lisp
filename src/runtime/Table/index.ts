@@ -88,7 +88,7 @@ export class Table extends Map<unknown, LispValue> {
    * Reassigns the symbol bound in the innermost scope (equivalent to Common Lisp's setq).
    * If a binding exists in the current scope, update it and return; otherwise recurse into the parent scope.
    */
-  setIfExit(aSymbol: unknown, anObject: LispValue): LispValue {
+  setIfExist(aSymbol: unknown, anObject: LispValue): LispValue {
     if (super.has(aSymbol)) {
       this.set(aSymbol, anObject);
       return anObject;
@@ -96,7 +96,7 @@ export class Table extends Map<unknown, LispValue> {
     if (this.isRoot()) {
       return null;
     }
-    return (this.source as Table).setIfExit(aSymbol, anObject);
+    return (this.source as Table).setIfExist(aSymbol, anObject);
   }
 
   /**

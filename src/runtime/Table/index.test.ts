@@ -114,12 +114,12 @@ describe('Table', () => {
     });
   });
 
-  describe('setIfExit', () => {
+  describe('setIfExist', () => {
     it('updates and stops at the current scope when a binding exists there', () => {
       const t = new Table();
       const sym = InterpretedSymbol.of('x');
       t.set(sym, 1);
-      t.setIfExit(sym, 999);
+      t.setIfExist(sym, 999);
       expect(t.get(sym)).toBe(999);
     });
 
@@ -128,7 +128,7 @@ describe('Table', () => {
       const child = new Table(parent);
       const sym = InterpretedSymbol.of('x');
       parent.set(sym, 10);
-      child.setIfExit(sym, 999);
+      child.setIfExist(sym, 999);
       expect(parent.get(sym)).toBe(999);
     });
 
@@ -138,7 +138,7 @@ describe('Table', () => {
       const sym = InterpretedSymbol.of('x');
       outer.set(sym, 1);
       inner.set(sym, 2);
-      inner.setIfExit(sym, 999);
+      inner.setIfExist(sym, 999);
       expect(inner.get(sym)).toBe(999);
     });
 
@@ -148,20 +148,20 @@ describe('Table', () => {
       const sym = InterpretedSymbol.of('x');
       outer.set(sym, 1);
       inner.set(sym, 2);
-      inner.setIfExit(sym, 999);
+      inner.setIfExist(sym, 999);
       expect(outer.get(sym)).toBe(1);
     });
 
     it('returns null when no binding exists anywhere', () => {
       const t = new Table();
-      expect(t.setIfExit(InterpretedSymbol.of('undefined'), 999)).toBeNull();
+      expect(t.setIfExist(InterpretedSymbol.of('undefined'), 999)).toBeNull();
     });
 
     it('returns the assigned value when the current scope is updated', () => {
       const t = new Table();
       const sym = InterpretedSymbol.of('x');
       t.set(sym, 1);
-      expect(t.setIfExit(sym, 99)).toBe(99);
+      expect(t.setIfExist(sym, 99)).toBe(99);
     });
   });
 

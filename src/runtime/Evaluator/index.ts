@@ -454,7 +454,7 @@ export class Evaluator {
       return Cons.nil;
     }
     const consObject = anObject as Cons;
-    this.environment.setIfExit(aSymbol, consObject.cdr);
+    this.environment.setIfExist(aSymbol, consObject.cdr);
 
     return consObject.car;
   }
@@ -495,7 +495,7 @@ export class Evaluator {
       anObject,
       Evaluator.eval(aSymbol, this.environment, this.streamManager, this.depth),
     );
-    this.environment.setIfExit(aSymbol, anObject);
+    this.environment.setIfExist(aSymbol, anObject);
 
     return anObject;
   }
@@ -578,8 +578,8 @@ export class Evaluator {
         this.streamManager,
         this.depth,
       );
-      // Following the original: setIfExit is still called when key is null (Map allows a null key).
-      this.environment.setIfExit(key, anObject);
+      // Following the original: setIfExist is still called when key is null (Map allows a null key).
+      this.environment.setIfExist(key, anObject);
     }
 
     return anObject;

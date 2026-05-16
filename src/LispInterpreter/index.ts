@@ -166,7 +166,6 @@ export class LispInterpreter {
       'car',
       'cdr',
       'characterp',
-      'clear',
       'cond',
       'cons',
       'consp',
