@@ -78,6 +78,18 @@ describe('InterpretedSymbol', () => {
     });
   });
 
+  describe('table (static getter)', () => {
+    it('Table インスタンスを返す', () => {
+      expect(InterpretedSymbol.table).toBeDefined();
+    });
+
+    it('複数回アクセスしても同一の Table を返す (lazy 初期化)', () => {
+      const t1 = InterpretedSymbol.table;
+      const t2 = InterpretedSymbol.table;
+      expect(t1).toBe(t2);
+    });
+  });
+
   describe('of (static)', () => {
     it('同じ名前なら同一インスタンスを返す', () => {
       expect(InterpretedSymbol.of('hello')).toBe(InterpretedSymbol.of('hello'));

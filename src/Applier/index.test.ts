@@ -345,8 +345,149 @@ describe('Applier', () => {
       expect(evalStr('(quote foo)')).toBe('foo');
     });
 
-    it("'foo は (quote foo) と等価", () => {
+    it("'foo は (quote foo) と同じシンボルを返す", () => {
       expect(evalStr("'foo")).toBe('foo');
+    });
+  });
+
+  describe('mapcar', () => {
+    it('リストの各要素に関数を適用した結果を返す', () => {
+      expect(evalStr('(mapcar (lambda (x) (* x x)) (list 1 2 3))')).toBe('(1 4 9)');
+    });
+
+    it('空リストに対しては nil を返す', () => {
+      expect(evalStr('(mapcar (lambda (x) x) nil)')).toBe('nil');
+    });
+  });
+
+  describe('member', () => {
+    it('リスト内に要素が存在すれば、その要素以降のサブリストを返す', () => {
+      expect(evalStr('(member 2 (list 1 2 3))')).toBe('(2 3)');
+    });
+
+    it('存在しない要素を渡すと nil を返す', () => {
+      expect(evalStr('(member 99 (list 1 2 3))')).toBe('nil');
+    });
+  });
+
+  describe('memq', () => {
+    it('eq で一致する要素があれば t を返す', () => {
+      expect(evalStr("(memq 'b (list 'a 'b 'c))")).toBe('t');
+    });
+
+    it('一致する要素がなければ nil を返す', () => {
+      expect(evalStr("(memq 'z (list 'a 'b 'c))")).toBe('nil');
+    });
+  });
+
+  describe('integerp', () => {
+    it('整数なら t を返す', () => {
+      expect(evalStr('(integerp 42)')).toBe('t');
+    });
+
+    it('浮動小数なら nil を返す', () => {
+      expect(evalStr('(integerp 3.14)')).toBe('nil');
+    });
+  });
+
+  describe('floatp', () => {
+    it('数値で範囲内なら t を返す (原本踏襲: 範囲チェック実装)', () => {
+      expect(evalStr('(floatp 3.14)')).toBe('t');
+    });
+
+    it('非数値なら nil を返す', () => {
+      expect(evalStr('(floatp "foo")')).toBe('nil');
+    });
+  });
+
+  describe('neq', () => {
+    it('eq の否定を返す', () => {
+      expect(evalStr("(neq 'x 'y)")).toBe('t');
+      expect(evalStr("(neq 'x 'x)")).toBe('nil');
+    });
+  });
+
+  describe('nequal', () => {
+    it('equal の否定を返す', () => {
+      expect(evalStr('(nequal (list 1 2) (list 1 3))')).toBe('t');
+      expect(evalStr('(nequal (list 1 2) (list 1 2))')).toBe('nil');
+    });
+  });
+
+  describe('nth (組み込み)', () => {
+    it('リストの n 番目要素を返す (1-origin)', () => {
+      expect(evalStr('(nth 2 (list 10 20 30))')).toBe('20');
+    });
+
+    it('範囲外なら nil を返す', () => {
+      expect(evalStr('(nth 99 (list 1 2))')).toBe('nil');
+    });
+  });
+
+  describe('last (組み込み)', () => {
+    it('リストの最後の Cons セル (要素 1 つのサブリスト) を返す', () => {
+      expect(evalStr('(last (list 1 2 3))')).toBe('(3)');
+    });
+  });
+
+  describe('pi (定数)', () => {
+    it('Math.PI を返す', () => {
+      const interpreter = new LispInterpreter();
+      const result = interpreter.evalString('(pi)');
+      expect(result).toBeCloseTo(Math.PI);
+    });
+  });
+
+  describe('sqrt / sin / cos / tan', () => {
+    it('sqrt は平方根を返す', () => {
+      expect(evalStr('(sqrt 16)')).toBe('4');
+    });
+
+    it('sin / cos / tan は対応する三角関数値を返す', () => {
+      const interpreter = new LispInterpreter();
+      const sin0 = interpreter.evalString('(sin 0)');
+      const cos0 = interpreter.evalString('(cos 0)');
+      expect(sin0).toBeCloseTo(0);
+      expect(cos0).toBeCloseTo(1);
+    });
+  });
+
+  describe('round', () => {
+    it('小数を最も近い整数に丸める', () => {
+      expect(evalStr('(round 3.4)')).toBe('3');
+      expect(evalStr('(round 3.6)')).toBe('4');
+    });
+  });
+
+  describe('rplaca / rplacd', () => {
+    it('rplaca は car を破壊的に書き換える', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq x (list 1 2 3))');
+      interpreter.evalString('(rplaca x 99)');
+      expect(Cons.toString(interpreter.evalString('(car x)'))).toBe('99');
+    });
+
+    it('rplacd は cdr を破壊的に書き換える', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq x (list 1 2 3))');
+      interpreter.evalString("(rplacd x '(99))");
+      expect(Cons.toString(interpreter.evalString('(cdr x)'))).toBe('(99)');
+    });
+  });
+
+  describe('push / pop', () => {
+    it('push は変数のリストの先頭に要素を追加する', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq stack (list 1 2 3))');
+      interpreter.evalString('(push 0 stack)');
+      expect(Cons.toString(interpreter.evalString('stack'))).toBe('(0 1 2 3)');
+    });
+
+    it('pop は変数のリストの先頭要素を取り出す', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq stack (list 1 2 3))');
+      const popped = interpreter.evalString('(pop stack)');
+      expect(popped).toBe(1);
     });
   });
 });

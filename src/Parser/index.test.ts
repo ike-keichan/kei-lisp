@@ -139,4 +139,19 @@ describe('Parser', () => {
       expect(ns.methodName).toBeNull();
     });
   });
+
+  describe('nextToken', () => {
+    it('入力全体をパースして式を返す', () => {
+      const p = new Parser('(42)');
+      const result = p.nextToken();
+      // parse 経由ではなく nextToken 直接呼び出しでも (42) リストが返る
+      expect(Cons.isCons(result)).toBe(true);
+    });
+
+    it('数値リテラルもパースして返す', () => {
+      const p = new Parser('(99)');
+      const result = p.nextToken() as Cons;
+      expect(result.car).toBe(99);
+    });
+  });
 });
