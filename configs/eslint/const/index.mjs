@@ -7,5 +7,5 @@ export const RULE_LEVEL = {
 export const FILES = {
   SRC: ['src/**/*.ts'],
   CONFIG: ['*.js', '*.mjs'],
-  TEST: ['tests/**/*.test.ts'],
+  TEST: ['src/**/*.test.ts'],
 };

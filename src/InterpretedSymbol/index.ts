@@ -8,9 +8,13 @@ import { Table } from '../Table/index.js';
  */
 export class InterpretedSymbol {
   /**
-   * InterpretedSymbolを記憶させるテーブル
+   * InterpretedSymbolを記憶させるテーブル (循環依存回避のため遅延初期化)
    */
-  static readonly table: Table = new Table();
+  static #intern: Table | null = null;
+  static get table(): Table {
+    this.#intern ??= new Table();
+    return this.#intern;
+  }
 
   name: string;
 
