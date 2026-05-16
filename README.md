@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 
-A Lisp interpreter implemented in JavaScript.
+A Lisp interpreter implemented in TypeScript.
 
 ## Installation
 
@@ -39,24 +39,61 @@ kei-lisp --help     # Show help
 
 ### Library
 
-```js
-// ESM
-import { LispInterpreter } from 'kei-lisp';
+```ts
+// ESM (TypeScript / Modern Node)
+import { LispInterpreter, Cons, ExitError } from 'kei-lisp';
 
 // CommonJS
-const { LispInterpreter } = require('kei-lisp');
+const { LispInterpreter, Cons, ExitError } = require('kei-lisp');
+```
+
+#### REPL mode
+
+```ts
+const interpreter = new LispInterpreter();
+interpreter.run(); // Starts an interactive REPL on stdin/stdout
+```
+
+#### Programmatic evaluation
+
+```ts
+const interpreter = new LispInterpreter();
+
+// Evaluate a source string and return the last expression's result
+const result = interpreter.evalString('(+ 1 2 3)');
+console.log(Cons.toString(result)); // => "6"
+
+// Evaluate multiple expressions and get all results as an array
+const results = interpreter.evalAll('(setq x 10) (* x x)');
+console.log(results); // => [10, 100]
+```
+
+#### Handling `(exit)` gracefully
+
+```ts
+import { LispInterpreter, ExitError } from 'kei-lisp';
 
 const interpreter = new LispInterpreter();
-interpreter.run();
+try {
+  interpreter.evalString('(exit)');
+} catch (error) {
+  if (error instanceof ExitError) {
+    // User code called (exit) — clean shutdown
+    console.log('Lisp program requested exit');
+  } else {
+    throw error;
+  }
+}
 ```
 
 Available exports:
 
-| Export              | Description                |
-| ------------------- | -------------------------- |
-| `LispInterpreter`   | Main interpreter class     |
-| `Cons`              | Cons cell (pair) data type |
-| `InterpretedSymbol` | Lisp symbol data type      |
+| Export              | Description                                                   |
+| ------------------- | ------------------------------------------------------------- |
+| `LispInterpreter`   | Main interpreter class (REPL + programmatic API)              |
+| `Cons`              | Cons cell (pair) data type with type predicates               |
+| `InterpretedSymbol` | Lisp symbol data type (interned)                              |
+| `ExitError`         | Thrown when `(exit)` is evaluated; catch to handle gracefully |
 
 ## Reference
 
@@ -179,7 +216,7 @@ pnpm dev
 | `pnpm fix`        | Auto-fix format and lint issues       |
 | `pnpm clean`      | Remove build artifacts                |
 | `pnpm wipe`       | Remove build artifacts + node_modules |
-| `pnpm doc`        | Generate JSDoc                        |
+| `pnpm doc`        | Generate API documentation            |
 
 ## License
 

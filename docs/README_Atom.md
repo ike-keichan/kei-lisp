@@ -20,7 +20,7 @@ When you enter an unbound symbol, the warning and "nil" will be returned.
 The interpreter recognizes when you write a symbol as follows.
 
 ```
->> (set! a 10)
+>> (setq a 10)
 10
 >> a
 10
