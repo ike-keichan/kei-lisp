@@ -389,8 +389,7 @@ export class Applier {
               }
               let value: string = ((theCons as Cons).car as { toString(): string }).toString();
               theCons = (theCons as Cons).cdr;
-              // 原本踏襲: 元コードは `value.length()` で関数呼び出しを試みる (length はプロパティのため TypeError)
-              while ((value as unknown as { length(): number }).length() < size) {
+              while (value.length < size) {
                 value += ' ';
               }
               buffer += value;
@@ -433,12 +432,7 @@ export class Applier {
               const value: string = ((theCons as Cons).car as { toString(): string }).toString();
               theCons = (theCons as Cons).cdr;
               let spaces = '';
-              // 原本踏襲: 元コードは `value.length()` / `spaces.length()` を呼んでおり TypeError
-              while (
-                (value as unknown as { length(): number }).length() +
-                  (spaces as unknown as { length(): number }).length() <
-                size
-              ) {
+              while (value.length + spaces.length < size) {
                 spaces += ' ';
               }
               buffer += spaces + value;

@@ -943,6 +943,79 @@ abs(args: Cons): LispValue {
 
 ---
 
+### 例 M: 「TS の型を意図的に欺く」コードが浮かび上がらせた未発覚バグ
+
+#### 状況
+
+`Applier.format_AUX`（Common Lisp の `format` 関数の実装）に、こんなコードがあった:
+
+```ts
+let value: string = ((theCons as Cons).car as { toString(): string }).toString();
+// value は string
+
+while ((value as unknown as { length(): number }).length() < size) {
+  //                          ^^^^^^^^^^^^^^^^^^^^^^^^                ^^
+  //                          無理やり「length() メソッド持ち」と型を上書き  括弧呼び出し
+  value += ' ';
+}
+```
+
+`as unknown as { length(): number }` という **型を完全に書き換える escape hatch** が使われていた。`unknown` を経由するキャストは TS の型検査を完全に無効化する。
+
+#### なぜこんなコードが？
+
+git history で元 JS を確認:
+
+```js
+// 元 JS（バグ）
+while (value.length() < size) {
+  // ← .length() を呼んでいる、TypeError
+  value += ' ';
+}
+```
+
+JS でも `string.length` は **プロパティ**であり、`.length()` と呼ぶと `TypeError: 2 is not a function` を出す。**JS 時代から既にバグ**だった。
+
+つまり `(format "~5a" "hi")` のような **width-specified format は元から実行時にクラッシュ**しており、誰も気付かないまま放置されていた（テストカバレッジが無かった）。
+
+TS 移行時、「**JS の TypeError 挙動を厳密に再現する**」ために `as unknown as { length(): number }` で TS を欺くキャストを意図的に挿入。コメントにも「原本踏襲: 元コードは `value.length()` で関数呼び出しを試みる (length はプロパティのため TypeError)」と明示されていた。
+
+#### 発見と修正
+
+Round 6（実害バグ修正）で「**そもそも JS から動いていなかった機能を直す**」と判断:
+
+```ts
+// Before（TS で意図的に bugを温存）
+while ((value as unknown as { length(): number }).length() < size) {
+  value += ' ';
+}
+
+// After（バグ修正）
+while (value.length < size) {
+  value += ' ';
+}
+```
+
+修正後の動作:
+
+| 入力                   | 修正前                     | 修正後                          |
+| ---------------------- | -------------------------- | ------------------------------- |
+| `(format "~a" "hi")`   | `hi`（正常）               | `hi`（不変）                    |
+| `(format "~5a" "hi")`  | **TypeError でクラッシュ** | `hi   `（5 文字に右パディング） |
+| `(format "~-5a" "hi")` | **TypeError でクラッシュ** | `   hi`（左パディング）         |
+
+#### スライドでのメッセージ
+
+> TS は「**`as unknown as ...` で意図的に欺かれる**」と何も言えなくなる。
+>
+> しかし **コメント `// 原本踏襲: ... TypeError` が残っていた**ため、人間がコードレビューで「**これは隠されたバグだ**」と気付ける。
+>
+> **TS の型検査だけに頼らず、コード内のメタ情報（コメント、git history）と組み合わせる**ことで、「JS 時代から潜在していたバグ」を発掘できる。
+>
+> Round 4-D（charCodeAt 括弧無し）の `unbound-method` 検知とは別系統で、**コメント駆動でのバグ発掘**という、ローテクだが効果的な手法。
+
+---
+
 ### 例 H: Lisp の linked list 走査と ESLint ルールの想定のズレ
 
 `Cons` の `last` / `length` / `nth` はリスト走査の core。Common Lisp の `(do ((c cons (cdr c))) ...)` を素直に書き下した:
