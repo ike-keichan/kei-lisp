@@ -33,7 +33,7 @@ describe('StreamManager', () => {
       expect(sm.streamTable.has('default')).toBe(true);
     });
 
-    it('returns null', () => {
+    it('returns null after re-registration', () => {
       expect(new StreamManager().initialize()).toBeNull();
     });
   });
@@ -74,7 +74,7 @@ describe('StreamManager', () => {
       expect(() => new StreamManager().noSpy(InterpretedSymbol.of('x'))).not.toThrow();
     });
 
-    it('returns null', () => {
+    it('returns null whether or not the target was registered', () => {
       expect(new StreamManager().noSpy(InterpretedSymbol.of('x'))).toBeNull();
     });
   });
@@ -89,7 +89,7 @@ describe('StreamManager', () => {
       expect(sm.spyTable.size).toBe(0);
     });
 
-    it('returns null', () => {
+    it('returns null after disabling trace', () => {
       expect(new StreamManager().noTrace()).toBeNull();
     });
   });
@@ -108,7 +108,7 @@ describe('StreamManager', () => {
       expect(sm.isTrace).toBe(false);
     });
 
-    it('returns null', () => {
+    it('returns null regardless of the input value', () => {
       expect(new StreamManager().setIsTrace(true)).toBeNull();
     });
   });
@@ -152,7 +152,7 @@ describe('StreamManager', () => {
       expect(sm.spyTable.has(sym)).toBe(false);
     });
 
-    it('returns null', () => {
+    it('returns null after attempting registration', () => {
       expect(new StreamManager().spy(InterpretedSymbol.of('x'), 'd')).toBeNull();
     });
   });
@@ -206,7 +206,7 @@ describe('StreamManager', () => {
       expect(sm.traceStream).toBeNull();
     });
 
-    it('returns null', () => {
+    it('returns null after enabling trace', () => {
       expect(new StreamManager().trace()).toBeNull();
     });
   });
