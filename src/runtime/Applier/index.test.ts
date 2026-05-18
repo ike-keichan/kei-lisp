@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { Cons } from '../../value/Cons/index.js';
 import { LispInterpreter } from '../../LispInterpreter/index.js';
+import { StreamManager } from '../StreamManager/index.js';
+import { Table } from '../Table/index.js';
+import { Applier } from './index.js';
 
 process.stdin.setMaxListeners(100);
 
@@ -9,6 +12,8 @@ const evalStr = (src: string): string => {
   const interpreter = new LispInterpreter();
   return Cons.toString(interpreter.evalString(src));
 };
+
+const newApplier = (): Applier => new Applier(new Table(), new StreamManager(), 0);
 
 describe('Applier', () => {
   describe('abs', () => {
@@ -512,6 +517,32 @@ describe('Applier', () => {
       interpreter.evalString('(setq stack (list 1 2 3))');
       const popped = interpreter.evalString('(pop stack)');
       expect(popped).toBe(1);
+    });
+  });
+
+  describe('spyPrint', () => {
+    it('writes the indented line followed by newline to the given WritableStream', () => {
+      const chunks: string[] = [];
+      const mockStream = {
+        write: (chunk: string): boolean => {
+          chunks.push(chunk);
+          return true;
+        },
+      } as unknown as NodeJS.WritableStream;
+      newApplier().spyPrint(mockStream, 'hello');
+      expect(chunks.join('')).toBe('hello\n');
+    });
+
+    it('falls back to stdout when the argument is a string descriptor', () => {
+      expect(() => newApplier().spyPrint('some-label', 'hello')).not.toThrow();
+    });
+
+    it('falls back to stdout when the argument is null', () => {
+      expect(() => newApplier().spyPrint(null, 'hello')).not.toThrow();
+    });
+
+    it('returns null', () => {
+      expect(newApplier().spyPrint(null, 'x')).toBeNull();
     });
   });
 });

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { Cons } from '../../value/Cons/index.js';
 import { LispInterpreter } from '../../LispInterpreter/index.js';
+import { StreamManager } from '../StreamManager/index.js';
+import { Table } from '../Table/index.js';
+import { Evaluator } from './index.js';
 
 process.stdin.setMaxListeners(100);
 
@@ -9,6 +12,8 @@ const evalStr = (src: string): string => {
   const interpreter = new LispInterpreter();
   return Cons.toString(interpreter.evalString(src));
 };
+
+const newEvaluator = (): Evaluator => new Evaluator(new Table(), new StreamManager(), 0);
 
 const ONE_HUNDRED = '100';
 const SETQ_X_100 = '(setq x 100)';
@@ -197,6 +202,32 @@ describe('Evaluator', () => {
       interpreter.evalString(SETQ_X_100);
       interpreter.evalString('(let ((x 1)) x)');
       expect(Cons.toString(interpreter.evalString('x'))).toBe(ONE_HUNDRED);
+    });
+  });
+
+  describe('spyPrint', () => {
+    it('writes the indented line followed by newline to the given WritableStream', () => {
+      const chunks: string[] = [];
+      const mockStream = {
+        write: (chunk: string): boolean => {
+          chunks.push(chunk);
+          return true;
+        },
+      } as unknown as NodeJS.WritableStream;
+      newEvaluator().spyPrint(mockStream, 'hello');
+      expect(chunks.join('')).toBe('hello\n');
+    });
+
+    it('falls back to stdout when the argument is a string descriptor', () => {
+      expect(() => newEvaluator().spyPrint('some-label', 'hello')).not.toThrow();
+    });
+
+    it('falls back to stdout when the argument is null', () => {
+      expect(() => newEvaluator().spyPrint(null, 'hello')).not.toThrow();
+    });
+
+    it('returns null', () => {
+      expect(newEvaluator().spyPrint(null, 'x')).toBeNull();
     });
   });
 });

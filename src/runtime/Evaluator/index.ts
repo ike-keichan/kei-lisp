@@ -662,15 +662,17 @@ export class Evaluator {
     return answer;
   }
 
-  spyPrint(aStream: unknown, line: string): null {
-    const aPrintStream = process.stdout;
-    if (aStream != null) {
-      console.log(aStream);
-    }
-    console.log(this.indent() + line);
-    if (aStream != null) {
-      console.log(aPrintStream);
-    }
+  // NOTE: Lisp's trace/spy writes the call line to a designated output stream. The original
+  //       implementation logged the stream object itself rather than writing to it (a bug that
+  //       went unnoticed because trace/spy is rarely exercised). We now write the indented line
+  //       to the given WritableStream, falling back to stdout when the argument is a string
+  //       descriptor (stored by `(spy fn "label")`) or null.
+  spyPrint(aStream: NodeJS.WritableStream | string | null, line: string): null {
+    const target: NodeJS.WritableStream =
+      aStream != null && typeof aStream === 'object' && 'write' in aStream
+        ? aStream
+        : process.stdout;
+    target.write(this.indent() + line + '\n');
     return null;
   }
 
