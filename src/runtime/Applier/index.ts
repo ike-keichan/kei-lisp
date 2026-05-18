@@ -261,6 +261,11 @@ export class Applier {
     return anObject;
   }
 
+  // NOTE: Implements Common Lisp's eq as JS strict identity (===). Symbols are eq because
+  //       InterpretedSymbol.of interns by name; numbers / strings are eq because JS primitive
+  //       equality is by value; Cons / Table / other objects are eq only when they are the same
+  //       reference. Edge cases: NaN is never eq to itself (matches IEEE 754 and most CL
+  //       implementations); +0 and -0 are eq (CL leaves this implementation-defined).
   eq_(args: Cons): LispValue {
     const first = args.car;
     const second = args.nth(2);
@@ -469,6 +474,11 @@ export class Applier {
     return buffer;
   }
 
+  // NOTE: Common Lisp's floatp is a type-tag predicate (integer vs float), but JS has only one
+  //       numeric type (double). The original chose to interpret floatp as a range check
+  //       "is this number representable in IEEE 32-bit (single-precision) float?" rather than a
+  //       type-tag check. Following the original semantics. Revisit if numeric types are split
+  //       in a future revision.
   float_(args: Cons): LispValue {
     if (Cons.isNumber(args.car) && -3.4e38 <= args.car && args.car <= 3.4e38) {
       return InterpretedSymbol.of('t');

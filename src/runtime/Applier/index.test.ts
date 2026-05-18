@@ -144,8 +144,24 @@ describe('Applier', () => {
       expect(evalStr("(eq 'x 'y)")).toBe('nil');
     });
 
-    it('returns t for the same number', () => {
+    it('returns t for the same integer', () => {
       expect(evalStr('(eq 1 1)')).toBe('t');
+    });
+
+    it('returns t for the same float value', () => {
+      expect(evalStr('(eq 3.14 3.14)')).toBe('t');
+    });
+
+    it('returns t for the same string content (JS string interning)', () => {
+      expect(evalStr('(eq "abc" "abc")')).toBe('t');
+    });
+
+    it('returns nil for distinct cons cells with the same structure', () => {
+      expect(evalStr('(eq (cons 1 2) (cons 1 2))')).toBe('nil');
+    });
+
+    it('returns t when both arguments are nil', () => {
+      expect(evalStr('(eq nil nil)')).toBe('t');
     });
   });
 
@@ -391,12 +407,20 @@ describe('Applier', () => {
   });
 
   describe('floatp', () => {
-    it('returns t for an in-range number (following the original range-check implementation)', () => {
+    it('returns t for a number within IEEE 32-bit range', () => {
       expect(evalStr('(floatp 3.14)')).toBe('t');
+    });
+
+    it('returns t for an integer within IEEE 32-bit range (range check, not type-tag)', () => {
+      expect(evalStr('(floatp 42)')).toBe('t');
     });
 
     it('returns nil for a non-number', () => {
       expect(evalStr('(floatp "foo")')).toBe('nil');
+    });
+
+    it('returns nil for a value beyond the IEEE 32-bit range', () => {
+      expect(evalStr('(floatp 1e40)')).toBe('nil');
     });
   });
 
