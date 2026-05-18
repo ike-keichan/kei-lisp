@@ -461,10 +461,7 @@ export class Evaluator {
 
   progn(aCons: Cons): LispValue {
     let anObject: LispValue = Cons.nil;
-    let theCons = aCons.car as Cons;
-    this.bindingParallel(theCons, this.environment);
-    theCons = aCons.cdr as Cons;
-    for (const each of theCons.loop()) {
+    for (const each of aCons.loop()) {
       anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
     }
 

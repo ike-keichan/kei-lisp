@@ -955,13 +955,16 @@ nil
 ### progn
 
 **(progn X1 X2 ... Xn)**
-Function to run X1, X2 ... and Xn in sequence.
+Evaluates X1, X2 ... Xn in sequence and returns the value of Xn.
+Performs no binding and creates no new scope (matches Common Lisp `progn` /
+Scheme `begin` / Clojure `do`).
 
 ```
->> (progn ((a 10))
-        (format "~a~%" a)
-        (setq a (+ a 10))
-        (format "~a~%" a))
+>> (setq a 10)
+10
+>> (progn (format "~a~%" a)
+          (setq a (+ a 10))
+          (format "~a~%" a))
 10
 20
 nil

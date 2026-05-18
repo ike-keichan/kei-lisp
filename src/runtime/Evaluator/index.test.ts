@@ -52,6 +52,34 @@ describe('Evaluator', () => {
     });
   });
 
+  describe('progn', () => {
+    it('evaluates body forms in sequence and returns the last value', () => {
+      expect(evalStr('(progn 1 2 3)')).toBe('3');
+    });
+
+    it('returns the value of a single form', () => {
+      expect(evalStr('(progn 42)')).toBe('42');
+    });
+
+    it('returns nil for an empty body', () => {
+      expect(evalStr('(progn)')).toBe('nil');
+    });
+
+    it('applies side effects (setq) in order', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq x 0)');
+      interpreter.evalString('(progn (setq x 1) (setq x 2) (setq x 3))');
+      expect(Cons.toString(interpreter.evalString('x'))).toBe('3');
+    });
+
+    it('does not introduce a new scope (setq within progn affects outer binding)', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq x 1)');
+      interpreter.evalString('(progn (setq x 99))');
+      expect(Cons.toString(interpreter.evalString('x'))).toBe('99');
+    });
+  });
+
   describe('let', () => {
     it('binds local variables and evaluates the body', () => {
       expect(evalStr('(let ((x 10) (y 20)) (+ x y))')).toBe('30');
