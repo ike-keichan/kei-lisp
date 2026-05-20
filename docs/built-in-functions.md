@@ -17,6 +17,18 @@ Entries are organized into the following categories:
 
 > The original alphabetical reference of each function follows below.
 
+## Comments
+
+`;` starts a line comment that continues to the end of the line. Block comments
+are not supported.
+
+```lisp
+>> (+ 1 ; one
+      2 ; two
+      3) ; three
+6
+```
+
 ## Alphabetical reference
 
 ### abs

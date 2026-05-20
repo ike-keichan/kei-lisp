@@ -6,7 +6,7 @@ import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 import { Evaluator } from './index.js';
 
-process.stdin.setMaxListeners(100);
+process.stdin.setMaxListeners(500);
 
 const evalStr = (src: string): string => {
   const interpreter = new LispInterpreter();

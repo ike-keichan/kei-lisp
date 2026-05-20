@@ -74,6 +74,18 @@ Hello 😀
 こんにちは
 ```
 
+The following escape sequences are recognized inside string literals:
+
+| Escape | Meaning          |
+| ------ | ---------------- |
+| `\n`   | Newline (LF)     |
+| `\t`   | Tab              |
+| `\r`   | Carriage return  |
+| `\\`   | Single backslash |
+| `\"`   | Literal `"`      |
+
+Unknown escapes pass through as the literal character (e.g. `\x` becomes `x`).
+
 ## Nil
 
 `nil` represents the absence of a value (sometimes called `null` in other

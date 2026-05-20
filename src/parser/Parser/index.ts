@@ -153,6 +153,25 @@ export class Parser {
   }
 
   /**
+   * Concatenates the current character after translating common escape sequences
+   * (`\n`, `\t`, `\r`, `\\`, `\"`) into their actual characters. Invoked from NextState
+   * inside a string literal after a backslash. Unknown escapes pass through as the
+   * literal character (e.g. `\x` becomes `x`).
+   */
+  escapeConcat(): null {
+    const c = String(this.nexts[0]);
+    const map: Record<string, string> = {
+      n: '\n',
+      t: '\t',
+      r: '\r',
+      '\\': '\\',
+      '"': '"',
+    };
+    this.tokenString = this.tokenString.concat(map[c] ?? c);
+    return null;
+  }
+
+  /**
    * Returns the token number for a Number-type (double-precision floating point: pseudo-Double); invoked from NextState.
    */
   doubleToken(): number {
@@ -211,8 +230,8 @@ export class Parser {
    */
   parseListAUX(): LispValue {
     this.skippingSpaces();
-    if (this.peekChar() === '#' || this.peekChar() === '%') {
-      while (this.peekChar() !== '\n') {
+    if (this.peekChar() === ';') {
+      while (this.peekChar() !== '\n' && this.peekChar() != null) {
         this.nextChar();
       }
       this.nextChar();
@@ -271,10 +290,9 @@ export class Parser {
   sign(): number {
     this.concat();
     if (this.rightParen()) {
-      this.tokenToInteger();
+      this.tokenToSymbol();
       return 0;
     }
-
     return 7;
   }
 
@@ -379,9 +397,9 @@ export class Parser {
     aTable.set(String(32), this.nextState(0, null));
     aTable.set(String(33), this.nextState(8, 'symbolToken'));
     aTable.set(String(34), this.nextState(9, null));
-    aTable.set(String(35), this.nextState(1, null));
+    aTable.set(String(35), this.nextState(8, 'symbolToken'));
     aTable.set(String(36), this.nextState(8, 'symbolToken'));
-    aTable.set(String(37), this.nextState(1, null));
+    aTable.set(String(37), this.nextState(8, 'symbolToken'));
     aTable.set(String(38), this.nextState(8, 'symbolToken'));
     aTable.set(String(39), this.nextState(-1, 'quoteOrChar'));
     aTable.set(String(40), this.nextState(-1, 'parseList'));
@@ -396,6 +414,7 @@ export class Parser {
       aTable.set(String(index), this.nextState(2, 'integerToken'));
     for (const index of IntStream.rangeClosed(58, 90))
       aTable.set(String(index), this.nextState(8, 'symbolToken'));
+    aTable.set(String(59), this.nextState(1, null));
     aTable.set(String(91), this.nextState(-1, 'parseList'));
     aTable.set(String(92), this.nextState(-1, null));
     aTable.set(String(93), this.nextState(-1, null));
@@ -530,7 +549,7 @@ export class Parser {
     for (const index of IntStream.rangeClosed(0, 31))
       aTable.set(String(index), this.nextState(-1, null));
     aTable.set(String(127), this.nextState(-1, null));
-    aTable.set(String(128), this.nextState(9, 'concat'));
+    aTable.set(String(128), this.nextState(9, 'escapeConcat'));
     this.states.set(10, aTable);
 
     aTable = new Map<string, NextState>();

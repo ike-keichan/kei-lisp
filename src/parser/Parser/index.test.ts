@@ -73,13 +73,19 @@ describe('Parser', () => {
       expect(quoted.car).toBe(InterpretedSymbol.of('quote'));
     });
 
-    it('Quirk: interprets (quote +) as 0', () => {
+    it('Round 12-2-a: interprets (quote +) as the symbol +', () => {
       const result = Parser.parse("('+)");
       const quoted = (result as Cons).car as Cons;
-      expect((quoted.cdr as Cons).car).toBe(0);
+      expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of('+'));
     });
 
-    it('Quirk: interprets a + surrounded by whitespace as a symbol', () => {
+    it('Round 12-2-a: interprets (quote -) as the symbol -', () => {
+      const result = Parser.parse("('-)");
+      const quoted = (result as Cons).car as Cons;
+      expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of('-'));
+    });
+
+    it('interprets a + surrounded by whitespace as a symbol', () => {
       const result = Parser.parse('(( + ))');
       const list = (result as Cons).car as Cons;
       expect(list.nth(1)).toBe(InterpretedSymbol.of('+'));
@@ -152,6 +158,56 @@ describe('Parser', () => {
       const p = new Parser('(99)');
       const result = p.nextToken() as Cons;
       expect(result.car).toBe(99);
+    });
+  });
+
+  describe('Round 12-2-b: comment syntax', () => {
+    it('treats ; as a line comment inside a list', () => {
+      const result = Parser.parse('(1 ; this is a comment\n 2 3)') as Cons;
+      expect(result.length()).toBe(3);
+      expect(result.nth(2)).toBe(2);
+    });
+
+    it('treats # as a regular symbol character (no longer a comment)', () => {
+      const result = Parser.parse('(#foo)') as Cons;
+      expect(result.car).toBe(InterpretedSymbol.of('#foo'));
+    });
+
+    it('treats % as a regular symbol character (no longer a comment)', () => {
+      const result = Parser.parse('(%bar)') as Cons;
+      expect(result.car).toBe(InterpretedSymbol.of('%bar'));
+    });
+  });
+
+  describe('Round 12-2-c: string escape sequences', () => {
+    it('translates a newline escape into a newline character', () => {
+      const result = Parser.parse(String.raw`("a\nb")`);
+      expect((result as Cons).car).toBe('a\nb');
+    });
+
+    it('translates a tab escape into a tab character', () => {
+      const result = Parser.parse(String.raw`("a\tb")`);
+      expect((result as Cons).car).toBe('a\tb');
+    });
+
+    it('translates a carriage-return escape into a CR character', () => {
+      const result = Parser.parse(String.raw`("a\rb")`);
+      expect((result as Cons).car).toBe('a\rb');
+    });
+
+    it('translates a doubled backslash into a single backslash', () => {
+      const result = Parser.parse(String.raw`("a\\b")`);
+      expect((result as Cons).car).toBe(String.raw`a\b`);
+    });
+
+    it('translates an escaped double-quote into a literal double-quote', () => {
+      const result = Parser.parse(String.raw`("a\"b")`);
+      expect((result as Cons).car).toBe('a"b');
+    });
+
+    it('passes through unknown escape sequences as the literal character', () => {
+      const result = Parser.parse(String.raw`("a\xb")`);
+      expect((result as Cons).car).toBe('axb');
     });
   });
 });
