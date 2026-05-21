@@ -1,174 +1,189 @@
-# KeiLisp
-（this document fix： 2020/12/4 create: 2020/11/5）
+# kei-lisp
 
-## Status
-Creation Period：2020.7~<br>
-Version： 1.0 (2020/12/1)
+[![npm version](https://img.shields.io/npm/v/kei-lisp.svg)](https://www.npmjs.com/package/kei-lisp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 
-## About program
-Hello! I am developing it as a graduation research project of "Special Research on Computer Science and Engineering IIA/IIB" in Department of Computer Science and Engineering, Kyoto Sangyo University. 
+A Lisp interpreter implemented in TypeScript. Use it from the command line as
+an interactive REPL, or embed it in your application as a library.
 
-This is an interpreter that mimics Lisp.
-I hope this will be the beginning of your encounter with Lisp and functional programming.
-This program is intended to be run in the CLI.
-A program that can be run in a web browser is [here](https://github.com/ike-keichan/KeiLisp-onWeb).
+## Features
 
-As of December 1, 2020, version 1.0 is complete.
-## Execution environment
-### OS
-```
-$ sw_vers
-ProductName:	Mac OS X
-ProductVersion:	10.15.7
-BuildVersion:	19H2
-```
+- Common Lisp-inspired syntax (`setq`, `defun`, `let`, `cond`, ...)
+- CLI tool **and** embeddable library
+- ESM and CommonJS dual output with TypeScript types
+- Zero runtime dependencies
 
-### NVM
-```
-$ nvm --version
-0.35.3
+## Installation
+
+```sh
+# Use as a CLI tool
+npm install -g kei-lisp
+
+# Use as a library
+npm install kei-lisp
 ```
 
-### Node.js
-```
-$ node --version
-v12.18.3
+Requires **Node.js >= 24**.
+
+## Quick start
+
+### CLI
+
+```sh
+$ kei-lisp
+>> (+ 1 2 3)
+6
+>> (defun square (x) (* x x))
+square
+>> (square 7)
+49
+>> (exit)
+Bye!
 ```
 
-If the OS and Node.js versions match, the following software will be installed automatically when you setup your environment.
-### Node module
+```sh
+kei-lisp --version  # Show version
+kei-lisp --help     # Show help
 ```
-$ npm list --depth=0
-KeiLisp@1.0.0 ~/KeiLisp
-├── @babel/core@7.12.9
-├── @babel/plugin-proposal-class-properties@7.12.1
-├── @babel/preset-env@7.12.7
-├── babel-loader@8.2.2
-├── expose-gc@1.0.0
-├── ramda@0.27.1
-├── readline@1.3.0
-├── webpack@4.44.2
-└── webpack-cli@3.3.12
 
+### Library
+
+```ts
+import { LispInterpreter, Cons } from 'kei-lisp';
+
+const interpreter = new LispInterpreter();
+const result = interpreter.evalString('(+ 1 2 3)');
+console.log(Cons.toString(result)); // "6"
+```
+
+CommonJS is also supported:
+
+```js
+const { LispInterpreter, Cons } = require('kei-lisp');
+```
+
+## API
+
+| Export              | Description                                             |
+| ------------------- | ------------------------------------------------------- |
+| `LispInterpreter`   | Main interpreter class (REPL + programmatic evaluation) |
+| `Cons`              | Cons cell (pair) data type with type predicates         |
+| `InterpretedSymbol` | Lisp symbol (interned)                                  |
+| `ExitError`         | Thrown when `(exit)` is evaluated; catch to handle exit |
+
+### `LispInterpreter`
+
+```ts
+const interpreter = new LispInterpreter();
+
+// Start an interactive REPL on stdin/stdout
+interpreter.run();
+
+// Evaluate source and return the last expression's result
+interpreter.evalString('(+ 1 2)'); // 3
+
+// Evaluate multiple expressions and return all results
+interpreter.evalAll('(setq x 10) (* x x)'); // [10, 100]
+```
+
+### Handling `(exit)` gracefully
+
+When user-supplied Lisp code calls `(exit)`, an `ExitError` is thrown so the
+host application can clean up instead of being terminated by `process.exit`:
+
+```ts
+import { LispInterpreter, ExitError } from 'kei-lisp';
+
+const interpreter = new LispInterpreter();
+try {
+  interpreter.evalString(userInput);
+} catch (error) {
+  if (error instanceof ExitError) {
+    // Lisp program requested exit — handle gracefully
+    return;
+  }
+  throw error;
+}
+```
+
+## Examples
+
+### Arithmetic
+
+```lisp
+(+ 1 2 3)   ;; => 6
+(- 10 3)    ;; => 7
+(* 4 5)     ;; => 20
+(/ 100 4)   ;; => 25
+(mod 10 3)  ;; => 1
+```
+
+### Lists
+
+```lisp
+(list 1 2 3)            ;; => (1 2 3)
+(car (list 1 2 3))      ;; => 1
+(cdr (list 1 2 3))      ;; => (2 3)
+(cons 0 (list 1 2 3))   ;; => (0 1 2 3)
+(length (list 1 2 3))   ;; => 3
+```
+
+### Defining functions
+
+```lisp
+(defun factorial (n)
+  (if (= n 0) 1 (* n (factorial (- n 1)))))
+
+(factorial 10)  ;; => 3628800
+```
+
+### Conditionals and bindings
+
+```lisp
+(if (= 1 1) "yes" "no")                       ;; => "yes"
+(cond ((= 1 2) "a") ((= 1 1) "b") (t "c"))    ;; => "b"
+(let ((x 10) (y 20)) (+ x y))                 ;; => 30
+```
+
+Runnable TypeScript examples live in [`examples/`](./examples/):
+
+```sh
+pnpm build  # build the package once
+pnpm exec tsx examples/basic-eval.ts
+pnpm exec tsx examples/exit-handling.ts
 ```
 
 ## Reference
-+ [Atom](./README_Atom.md)
-+ [Cons](./README_Cons.md)
-+ [Function](./README_Function.md)
 
-## Quick start
-### Install
-```
-$ git clone https://github.com/ike-keichan/KeiLisp.git
-```
+In-depth documentation of each language area:
 
-### Setup & Launch
-```
-$ cd ./KeiLisp
-$ make test
-```
+- [API Reference](./docs/api.md) — TypeScript / JavaScript library API
+- [Atoms](./docs/atoms.md) — numbers, symbols, strings, nil
+- [Cons](./docs/cons.md) — pairs and lists
+- [Built-in Functions](./docs/built-in-functions.md) — full Lisp reference
 
-## Example
-### example1
-```
->> 1
-1
->> -1.2
--1.2
->> a
-a
->> nil
-nil
+## Development
+
+```sh
+git clone https://github.com/ike-keichan/kei-lisp.git
+cd kei-lisp
+pnpm install
+pnpm start
 ```
 
-### example2
-```
->> ()
-nil
->> (+ 1 2)
-3
->> (+ 1 2.3)
-3.3
->> (+ 1.2 3)
-4.2
->> (+ 1.2 3.4)
-4.6
->> (+ 1.2 -3.4)
--2.2
-```
+Requires [pnpm](https://pnpm.io/) and Node.js 24+
+(see [`.node-version`](./.node-version) for the exact version).
 
-### example3
-```
->> '(1 . 2)
-(1 . 2)
->> '(1 . 2.3)
-(1 . 2.3)
->> '(1.2 . 3)
-(1.2 . 3)
->> '(1.2 . 3.4)
-(1.2 . 3.4)
->> '(1 . nil)
-(1)
->> '(nil . 1)
-(nil . 1)
->> '(1.2 nil)
-(1.2)
->> '(nil 1.2)
-(nil 1.2)
-```
+| Command           | Description                               |
+| ----------------- | ----------------------------------------- |
+| `pnpm build`      | Build for distribution                    |
+| `pnpm start`      | Run the built CLI                         |
+| `pnpm test`       | Run tests                                 |
+| `pnpm test:watch` | Run tests in watch mode                   |
+| `pnpm check`      | Run all checks (format, lint, spell, ...) |
+| `pnpm fix`        | Auto-fix format and lint issues           |
 
-### example4
-```
->> (car '(1 (2 (3 (4 5) 6) 7 (8 9))))
-1
->> (cdr '(1 (2 (3 (4 5) 6) 7 (8 9))))
-((2 (3 (4 5) 6) 7 (8 9)))
->> (+ (- (* 1 2) (* 3 4)) (- (* 5 6) (* 7 8)))
--36
->> (+
-     1
-  2
-      )(+ (- (* 1 2) (* 3 4)) (- (* 5 6) (* 7 8)))(
-   -
-   4
-3
+## License
 
-)
-3
--36
-1
-```
-
-### example 5
-```
->> (defun tasu (a b) (+ a b))
-tasu
->> (tasu 7 8)
-15
-```
-
----
-## Others
-
-### Clean
-```
-$ make clean
-```
-
-### Wipe
-```
-$ make wipe
-```
-
-### Lint
-```
-$ make lint
-```
-
-### JSDoc
-```
-$ make doc
-```
-
-
+[MIT](./LICENSE)

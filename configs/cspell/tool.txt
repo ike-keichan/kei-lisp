@@ -1,0 +1,41 @@
+# 開発ツール・npm パッケージ名の辞書
+
+# パッケージマネージャー・ランタイム管理
+pnpm
+nodenv
+npmrc
+prepublish
+
+# ビルドツール
+tsup
+shims
+treeshake
+sourcemap
+
+# テスト
+vitest
+mypy
+
+# カンファレンス
+Kaigi
+
+# 言語実装ドメイン用語
+bignum
+
+# ドキュメント・Lint
+jsdoc
+classdesc
+typedoc
+tsconfig
+tseslint
+sonarjs
+unicorn
+
+
+# npm パッケージ
+readline
+ramda
+expose-gc
+
+# GitHub Actions
+softprops

@@ -1,0 +1,48 @@
+# Lisp 由来の辞書
+# Lisp の組み込み関数・構文・述語
+
+# リスト操作
+cons
+cdr
+car
+caar
+cadr
+cdar
+cddr
+nconc
+rplaca
+rplacd
+nthcdr
+butlast
+mapcar
+assoc
+memq
+
+# 特殊形式・構文
+defun
+setq
+progn
+cond
+lambda
+dolist
+gensym
+quasiquote
+
+# 述語
+characterp
+floatp
+integerp
+listp
+symbolp
+numberp
+consp
+stringp
+
+# 出力・制御
+terpri
+princ
+notrace
+
+# 算術
+neq
+nequal
