@@ -12,13 +12,9 @@ import { typescriptConfigs } from './configs/eslint/typescript/index.mjs';
 import { vitestConfigs } from './configs/eslint/vitest/index.mjs';
 
 export default [
-  // Global ignores
   {
     ignores: ['dist/**', 'node_modules/**', 'out/**'],
   },
-
-  // Language options
-  // TODO: TS 移行完了後は parserOptions.project を設定する
   {
     languageOptions: {
       ecmaVersion: 'latest',
@@ -26,24 +22,14 @@ export default [
       globals: { ...globals.node },
     },
   },
-
-  // Base JavaScript rules
   ...jsConfigs,
-
-  // Source files
   ...nConfigs,
   ...sonarjsConfigs,
   ...securityConfigs,
   ...unicornConfigs,
   ...importXConfigs,
   ...unusedImportsConfigs,
-
-  // TypeScript rules (applies to all .ts files including src and tests)
   ...typescriptConfigs,
-
-  // Test files
   ...vitestConfigs,
-
-  // Prettier: disable conflicting formatting rules (must be last)
   prettier,
 ];

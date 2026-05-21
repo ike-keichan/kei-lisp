@@ -1,15 +1,18 @@
-import pluginVitest from 'eslint-plugin-vitest';
-import { RULE_LEVEL } from '../const/index.mjs';
+import pluginVitest from '@vitest/eslint-plugin';
+import { FILES, RULE_LEVEL } from '../const/index.mjs';
 
+const { TEST } = FILES;
 const { ERROR, WARN } = RULE_LEVEL;
 
 /**
- * ESLint config for eslint-plugin-vitest.
+ * ESLint config for @vitest/eslint-plugin.
  */
 export const vitestConfigs = [
-  pluginVitest.configs.recommended,
   {
+    files: TEST,
+    plugins: { vitest: pluginVitest },
     rules: {
+      ...pluginVitest.configs.recommended.rules,
       // .only の残存を禁止（CI 全体に影響するため）
       'vitest/no-focused-tests': ERROR,
       // .skip の残存を警告

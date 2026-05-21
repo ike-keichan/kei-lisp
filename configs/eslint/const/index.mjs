@@ -5,8 +5,7 @@ export const RULE_LEVEL = {
 };
 
 export const FILES = {
-  // TODO: TS 移行中は ['src/**/*.js', 'src/**/*.ts'] に変更し、移行完了後は ['src/**/*.ts'] のみにする
-  SRC: ['src/**/*.js'],
+  SRC: ['src/**/*.ts', 'examples/**/*.ts'],
   CONFIG: ['*.js', '*.mjs'],
-  TEST: ['tests/**/*.test.ts'],
+  TEST: ['src/**/*.test.ts'],
 };

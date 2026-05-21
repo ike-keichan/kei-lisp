@@ -14,9 +14,18 @@ sourcemap
 
 # テスト
 vitest
+mypy
+
+# カンファレンス
+Kaigi
+
+# 言語実装ドメイン用語
+bignum
 
 # ドキュメント・Lint
 jsdoc
+classdesc
+typedoc
 tsconfig
 tseslint
 sonarjs
@@ -27,3 +36,6 @@ unicorn
 readline
 ramda
 expose-gc
+
+# GitHub Actions
+softprops

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/typedoc",
+  "readme": "none",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "hideGenerator": true,
+  "intentionallyNotExported": ["Table", "StreamManager", "Loop"],
+  "blockTags": [
+    "@param",
+    "@returns",
+    "@return",
+    "@throws",
+    "@example",
+    "@remarks",
+    "@author",
+    "@class",
+    "@classdesc",
+    "@constructor",
+    "@this"
+  ]
+}

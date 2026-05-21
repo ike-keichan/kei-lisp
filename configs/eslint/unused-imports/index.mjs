@@ -15,9 +15,9 @@ export const unusedImportsConfigs = [
       'unused-imports': pluginUnusedImports,
     },
     rules: {
-      // unused-imports/no-unused-vars に委譲するため無効化
+      // NOTE: eslint-plugin-unused-imports 公式推奨構成
+      // unused-imports/no-unused-vars に委譲するため、両方の no-unused-vars を無効化
       'no-unused-vars': OFF,
-      // TODO: TS 移行完了後は @typescript-eslint/no-unused-vars との競合を避けるため無効化を維持
       '@typescript-eslint/no-unused-vars': OFF,
       // 未使用の import 文を禁止
       'unused-imports/no-unused-imports': ERROR,
