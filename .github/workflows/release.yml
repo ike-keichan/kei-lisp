@@ -2,18 +2,48 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+
+# Prevent overlapping release runs (e.g. rapid main pushes) but never cancel an in-flight one.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
-  contents: write # for GitHub Release creation
+  contents: write # for tag push + GitHub Release creation
   id-token: write # for npm provenance via OIDC
 
 jobs:
-  release:
-    name: Publish to npm
+  check:
+    name: Check if release is needed
     runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.decide.outputs.should-release }}
+      version: ${{ steps.decide.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # tags must be available for the existence check
 
+      - name: Decide based on package.json version vs. existing tags
+        id: decide
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "Tag v$version already exists — no release."
+            echo "should-release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag v$version does not exist — will release."
+            echo "should-release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Publish to npm and create GitHub Release
+    needs: check
+    if: needs.check.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
@@ -44,7 +74,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Create and push tag
+        run: |
+          git tag "v${{ needs.check.outputs.version }}"
+          git push origin "v${{ needs.check.outputs.version }}"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: v${{ needs.check.outputs.version }}
           generate_release_notes: true
