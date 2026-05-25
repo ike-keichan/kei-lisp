@@ -46,3 +46,7 @@ notrace
 # 算術
 neq
 nequal
+
+# データ構造
+alist
+plist

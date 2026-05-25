@@ -5,7 +5,6 @@ import { Cons } from '../../value/Cons/index.js';
 import { ExitError } from '../../errors/ExitError/index.js';
 import { KeiLispError } from '../../errors/KeiLispError/index.js';
 import { LispInterpreter } from '../LispInterpreter/index.js';
-import type { LispValue } from '../../types/index.js';
 
 const require = createRequire(import.meta.url);
 
@@ -34,7 +33,6 @@ export class Repl {
    * Starts the REPL loop.
    */
   run(): void {
-    let aCons: LispValue = new Cons();
     let aString = '';
     let leftParentheses = 0;
     let exitedViaLisp = false;
@@ -56,8 +54,8 @@ export class Repl {
 
         if (leftParentheses <= 0) {
           try {
-            aCons = this.interpreter.parse(aString);
-            for (const each of (aCons as Cons).loop()) {
+            const aCons = this.interpreter.parse(aString);
+            for (const each of aCons.loop()) {
               process.stdout.write(
                 (this.interpreter.eval(each) as { toString(): string }).toString() + '\n',
               );

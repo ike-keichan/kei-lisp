@@ -79,20 +79,25 @@ describe('LispInterpreter', () => {
   describe('eval', () => {
     it('evaluates a Cons expression', () => {
       const interpreter = new LispInterpreter();
-      const ast = interpreter.parse('(+ 1 2)') as Cons;
+      const ast = interpreter.parse('(+ 1 2)');
       expect(interpreter.eval(ast.car)).toBe(3);
     });
 
     it('evaluates an atom (number)', () => {
       const interpreter = new LispInterpreter();
-      const ast = interpreter.parse('42') as Cons;
+      const ast = interpreter.parse('42');
       expect(interpreter.eval(ast.car)).toBe(42);
     });
   });
 
   describe('parse', () => {
-    it('converts a string into an AST', () => {
-      expect(Cons.isCons(new LispInterpreter().parse('(+ 1 2)'))).toBe(true);
+    it('returns a Cons (no cast needed thanks to the narrowed return type)', () => {
+      const ast = new LispInterpreter().parse('(+ 1 2)');
+      expect(ast).toBeInstanceOf(Cons);
+    });
+
+    it('returns Cons.nil for empty input', () => {
+      expect(new LispInterpreter().parse('')).toBe(Cons.nil);
     });
 
     it('throws ParseError on parse failure', () => {
@@ -144,7 +149,7 @@ describe('LispInterpreter', () => {
   describe('ExitError integration', () => {
     it('throws ExitError when (exit) is evaluated', () => {
       const interpreter = new LispInterpreter();
-      const ast = interpreter.parse('(exit)') as Cons;
+      const ast = interpreter.parse('(exit)');
       expect(() => interpreter.eval(ast.car)).toThrow(ExitError);
     });
   });

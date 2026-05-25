@@ -35,10 +35,8 @@ export class LispInterpreter {
   evalAll(source: string): LispValue[] {
     const ast = this.parse(source);
     const results: LispValue[] = [];
-    if (Cons.isCons(ast)) {
-      for (const expr of ast.loop()) {
-        results.push(this.eval(expr));
-      }
+    for (const expr of ast.loop()) {
+      results.push(this.eval(expr));
     }
     return results;
   }
@@ -52,11 +50,13 @@ export class LispInterpreter {
   }
 
   /**
-   * Parses the given string into a list and returns it. Throws `ParseError`
-   * if the source cannot be parsed.
+   * Parses the given string into a list of top-level expressions and returns
+   * it. The result is always a `Cons` (possibly `Cons.nil` for empty input)
+   * because the source is wrapped in an outer list before parsing. Throws
+   * `ParseError` if the source cannot be parsed.
    */
-  parse(aString: string): LispValue {
-    return Cons.parse('(' + aString + '\n);');
+  parse(aString: string): Cons {
+    return Cons.parse('(' + aString + '\n);') as Cons;
   }
 
   /**
