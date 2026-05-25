@@ -1,6 +1,6 @@
 import pkg from '../package.json' with { type: 'json' };
 
-import { LispInterpreter } from './LispInterpreter/index.js';
+import { Repl } from './interpreter/Repl/index.js';
 
 const HELP_MESSAGE = `Usage: kei-lisp [options]
 
@@ -19,5 +19,5 @@ if (args.includes('--version') || args.includes('-v')) {
   console.error(HELP_MESSAGE);
   process.exitCode = 1;
 } else {
-  new LispInterpreter().run();
+  new Repl().run();
 }

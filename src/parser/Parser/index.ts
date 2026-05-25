@@ -2,6 +2,7 @@ import { Cons } from '../../value/Cons/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import { IntStream } from '../IntStream/index.js';
 import { NextState } from '../NextState/index.js';
+import { ParseError } from '../../errors/ParseError/index.js';
 import type { LispValue } from '../../types/index.js';
 
 const PEEKCOUNT = 10;
@@ -68,7 +69,7 @@ export class Parser {
       : (inputs.get(String(128)) as NextState).next(this);
 
     if (aNumber < 0) {
-      throw new Error(SYNTAX_ERROR);
+      throw new ParseError(SYNTAX_ERROR);
     }
     this.state = aNumber;
 
@@ -86,7 +87,7 @@ export class Parser {
         aCharacter = String.fromCodePoint(aNumber);
       }
     } catch {
-      throw new Error('Read Error!');
+      throw new ParseError('Read Error!');
     }
 
     let count = 0;
@@ -113,7 +114,7 @@ export class Parser {
       token = this.input();
     }
     if (this.atEnd() && this.state !== 0) {
-      throw new Error(SYNTAX_ERROR);
+      throw new ParseError(SYNTAX_ERROR);
     }
     this.tokenString = '';
 
@@ -139,7 +140,7 @@ export class Parser {
    */
   peekChar(aNumber: number = 1): string | null {
     if (aNumber > this.nexts.length) {
-      throw new Error('Read Error!');
+      throw new ParseError('Read Error!');
     }
     return this.nexts[aNumber];
   }
@@ -246,7 +247,7 @@ export class Parser {
       const cdr = this.nextToken();
       this.skippingSpaces();
       if (!this.rightParen()) {
-        throw new Error(SYNTAX_ERROR);
+        throw new ParseError(SYNTAX_ERROR);
       }
       this.nextChar();
 

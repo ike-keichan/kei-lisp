@@ -28,7 +28,7 @@ describe('InterpretedSymbol', () => {
       expect(a.compareTo(b)).toBe(0);
     });
 
-    it('Round 4-D: does not return NaN', () => {
+    it('does not return NaN', () => {
       const a = InterpretedSymbol.of('abc');
       const b = InterpretedSymbol.of('xyz');
       expect(Number.isNaN(a.compareTo(b))).toBe(false);

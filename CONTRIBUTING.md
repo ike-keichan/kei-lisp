@@ -37,17 +37,23 @@ src/
 │   ├── Parser/index.ts (+ index.test.ts)
 │   ├── IntStream/
 │   └── NextState/
-├── runtime/                 # Evaluation engine (eval/apply, env, I/O, exit)
+├── runtime/                 # Evaluation engine (eval/apply, env, I/O)
 │   ├── Evaluator/
 │   ├── Applier/
 │   ├── Table/               # Environment frame
-│   ├── StreamManager/       # I/O stream management
-│   └── ExitError/           # (exit) signal
+│   └── StreamManager/       # I/O stream management
 ├── value/                   # Lisp value types
 │   ├── Cons/
 │   ├── InterpretedSymbol/
 │   └── Loop/                # Cons iterator
-├── LispInterpreter/         # Public facade (binds the layers together)
+├── interpreter/             # Public facades (library + REPL)
+│   ├── LispInterpreter/     # Programmatic interpreter (parse / eval / env)
+│   └── Repl/                # Interactive REPL on stdin / stdout
+├── errors/                  # Error hierarchy thrown to library users
+│   ├── KeiLispError/        # Base for parse/eval failures
+│   ├── ParseError/          # Parser failure
+│   ├── EvalError/           # Evaluator/Applier failure
+│   └── ExitError/           # (exit) signal (sibling of KeiLispError)
 ├── constants/               # Diagnostic message templates
 ├── types/                   # Shared TypeScript types (LispValue, ...)
 ├── cli.ts                   # CLI entry point
@@ -60,7 +66,9 @@ examples/                    # Runnable usage examples (tsx)
 ```
 
 Code modules live as `<DirName>/index.ts`. Grouping directories
-(`parser/`, `runtime/`, `value/`) do not have their own `index.ts`.
+(`parser/`, `runtime/`, `value/`, `interpreter/`, `errors/`) do not have
+their own `index.ts`. PascalCase directories are single classes; lowercase
+directories group multiple related classes.
 
 ## Scripts
 
@@ -100,10 +108,44 @@ Conventions:
 - One assertion per `it` when feasible
 - Add a regression test when fixing a bug
 
+## Branch strategy
+
+kei-lisp bundles several features into one minor release using
+**release-line branches** (`v2.1`, `v2.2`, ...), then merges them into
+`main` at release time.
+
+```
+feature/* ──┐
+feature/* ──┤── vX.Y (release line) ──→ main ──→ tag vX.Y.0 ──→ npm
+feature/* ──┘
+                                        hotfix/* ──→ main (direct, urgent only)
+```
+
+| Branch                | Purpose                                             | Lifetime                        |
+| --------------------- | --------------------------------------------------- | ------------------------------- |
+| `main`                | Latest released state. Always tag-ready             | Permanent                       |
+| `vX.Y` (release line) | Integrates multiple features for the next minor     | Until release; merged & deleted |
+| `feature/*`           | A single logical change targeting the active `vX.Y` | Until merged                    |
+| `hotfix/*`            | Urgent fix targeting `main` directly                | Until merged                    |
+| `vX` (maintenance)    | Security/critical fixes for an older major          | Permanent (long-lived)          |
+
+### Branch creation responsibilities
+
+| Branch type           | Created by          | When                                                              |
+| --------------------- | ------------------- | ----------------------------------------------------------------- |
+| `vX.Y` (release line) | **Maintainer only** | When planning a minor release that bundles 2+ features            |
+| `vX` (maintenance)    | **Maintainer only** | Right after the next major (`v(X+1).0.0`) is tagged               |
+| `hotfix/*`            | **Maintainer only** | When a critical bug needs a patch to a released version           |
+| `feature/*`           | Anyone              | Anytime, branching from the **active release line** (e.g. `v2.1`) |
+
+If you are unsure which base branch to target, ask in the PR description
+or open a draft PR and the maintainer will guide you.
+
 ## Pull request guidelines
 
-1. **Branch from `master`** and use a descriptive branch name
-   (e.g. `feature/add-quasiquote`, `fix/setq-shadowing`).
+1. **Branch from the active release line** (e.g. `v2.1`) and use a
+   descriptive branch name (e.g. `feature/add-quasiquote`,
+   `fix/setq-shadowing`).
 2. **Keep changes focused** — one logical change per PR.
 3. **Update tests** to cover new behavior or regressions.
 4. **Update documentation** (`README.md`, `CHANGELOG.md`, `docs/`) when
@@ -111,29 +153,29 @@ Conventions:
 5. **Pass all checks** (`pnpm check && pnpm test && pnpm build`).
 6. **Commit messages** should follow the existing style:
    `<type>: <description>` (e.g. `fix:`, `feat:`, `docs:`, `test:`,
-   `refactor:`).
+   `refactor:`, `chore:`).
+7. **Fill in the PR template** (auto-loaded from
+   [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md)).
 
 ## Release process
 
-Releases are published to npm automatically when a `v*` tag is pushed.
+Releases to npm are triggered automatically by pushes to `main`. The
+[`Release` workflow](./.github/workflows/release.yml) reads the version
+from `package.json`, checks whether a matching `v<version>` tag already
+exists, and if not, runs build → check → test → `pnpm publish
+--provenance --access public` → creates the `v<version>` tag → creates
+a GitHub Release with auto-generated notes. If the tag already exists
+the workflow is a no-op, so it is safe to re-trigger.
 
 ### Maintainer steps
 
-1. Update `CHANGELOG.md` — move pending entries under a new
+1. On the release-line branch (e.g. `v2.1`), update `CHANGELOG.md` —
+   move pending entries under a new
    `## [<new-version>] - <YYYY-MM-DD>` header.
 2. Bump `version` in `package.json` to match.
-3. Commit the version bump on `master`
-   (e.g. `chore: release v2.1.0`).
-4. Tag the commit and push:
-
-   ```sh
-   git tag v2.1.0
-   git push origin v2.1.0
-   ```
-
-5. The [`Release` workflow](./.github/workflows/release.yml) runs:
-   build → check → test → `pnpm publish --provenance --access public`
-   → GitHub Release with auto-generated notes.
+3. Open a PR from the release line to `main`, review, and merge.
+4. The release workflow runs automatically on the resulting `main`
+   push. No manual tagging required.
 
 ### Required GitHub secrets
 

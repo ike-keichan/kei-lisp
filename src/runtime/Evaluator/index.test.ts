@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { Cons } from '../../value/Cons/index.js';
-import { LispInterpreter } from '../../LispInterpreter/index.js';
+import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
+import { LispInterpreter } from '../../interpreter/LispInterpreter/index.js';
 import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 import { Evaluator } from './index.js';
-
-process.stdin.setMaxListeners(500);
 
 const evalStr = (src: string): string => {
   const interpreter = new LispInterpreter();
@@ -95,11 +94,11 @@ describe('Evaluator', () => {
       expect(evalStr('(let ((x 1)) (setq x 99) x)')).toBe('99');
     });
 
-    it('Round 4-J-3: setq inside nested let updates the inner binding', () => {
+    it('setq inside nested let updates the inner binding', () => {
       expect(evalStr('(let ((x 1)) (let ((x 2)) (setq x 100) x))')).toBe(ONE_HUNDRED);
     });
 
-    it('Round 4-J-3: setq inside nested let does not affect the outer binding', () => {
+    it('setq inside nested let does not affect the outer binding', () => {
       expect(evalStr('(let ((x 1)) (let ((x 2)) (setq x 100)) x)')).toBe('1');
     });
   });
@@ -230,6 +229,31 @@ describe('Evaluator', () => {
       interpreter.evalString(SETQ_X_100);
       interpreter.evalString('(let ((x 1)) x)');
       expect(Cons.toString(interpreter.evalString('x'))).toBe(ONE_HUNDRED);
+    });
+  });
+
+  describe('gc', () => {
+    it('returns an alist with three entries', () => {
+      const result = newEvaluator().gc();
+      expect(result.length()).toBe(3);
+    });
+
+    it('exposes heap-used via (assoc) lookup', () => {
+      const interpreter = new LispInterpreter();
+      const pair = interpreter.evalString("(assoc 'heap-used (gc))") as Cons;
+      expect(pair.car).toBe(InterpretedSymbol.of('heap-used'));
+      expect(typeof pair.cdr).toBe('number');
+      expect(pair.cdr as number).toBeGreaterThan(0);
+    });
+
+    it('exposes heap-total and rss as positive numbers', () => {
+      const interpreter = new LispInterpreter();
+      const heapTotal = interpreter.evalString("(cdr (assoc 'heap-total (gc)))");
+      const rss = interpreter.evalString("(cdr (assoc 'rss (gc)))");
+      expect(typeof heapTotal).toBe('number');
+      expect(heapTotal as number).toBeGreaterThan(0);
+      expect(typeof rss).toBe('number');
+      expect(rss as number).toBeGreaterThan(0);
     });
   });
 

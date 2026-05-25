@@ -7,7 +7,8 @@ npmrc
 prepublish
 
 # ビルドツール
-tsup
+tsdown
+rolldown
 shims
 treeshake
 sourcemap
@@ -34,8 +35,6 @@ unicorn
 
 # npm パッケージ
 readline
-ramda
-expose-gc
 
 # GitHub Actions
 softprops

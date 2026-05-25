@@ -58,7 +58,6 @@ export class Loop {
           this.remove();
           return { value: nextValue, done: false };
         }
-        // Following the original: omit the value field.
         return { done: true } as IteratorResult<LispValue>;
       },
     };
@@ -76,7 +75,6 @@ export class Loop {
           this.remove();
           return Promise.resolve({ value: nextValue, done: false });
         }
-        // Following the original: omit the value field.
         return Promise.resolve({ done: true } as IteratorResult<LispValue>);
       },
     };

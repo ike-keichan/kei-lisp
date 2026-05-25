@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { Cons } from '../value/Cons/index.js';
-import { ExitError } from '../runtime/ExitError/index.js';
+import { Cons } from '../../value/Cons/index.js';
+import { EvalError } from '../../errors/EvalError/index.js';
+import { ExitError } from '../../errors/ExitError/index.js';
+import { KeiLispError } from '../../errors/KeiLispError/index.js';
+import { ParseError } from '../../errors/ParseError/index.js';
 import { LispInterpreter } from './index.js';
-
-// The LispInterpreter constructor creates a readline interface, so unit tests that instantiate
-// many interpreters trigger MaxListenersExceededWarning. Bumping the limit suppresses it.
-// This workaround becomes unnecessary once Round 13 separates REPL and interpreter concerns.
-process.stdin.setMaxListeners(500);
 
 const evalStr = (src: string): string => {
   const interpreter = new LispInterpreter();
@@ -81,24 +79,29 @@ describe('LispInterpreter', () => {
   describe('eval', () => {
     it('evaluates a Cons expression', () => {
       const interpreter = new LispInterpreter();
-      const ast = interpreter.parse('(+ 1 2)') as Cons;
+      const ast = interpreter.parse('(+ 1 2)');
       expect(interpreter.eval(ast.car)).toBe(3);
     });
 
     it('evaluates an atom (number)', () => {
       const interpreter = new LispInterpreter();
-      const ast = interpreter.parse('42') as Cons;
+      const ast = interpreter.parse('42');
       expect(interpreter.eval(ast.car)).toBe(42);
     });
   });
 
   describe('parse', () => {
-    it('converts a string into an AST', () => {
-      expect(Cons.isCons(new LispInterpreter().parse('(+ 1 2)'))).toBe(true);
+    it('returns a Cons (no cast needed thanks to the narrowed return type)', () => {
+      const ast = new LispInterpreter().parse('(+ 1 2)');
+      expect(ast).toBeInstanceOf(Cons);
     });
 
-    it('returns nil on parse failure', () => {
-      expect(new LispInterpreter().parse('((')).toBe(Cons.nil);
+    it('returns Cons.nil for empty input', () => {
+      expect(new LispInterpreter().parse('')).toBe(Cons.nil);
+    });
+
+    it('throws ParseError on parse failure', () => {
+      expect(() => new LispInterpreter().parse('((')).toThrow(ParseError);
     });
   });
 
@@ -120,24 +123,24 @@ describe('LispInterpreter', () => {
   });
 
   describe('regressions', () => {
-    it('Round 4-J-3: setq inside nested let does not affect the outer binding', () => {
+    it('setq inside nested let does not affect the outer binding', () => {
       expect(evalStr('(let ((x 1)) (let ((x 2)) (setq x 100)) x)')).toBe('1');
     });
 
-    it('Round 6: does not crash on (format "~5a" ...)', () => {
+    it('does not crash on (format "~5a" ...)', () => {
       expect(() => evalStr('(format "~5a" "hi")')).not.toThrow();
     });
 
-    it('Round 4-A: displays a list of strings without quoting the elements', () => {
+    it('displays a list of strings without quoting the elements', () => {
       expect(evalStr('(list "a" "b" "c")')).toBe('(a b c)');
     });
 
-    it('Round 4-C: preserves a string containing emoji', () => {
+    it('preserves a string containing emoji', () => {
       const result = new LispInterpreter().evalString('"Hello 😀"');
       expect(result).toBe('Hello 😀');
     });
 
-    it('Round 4-C: preserves a Japanese string', () => {
+    it('preserves a Japanese string', () => {
       const result = new LispInterpreter().evalString('"こんにちは"');
       expect(result).toBe('こんにちは');
     });
@@ -146,8 +149,27 @@ describe('LispInterpreter', () => {
   describe('ExitError integration', () => {
     it('throws ExitError when (exit) is evaluated', () => {
       const interpreter = new LispInterpreter();
-      const ast = interpreter.parse('(exit)') as Cons;
+      const ast = interpreter.parse('(exit)');
       expect(() => interpreter.eval(ast.car)).toThrow(ExitError);
+    });
+  });
+
+  describe('error throw API', () => {
+    it('throws EvalError on unbound symbol lookup', () => {
+      expect(() => new LispInterpreter().evalString('undefined-symbol')).toThrow(EvalError);
+    });
+
+    it('throws EvalError (subclass of KeiLispError) so library users can catch the family', () => {
+      expect(() => new LispInterpreter().evalString('undefined-symbol')).toThrow(KeiLispError);
+    });
+
+    it('throws ParseError on malformed input', () => {
+      expect(() => new LispInterpreter().evalString('(')).toThrow(ParseError);
+    });
+
+    it('ExitError is NOT a KeiLispError so catch-all on KeiLispError lets (exit) propagate', () => {
+      expect(() => new LispInterpreter().evalString('(exit)')).not.toThrow(KeiLispError);
+      expect(() => new LispInterpreter().evalString('(exit)')).toThrow(ExitError);
     });
   });
 });

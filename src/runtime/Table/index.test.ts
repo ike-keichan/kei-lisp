@@ -28,7 +28,7 @@ describe('Table', () => {
   });
 
   describe('clone', () => {
-    it('Round 4-D: returns a clone without crashing', () => {
+    it('returns a clone without crashing', () => {
       const t = new Table();
       const sym = InterpretedSymbol.of('x');
       t.set(sym, 42);
@@ -132,7 +132,7 @@ describe('Table', () => {
       expect(parent.get(sym)).toBe(999);
     });
 
-    it('Round 4-J-3: updates only the inner scope when the inner has a binding', () => {
+    it('updates only the inner scope when the inner has a binding', () => {
       const outer = new Table();
       const inner = new Table(outer);
       const sym = InterpretedSymbol.of('x');
@@ -142,7 +142,7 @@ describe('Table', () => {
       expect(inner.get(sym)).toBe(999);
     });
 
-    it('Round 4-J-3: an inner update does not change the outer scope', () => {
+    it('an inner update does not change the outer scope', () => {
       const outer = new Table();
       const inner = new Table(outer);
       const sym = InterpretedSymbol.of('x');
@@ -203,7 +203,7 @@ describe('Table', () => {
   });
 
   describe('toString', () => {
-    it('Round 5-1: returns "#<Environment>"', () => {
+    it('returns "#<Environment>"', () => {
       expect(new Table().toString()).toBe('#<Environment>');
     });
   });

@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { Cons } from '../../value/Cons/index.js';
-import { LispInterpreter } from '../../LispInterpreter/index.js';
+import { LispInterpreter } from '../../interpreter/LispInterpreter/index.js';
 import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 import { Applier } from './index.js';
-
-process.stdin.setMaxListeners(500);
 
 const evalStr = (src: string): string => {
   const interpreter = new LispInterpreter();
@@ -257,11 +255,11 @@ describe('Applier', () => {
       expect(() => evalStr('(format "~a" "hi")')).not.toThrow();
     });
 
-    it('Round 6: does not crash with ~Na (right padding)', () => {
+    it('does not crash with ~Na (right padding)', () => {
       expect(() => evalStr('(format "~5a" "hi")')).not.toThrow();
     });
 
-    it('Round 6: does not crash with ~-Na (left padding)', () => {
+    it('does not crash with ~-Na (left padding)', () => {
       expect(() => evalStr('(format "~-5a" "hi")')).not.toThrow();
     });
 
