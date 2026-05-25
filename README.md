@@ -67,7 +67,8 @@ const { LispInterpreter, Cons } = require('kei-lisp');
 
 | Export              | Description                                             |
 | ------------------- | ------------------------------------------------------- |
-| `LispInterpreter`   | Main interpreter class (REPL + programmatic evaluation) |
+| `LispInterpreter`   | Programmatic interpreter (parse / eval / environment)   |
+| `Repl`              | Interactive REPL on stdin / stdout                      |
 | `Cons`              | Cons cell (pair) data type with type predicates         |
 | `InterpretedSymbol` | Lisp symbol (interned)                                  |
 | `ExitError`         | Thrown when `(exit)` is evaluated; catch to handle exit |
@@ -77,14 +78,20 @@ const { LispInterpreter, Cons } = require('kei-lisp');
 ```ts
 const interpreter = new LispInterpreter();
 
-// Start an interactive REPL on stdin/stdout
-interpreter.run();
-
 // Evaluate source and return the last expression's result
 interpreter.evalString('(+ 1 2)'); // 3
 
 // Evaluate multiple expressions and return all results
 interpreter.evalAll('(setq x 10) (* x x)'); // [10, 100]
+```
+
+### `Repl`
+
+```ts
+import { Repl } from 'kei-lisp';
+
+// Start an interactive REPL on stdin/stdout
+new Repl().run();
 ```
 
 ### Handling `(exit)` gracefully
