@@ -178,6 +178,10 @@ Releases are published to npm automatically when a `v*` tag is pushed.
 5. The [`Release` workflow](./.github/workflows/release.yml) runs:
    build → check → test → `pnpm publish --provenance --access public`
    → GitHub Release with auto-generated notes.
+6. Create the next release-line branch (e.g. `v2.2`) from `main` and
+   update `target-branch:` in [`.github/dependabot.yml`](./.github/dependabot.yml)
+   to point at it. Dependabot follows that field to know where to open
+   dependency-bump PRs.
 
 ### Required GitHub secrets
 
