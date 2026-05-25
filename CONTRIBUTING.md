@@ -159,7 +159,13 @@ or open a draft PR and the maintainer will guide you.
 
 ## Release process
 
-Releases are published to npm automatically when a `v*` tag is pushed.
+Releases to npm are triggered automatically by pushes to `main`. The
+[`Release` workflow](./.github/workflows/release.yml) reads the version
+from `package.json`, checks whether a matching `v<version>` tag already
+exists, and if not, runs build → check → test → `pnpm publish
+--provenance --access public` → creates the `v<version>` tag → creates
+a GitHub Release with auto-generated notes. If the tag already exists
+the workflow is a no-op, so it is safe to re-trigger.
 
 ### Maintainer steps
 
@@ -168,16 +174,8 @@ Releases are published to npm automatically when a `v*` tag is pushed.
    `## [<new-version>] - <YYYY-MM-DD>` header.
 2. Bump `version` in `package.json` to match.
 3. Open a PR from the release line to `main`, review, and merge.
-4. On `main`, tag the merge commit and push:
-
-   ```sh
-   git tag v2.1.0
-   git push origin v2.1.0
-   ```
-
-5. The [`Release` workflow](./.github/workflows/release.yml) runs:
-   build → check → test → `pnpm publish --provenance --access public`
-   → GitHub Release with auto-generated notes.
+4. The release workflow runs automatically on the resulting `main`
+   push. No manual tagging required.
 
 ### Required GitHub secrets
 
