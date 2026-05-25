@@ -37,12 +37,11 @@ src/
 │   ├── Parser/index.ts (+ index.test.ts)
 │   ├── IntStream/
 │   └── NextState/
-├── runtime/                 # Evaluation engine (eval/apply, env, I/O, exit)
+├── runtime/                 # Evaluation engine (eval/apply, env, I/O)
 │   ├── Evaluator/
 │   ├── Applier/
 │   ├── Table/               # Environment frame
-│   ├── StreamManager/       # I/O stream management
-│   └── ExitError/           # (exit) signal
+│   └── StreamManager/       # I/O stream management
 ├── value/                   # Lisp value types
 │   ├── Cons/
 │   ├── InterpretedSymbol/
@@ -50,6 +49,11 @@ src/
 ├── interpreter/             # Public facades (library + REPL)
 │   ├── LispInterpreter/     # Programmatic interpreter (parse / eval / env)
 │   └── Repl/                # Interactive REPL on stdin / stdout
+├── errors/                  # Error hierarchy thrown to library users
+│   ├── KeiLispError/        # Base for parse/eval failures
+│   ├── ParseError/          # Parser failure
+│   ├── EvalError/           # Evaluator/Applier failure
+│   └── ExitError/           # (exit) signal (sibling of KeiLispError)
 ├── constants/               # Diagnostic message templates
 ├── types/                   # Shared TypeScript types (LispValue, ...)
 ├── cli.ts                   # CLI entry point
@@ -62,8 +66,8 @@ examples/                    # Runnable usage examples (tsx)
 ```
 
 Code modules live as `<DirName>/index.ts`. Grouping directories
-(`parser/`, `runtime/`, `value/`, `interpreter/`) do not have their own
-`index.ts`. PascalCase directories are single classes; lowercase
+(`parser/`, `runtime/`, `value/`, `interpreter/`, `errors/`) do not have
+their own `index.ts`. PascalCase directories are single classes; lowercase
 directories group multiple related classes.
 
 ## Scripts

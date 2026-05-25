@@ -1,6 +1,5 @@
 import { Cons } from '../../value/Cons/index.js';
 import { Evaluator } from '../../runtime/Evaluator/index.js';
-import { ExitError } from '../../runtime/ExitError/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import { StreamManager } from '../../runtime/StreamManager/index.js';
 import { Table } from '../../runtime/Table/index.js';
@@ -22,16 +21,12 @@ export class LispInterpreter {
   }
 
   /**
-   * Evaluates the given list and returns the evaluation result.
+   * Evaluates the given expression and returns the result. Throws `ParseError`,
+   * `EvalError`, or `ExitError` on failure; library users are expected to catch
+   * these (see the `KeiLispError` base class for the parse/eval family).
    */
   eval(aCons: LispValue): LispValue {
-    try {
-      return Evaluator.eval(aCons, this.root, this.streamManager);
-    } catch (error) {
-      if (error instanceof ExitError) throw error;
-      console.error('*** can not eval ' + (aCons as { toString(): string }).toString() + ' ***');
-      return Cons.nil;
-    }
+    return Evaluator.eval(aCons, this.root, this.streamManager);
   }
 
   /**
@@ -57,15 +52,11 @@ export class LispInterpreter {
   }
 
   /**
-   * Parses the given string into a list and returns it.
+   * Parses the given string into a list and returns it. Throws `ParseError`
+   * if the source cannot be parsed.
    */
   parse(aString: string): LispValue {
-    try {
-      return Cons.parse('(' + aString + '\n);');
-    } catch {
-      console.error('*** can not parse ' + aString.replaceAll('\n', '') + ' ***');
-      return Cons.nil;
-    }
+    return Cons.parse('(' + aString + '\n);');
   }
 
   /**

@@ -65,13 +65,16 @@ const { LispInterpreter, Cons } = require('kei-lisp');
 
 ## API
 
-| Export              | Description                                             |
-| ------------------- | ------------------------------------------------------- |
-| `LispInterpreter`   | Programmatic interpreter (parse / eval / environment)   |
-| `Repl`              | Interactive REPL on stdin / stdout                      |
-| `Cons`              | Cons cell (pair) data type with type predicates         |
-| `InterpretedSymbol` | Lisp symbol (interned)                                  |
-| `ExitError`         | Thrown when `(exit)` is evaluated; catch to handle exit |
+| Export              | Description                                                |
+| ------------------- | ---------------------------------------------------------- |
+| `LispInterpreter`   | Programmatic interpreter (parse / eval / environment)      |
+| `Repl`              | Interactive REPL on stdin / stdout                         |
+| `Cons`              | Cons cell (pair) data type with type predicates            |
+| `InterpretedSymbol` | Lisp symbol (interned)                                     |
+| `KeiLispError`      | Base class for parse / eval failures (subclass of `Error`) |
+| `ParseError`        | Thrown on parse failure (subclass of `KeiLispError`)       |
+| `EvalError`         | Thrown on evaluation failure (subclass of `KeiLispError`)  |
+| `ExitError`         | Thrown when `(exit)` is evaluated; catch to handle exit    |
 
 ### `LispInterpreter`
 
@@ -94,20 +97,26 @@ import { Repl } from 'kei-lisp';
 new Repl().run();
 ```
 
-### Handling `(exit)` gracefully
+### Error handling
 
-When user-supplied Lisp code calls `(exit)`, an `ExitError` is thrown so the
-host application can clean up instead of being terminated by `process.exit`:
+`evalString`, `evalAll`, `eval`, and `parse` throw on failure. Catch the
+errors at the boundary; `ExitError` is intentionally separate from the
+`KeiLispError` family so a generic Lisp-error catch does not swallow it.
 
 ```ts
-import { LispInterpreter, ExitError } from 'kei-lisp';
+import { LispInterpreter, KeiLispError, ExitError } from 'kei-lisp';
 
 const interpreter = new LispInterpreter();
 try {
   interpreter.evalString(userInput);
 } catch (error) {
   if (error instanceof ExitError) {
-    // Lisp program requested exit — handle gracefully
+    // Lisp called (exit) — graceful shutdown
+    return;
+  }
+  if (error instanceof KeiLispError) {
+    // ParseError or EvalError — display to user and continue
+    console.error(`${error.name}: ${error.message}`);
     return;
   }
   throw error;

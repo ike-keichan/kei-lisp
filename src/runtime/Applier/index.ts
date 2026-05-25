@@ -1,4 +1,5 @@
 import { Cons } from '../../value/Cons/index.js';
+import { EvalError } from '../../errors/EvalError/index.js';
 import { Evaluator } from '../Evaluator/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import {
@@ -38,7 +39,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return Math.abs(args.car);
     }
-    console.error(cannotApply('abs', args.car));
+    throw new EvalError(cannotApply('abs', args.car));
 
     return Cons.nil;
   }
@@ -47,7 +48,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.add_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('add', args.car));
+    throw new EvalError(cannotApply('add', args.car));
 
     return Cons.nil;
   }
@@ -61,7 +62,7 @@ export class Applier {
       if (Cons.isNumber(each)) {
         result = result + each;
       } else {
-        console.error(cannotApply('add', each));
+        throw new EvalError(cannotApply('add', each));
         return Cons.nil;
       }
       aCons = (aCons as Cons).cdr;
@@ -97,7 +98,7 @@ export class Applier {
 
     for (const each of aCons.loop()) {
       if (Cons.isNotCons(each)) {
-        console.error(cannotApply('assoc', each));
+        throw new EvalError(cannotApply('assoc', each));
       }
       const eachCons = each as Cons;
       const key = eachCons.car;
@@ -127,7 +128,7 @@ export class Applier {
       try {
         this.environment.set(aCons.car, theCons.car);
       } catch {
-        console.error(SIZES_DO_NOT_MATCH);
+        throw new EvalError(SIZES_DO_NOT_MATCH);
         return null;
       }
 
@@ -142,7 +143,7 @@ export class Applier {
       try {
         this.environment.set(aCons.cdr, theCons.cdr);
       } catch {
-        console.error(SIZES_DO_NOT_MATCH);
+        throw new EvalError(SIZES_DO_NOT_MATCH);
         return null;
       }
     } else if (Cons.isNotNil(aCons.cdr)) {
@@ -222,7 +223,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.divide_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('divide', args.car));
+    throw new EvalError(cannotApply('divide', args.car));
 
     return Cons.nil;
   }
@@ -236,7 +237,7 @@ export class Applier {
       if (Cons.isNumber(each)) {
         result = result / each;
       } else {
-        console.error(cannotApply('divide', each));
+        throw new EvalError(cannotApply('divide', each));
         return Cons.nil;
       }
       aCons = (aCons as Cons).cdr;
@@ -304,11 +305,10 @@ export class Applier {
 
   format(args: Cons): LispValue {
     if (!Cons.isString(args.car)) {
-      console.error(cannotApply('format', args.car));
+      throw new EvalError(cannotApply('format', args.car));
     }
     const aCons = args.cdr;
-    // Following the original: pass through after String() coercion even for non-strings.
-    const format = this.format_AUX(String(args.car), aCons);
+    const format = this.format_AUX(args.car, aCons);
     process.stdout.write(String(format));
 
     return Cons.nil;
@@ -394,7 +394,7 @@ export class Applier {
               const size = Number(token);
               token = '';
               if (Cons.isNil(theCons)) {
-                console.error(SIZE_DO_NOT_MATCH);
+                throw new EvalError(SIZE_DO_NOT_MATCH);
                 return undefined;
               }
               let value: string = ((theCons as Cons).car as { toString(): string }).toString();
@@ -436,7 +436,7 @@ export class Applier {
               const size = Number(token);
               token = '';
               if (Cons.isNil(theCons)) {
-                console.error(SIZE_DO_NOT_MATCH);
+                throw new EvalError(SIZE_DO_NOT_MATCH);
                 return undefined;
               }
               const value: string = ((theCons as Cons).car as { toString(): string }).toString();
@@ -461,13 +461,13 @@ export class Applier {
           break;
         }
         default: {
-          console.error('Error!');
+          throw new EvalError(`unknown format directive: ~${aCharacter}`);
         }
       }
       index++;
     }
     if (Cons.isNotNil(theCons)) {
-      console.error(SIZE_DO_NOT_MATCH);
+      throw new EvalError(SIZE_DO_NOT_MATCH);
       return undefined;
     }
 
@@ -505,7 +505,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.greaterThan_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('>', args.car));
+    throw new EvalError(cannotApply('>', args.car));
 
     return Cons.nil;
   }
@@ -520,7 +520,7 @@ export class Applier {
       if (Cons.isNumber(rightValue)) {
         aBoolean = leftValue > rightValue;
       } else {
-        console.error(cannotApply('>', rightValue));
+        throw new EvalError(cannotApply('>', rightValue));
         return Cons.nil;
       }
       if (!aBoolean) {
@@ -537,7 +537,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.greaterThanOrEqual_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('>=', args.car));
+    throw new EvalError(cannotApply('>=', args.car));
 
     return Cons.nil;
   }
@@ -552,7 +552,7 @@ export class Applier {
       if (Cons.isNumber(rightValue)) {
         aBoolean = leftValue >= rightValue;
       } else {
-        console.error(cannotApply('>=', rightValue));
+        throw new EvalError(cannotApply('>=', rightValue));
         return Cons.nil;
       }
       if (!aBoolean) {
@@ -604,7 +604,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.lessThan_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('<', args.car));
+    throw new EvalError(cannotApply('<', args.car));
 
     return Cons.nil;
   }
@@ -619,7 +619,7 @@ export class Applier {
       if (Cons.isNumber(rightValue)) {
         aBoolean = leftValue < rightValue;
       } else {
-        console.error(cannotApply('<', rightValue));
+        throw new EvalError(cannotApply('<', rightValue));
         return Cons.nil;
       }
       if (!aBoolean) {
@@ -636,7 +636,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.lessThanOrEqual_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('<=', args.car));
+    throw new EvalError(cannotApply('<=', args.car));
 
     return Cons.nil;
   }
@@ -651,7 +651,7 @@ export class Applier {
       if (Cons.isNumber(rightValue)) {
         aBoolean = leftValue <= rightValue;
       } else {
-        console.error(cannotApply('<=', rightValue));
+        throw new EvalError(cannotApply('<=', rightValue));
         return Cons.nil;
       }
       if (!aBoolean) {
@@ -738,7 +738,7 @@ export class Applier {
         anObject = this.equal_(new Cons(args.car, new Cons(aCons.car, Cons.nil)));
       }
       if (anObject == null) {
-        console.error(cannotApply('member', aSymbol));
+        throw new EvalError(cannotApply('member', aSymbol));
       }
       if (anObject === InterpretedSymbol.of('t')) {
         return aCons;
@@ -761,7 +761,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.mod_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('mod', args.car));
+    throw new EvalError(cannotApply('mod', args.car));
 
     return Cons.nil;
   }
@@ -775,7 +775,7 @@ export class Applier {
       if (Cons.isNumber(each)) {
         result = result % each;
       } else {
-        console.error(cannotApply('mod', each));
+        throw new EvalError(cannotApply('mod', each));
         return Cons.nil;
       }
       aCons = (aCons as Cons).cdr;
@@ -788,7 +788,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.multiply_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('multiply', args.car));
+    throw new EvalError(cannotApply('multiply', args.car));
 
     return Cons.nil;
   }
@@ -802,7 +802,7 @@ export class Applier {
       if (Cons.isNumber(each)) {
         result = result * each;
       } else {
-        console.error(cannotApply('multiply', each));
+        throw new EvalError(cannotApply('multiply', each));
         return Cons.nil;
       }
       aCons = (aCons as Cons).cdr;
@@ -880,7 +880,7 @@ export class Applier {
     if (this.environment.has(procedure)) {
       return this.userFunction(procedure, args);
     }
-    console.error(noProcedure(procedure));
+    throw new EvalError(noProcedure(procedure));
 
     return Cons.nil;
   }
@@ -997,7 +997,7 @@ export class Applier {
     if (Cons.isNumber(args.car)) {
       return this.subtract_Number(args.car, args.cdr);
     }
-    console.error(cannotApply('subtract', args.car));
+    throw new EvalError(cannotApply('subtract', args.car));
 
     return Cons.nil;
   }
@@ -1011,7 +1011,7 @@ export class Applier {
       if (Cons.isNumber(each)) {
         result = result - each;
       } else {
-        console.error(cannotApply('subtract', each));
+        throw new EvalError(cannotApply('subtract', each));
         return Cons.nil;
       }
       aCons = (aCons as Cons).cdr;

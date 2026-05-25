@@ -2,7 +2,8 @@ import { createRequire } from 'node:module';
 import type { Interface as ReadlineInterface } from 'node:readline';
 
 import { Cons } from '../../value/Cons/index.js';
-import { ExitError } from '../../runtime/ExitError/index.js';
+import { ExitError } from '../../errors/ExitError/index.js';
+import { KeiLispError } from '../../errors/KeiLispError/index.js';
 import { LispInterpreter } from '../LispInterpreter/index.js';
 import type { LispValue } from '../../types/index.js';
 
@@ -54,8 +55,8 @@ export class Repl {
         }
 
         if (leftParentheses <= 0) {
-          aCons = this.interpreter.parse(aString);
           try {
+            aCons = this.interpreter.parse(aString);
             for (const each of (aCons as Cons).loop()) {
               process.stdout.write(
                 (this.interpreter.eval(each) as { toString(): string }).toString() + '\n',
@@ -67,8 +68,12 @@ export class Repl {
               this.rl.close();
               return;
             }
-            console.error('*** can not eval ' + (aCons as Cons).toString() + ' ***');
-            process.stdout.write(Cons.nil.toString() + '\n');
+            if (error instanceof KeiLispError) {
+              console.error(`*** ${error.name}: ${error.message} ***`);
+              process.stdout.write(Cons.nil.toString() + '\n');
+            } else {
+              throw error;
+            }
           }
           leftParentheses = 0;
           aString = '';
