@@ -177,18 +177,20 @@ the workflow is a no-op, so it is safe to re-trigger.
 4. The release workflow runs automatically on the resulting `main`
    push. No manual tagging required.
 
-### Required GitHub secrets
+### Required configuration
 
-| Secret      | Where to obtain                                  |
-| ----------- | ------------------------------------------------ |
-| `NPM_TOKEN` | npm → Account → Access Tokens → Granular (write) |
+No GitHub secrets are needed. The release workflow uses npm
+[Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) with
+GitHub Actions OIDC for both authentication and provenance attestation.
+The required `id-token: write` permission is already set in the
+workflow's `permissions` block.
 
-Set under **Repository → Settings → Secrets and variables → Actions**.
-
-The release workflow uses OIDC (`id-token: write`) to attach
-[npm provenance](https://docs.npmjs.com/generating-provenance-statements)
-to published packages — no additional configuration required beyond the
-permissions block already present in the workflow.
+The npm package side must have a trusted publisher configured for this
+repository's `release.yml` workflow. Configure it at
+**[npmjs.com/package/kei-lisp/access](https://www.npmjs.com/package/kei-lisp/access)**
+→ Trusted Publisher → Add Trusted Publisher, selecting Publisher:
+GitHub Actions, this organization/repository, and workflow filename
+`release.yml`.
 
 ## Reporting issues
 
