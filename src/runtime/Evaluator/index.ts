@@ -17,10 +17,8 @@ import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 import type { LispValue } from '../../types/index.js';
 
-/**
- * Equivalent to the old `expose-gc/function` package: lets us call GC without the `--expose-gc` flag.
- * The original package executed the equivalent setup at require time, so we lazily initialize on the first gc() call.
- */
+// Lazily expose V8's gc() to user-land on first use, avoiding the need for the
+// host process to be started with `--expose-gc`.
 let cachedGc: (() => void) | null = null;
 const triggerGc = (): void => {
   if (cachedGc == null) {
@@ -656,11 +654,6 @@ export class Evaluator {
     return answer;
   }
 
-  // NOTE: Lisp's trace/spy writes the call line to a designated output stream. The original
-  //       implementation logged the stream object itself rather than writing to it (a bug that
-  //       went unnoticed because trace/spy is rarely exercised). We now write the indented line
-  //       to the given WritableStream, falling back to stdout when the argument is a string
-  //       descriptor (stored by `(spy fn "label")`) or null.
   spyPrint(aStream: NodeJS.WritableStream | string | null, line: string): null {
     const target: NodeJS.WritableStream =
       aStream != null && typeof aStream === 'object' && 'write' in aStream

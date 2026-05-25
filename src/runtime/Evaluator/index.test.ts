@@ -94,11 +94,11 @@ describe('Evaluator', () => {
       expect(evalStr('(let ((x 1)) (setq x 99) x)')).toBe('99');
     });
 
-    it('Round 4-J-3: setq inside nested let updates the inner binding', () => {
+    it('setq inside nested let updates the inner binding', () => {
       expect(evalStr('(let ((x 1)) (let ((x 2)) (setq x 100) x))')).toBe(ONE_HUNDRED);
     });
 
-    it('Round 4-J-3: setq inside nested let does not affect the outer binding', () => {
+    it('setq inside nested let does not affect the outer binding', () => {
       expect(evalStr('(let ((x 1)) (let ((x 2)) (setq x 100)) x)')).toBe('1');
     });
   });

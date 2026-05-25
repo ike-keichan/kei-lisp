@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsdown';
 
 export default defineConfig([
   // ライブラリエントリ（import / require 用）
@@ -9,9 +9,9 @@ export default defineConfig([
     target: 'node24',
     clean: true,
     sourcemap: true,
-    treeshake: true,
     shims: true,
     dts: true,
+    fixedExtension: false,
   },
   // CLI エントリ
   {
@@ -20,8 +20,9 @@ export default defineConfig([
     platform: 'node',
     target: 'node24',
     shims: true,
-    banner: {
-      js: '#!/usr/bin/env node',
+    fixedExtension: false,
+    outputOptions: {
+      banner: '#!/usr/bin/env node\n',
     },
   },
 ]);

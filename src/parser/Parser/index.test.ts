@@ -73,13 +73,13 @@ describe('Parser', () => {
       expect(quoted.car).toBe(InterpretedSymbol.of('quote'));
     });
 
-    it('Round 12-2-a: interprets (quote +) as the symbol +', () => {
+    it('interprets (quote +) as the symbol +', () => {
       const result = Parser.parse("('+)");
       const quoted = (result as Cons).car as Cons;
       expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of('+'));
     });
 
-    it('Round 12-2-a: interprets (quote -) as the symbol -', () => {
+    it('interprets (quote -) as the symbol -', () => {
       const result = Parser.parse("('-)");
       const quoted = (result as Cons).car as Cons;
       expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of('-'));
@@ -91,12 +91,12 @@ describe('Parser', () => {
       expect(list.nth(1)).toBe(InterpretedSymbol.of('+'));
     });
 
-    it('Round 4-C: preserves a string containing emoji', () => {
+    it('preserves a string containing emoji', () => {
       const result = Parser.parse('("Hello 😀")');
       expect((result as Cons).car).toBe('Hello 😀');
     });
 
-    it('Round 4-C: preserves a Japanese string', () => {
+    it('preserves a Japanese string', () => {
       const result = Parser.parse('("こんにちは")');
       expect((result as Cons).car).toBe('こんにちは');
     });
@@ -161,7 +161,7 @@ describe('Parser', () => {
     });
   });
 
-  describe('Round 12-2-b: comment syntax', () => {
+  describe('comment syntax', () => {
     it('treats ; as a line comment inside a list', () => {
       const result = Parser.parse('(1 ; this is a comment\n 2 3)') as Cons;
       expect(result.length()).toBe(3);
@@ -179,7 +179,7 @@ describe('Parser', () => {
     });
   });
 
-  describe('Round 12-2-c: string escape sequences', () => {
+  describe('string escape sequences', () => {
     it('translates a newline escape into a newline character', () => {
       const result = Parser.parse(String.raw`("a\nb")`);
       expect((result as Cons).car).toBe('a\nb');

@@ -393,7 +393,7 @@ describe('Cons', () => {
       expect(new Cons(1, 2).toString()).toBe('(1 . 2)');
     });
 
-    it('Round 4-A: does not quote primitive strings', () => {
+    it('does not quote primitive strings', () => {
       const c = new Cons('a', new Cons('b', Cons.nil));
       expect(c.toString()).toBe('(a b)');
     });

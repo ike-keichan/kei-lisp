@@ -255,11 +255,11 @@ describe('Applier', () => {
       expect(() => evalStr('(format "~a" "hi")')).not.toThrow();
     });
 
-    it('Round 6: does not crash with ~Na (right padding)', () => {
+    it('does not crash with ~Na (right padding)', () => {
       expect(() => evalStr('(format "~5a" "hi")')).not.toThrow();
     });
 
-    it('Round 6: does not crash with ~-Na (left padding)', () => {
+    it('does not crash with ~-Na (left padding)', () => {
       expect(() => evalStr('(format "~-5a" "hi")')).not.toThrow();
     });
 
