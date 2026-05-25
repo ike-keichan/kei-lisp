@@ -8,7 +8,16 @@ For Lisp **language** documentation, see [atoms](./atoms.md),
 ## Exports
 
 ```ts
-import { LispInterpreter, Cons, InterpretedSymbol, ExitError } from 'kei-lisp';
+import {
+  LispInterpreter,
+  Repl,
+  Cons,
+  InterpretedSymbol,
+  ExitError,
+  KeiLispError,
+  ParseError,
+  EvalError,
+} from 'kei-lisp';
 import type { LispValue } from 'kei-lisp';
 ```
 
@@ -23,15 +32,6 @@ Construct a new interpreter with an empty top-level environment
 
 ```ts
 const interpreter = new LispInterpreter();
-```
-
-### `interpreter.run(): null`
-
-Start an interactive REPL on `process.stdin` / `process.stdout`. Blocks
-until end-of-input or `(exit)` is called.
-
-```ts
-new LispInterpreter().run();
 ```
 
 ### `interpreter.evalString(source: string): LispValue`
@@ -72,6 +72,27 @@ expression). Returns `Cons.nil` on parse failure.
 ```ts
 const ast = interpreter.parse('(+ 1 2) (- 3 4)');
 ```
+
+## `Repl`
+
+Interactive REPL wrapper around `LispInterpreter`. Reads from
+`process.stdin`, writes to `process.stdout`.
+
+### `new Repl(interpreter?: LispInterpreter)`
+
+Construct a REPL. If `interpreter` is omitted, a new
+`LispInterpreter` is created internally.
+
+```ts
+new Repl().run();
+// or with a customized interpreter
+const interpreter = new LispInterpreter();
+new Repl(interpreter).run();
+```
+
+### `repl.run(): void`
+
+Start the REPL loop. Blocks until end-of-input or `(exit)` is called.
 
 ## `Cons`
 
@@ -144,26 +165,66 @@ The print name of the symbol.
 
 Returns the print name (same as `.name`).
 
-## `ExitError`
+## Error model
 
-Subclass of `Error` thrown when Lisp code calls `(exit)`. Catch it to
-prevent the host process from being terminated.
+kei-lisp throws on any parse or evaluation failure. Library users are
+expected to catch these errors at the boundary.
+
+```
+Error
+├── ExitError              ← (exit) was called; not a KeiLispError
+└── KeiLispError           ← base class for parse/eval failures
+    ├── ParseError         ← parser cannot turn source into an AST
+    └── EvalError          ← type mismatch, unbound symbol, arity error, etc.
+```
+
+### `KeiLispError`
+
+Base class for all parse/eval failures. Catch this to handle any Lisp-level
+error without intercepting unrelated runtime errors or `ExitError`.
 
 ```ts
-import { LispInterpreter, ExitError } from 'kei-lisp';
+import { LispInterpreter, KeiLispError, ExitError } from 'kei-lisp';
 
+const interpreter = new LispInterpreter();
 try {
-  new LispInterpreter().evalString(userCode);
+  interpreter.evalString(userCode);
 } catch (error) {
   if (error instanceof ExitError) {
-    // Lisp program requested exit — clean up gracefully
+    // Lisp called (exit) — graceful shutdown
+    return;
+  }
+  if (error instanceof KeiLispError) {
+    // Parse or eval failure — display to user, keep going
+    console.error(`${error.name}: ${error.message}`);
     return;
   }
   throw error;
 }
 ```
 
-### Properties
+### `ParseError`
+
+Subclass of `KeiLispError`. Thrown by `interpreter.parse(source)` (and
+the eval/evalString/evalAll methods that internally parse) when the
+source cannot be tokenized or has unbalanced parentheses.
+
+### `EvalError`
+
+Subclass of `KeiLispError`. Thrown by `interpreter.eval` /
+`evalString` / `evalAll` when evaluation fails (unbound symbol, type
+mismatch on a builtin, arity error, etc.).
+
+> **Note**: this `EvalError` is exposed under the same name as JavaScript's
+> rarely-used built-in `EvalError`. When importing from `kei-lisp`, the
+> imported name shadows the global within that module.
+
+### `ExitError`
+
+Subclass of `Error` (not `KeiLispError`) thrown when Lisp code calls
+`(exit)`. The hierarchy is deliberately separate so that
+`catch (e) { if (e instanceof KeiLispError) ... }` does not silently
+swallow exit requests.
 
 | Property  | Value                |
 | --------- | -------------------- |

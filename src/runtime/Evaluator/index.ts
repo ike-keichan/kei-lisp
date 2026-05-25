@@ -3,7 +3,8 @@ import vm from 'node:vm';
 
 import { Applier } from '../Applier/index.js';
 import { Cons } from '../../value/Cons/index.js';
-import { ExitError } from '../ExitError/index.js';
+import { EvalError } from '../../errors/EvalError/index.js';
+import { ExitError } from '../../errors/ExitError/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import {
   argumentNotSymbol,
@@ -72,8 +73,7 @@ export class Evaluator {
 
   bind(aCons: Cons): LispValue {
     if (Cons.isNotSymbol(aCons.car)) {
-      console.error(cannotApply('bind', aCons.car));
-      return Cons.nil;
+      throw new EvalError(cannotApply('bind', aCons.car));
     }
     const aSymbol = aCons.car as InterpretedSymbol;
     if (!this.environment.has(aSymbol)) {
@@ -107,12 +107,10 @@ export class Evaluator {
   binding(parameters: Cons, aTable: Table): null {
     for (const each of parameters.loop()) {
       const theCons = each as Cons;
-      let key: InterpretedSymbol | null = null;
-      if (Cons.isSymbol(theCons.car)) {
-        key = theCons.car;
-      } else {
-        console.error(notSymbol(theCons.car));
+      if (Cons.isNotSymbol(theCons.car)) {
+        throw new EvalError(notSymbol(theCons.car));
       }
+      const key = theCons.car as InterpretedSymbol;
       const value = Evaluator.eval(theCons.nth(2), aTable, this.streamManager, this.depth);
       aTable.set(key, value);
     }
@@ -124,12 +122,10 @@ export class Evaluator {
     const theTable = new Map<unknown, LispValue>();
     for (const each of parameters.loop()) {
       const theCons = each as Cons;
-      let key: InterpretedSymbol | null = null;
-      if (Cons.isSymbol(theCons.car)) {
-        key = theCons.car;
-      } else {
-        console.error(notSymbol(theCons.car));
+      if (Cons.isNotSymbol(theCons.car)) {
+        throw new EvalError(notSymbol(theCons.car));
       }
+      const key = theCons.car as InterpretedSymbol;
       const value = Evaluator.eval(theCons.nth(2), aTable, this.streamManager, this.depth);
       theTable.set(key, value);
     }
@@ -193,7 +189,7 @@ export class Evaluator {
       for (const each of parameters.loop()) {
         const theCons = each as Cons;
         if (Cons.isNotSymbol(theCons.car)) {
-          console.error(notSymbol(theCons.car));
+          throw new EvalError(notSymbol(theCons.car));
         }
         const key = theCons.car as InterpretedSymbol;
         if (Cons.isNotNil(theCons.nth(3))) {
@@ -248,7 +244,7 @@ export class Evaluator {
       for (const each of parameters.loop()) {
         const theCons = each as Cons;
         if (Cons.isNotSymbol(theCons.car)) {
-          console.error(notSymbol(theCons.car));
+          throw new EvalError(notSymbol(theCons.car));
         }
         const key = theCons.car as InterpretedSymbol;
         if (Cons.isNotNil(theCons.nth(3))) {
@@ -327,27 +323,25 @@ export class Evaluator {
   }
 
   evaluateSymbol(aSymbol: InterpretedSymbol): LispValue {
-    let answer: LispValue = Cons.nil;
-    if (this.environment.has(aSymbol)) {
-      if (this.isSpy(aSymbol)) {
-        this.spyPrint(this.streamManager.spyStream(aSymbol), aSymbol.toString());
-        this.setDepth(this.depth + 1);
-      }
+    if (!this.environment.has(aSymbol)) {
+      throw new EvalError(noBinding(aSymbol));
+    }
+    if (this.isSpy(aSymbol)) {
+      this.spyPrint(this.streamManager.spyStream(aSymbol), aSymbol.toString());
+      this.setDepth(this.depth + 1);
+    }
 
-      answer = this.environment.get(aSymbol);
-      if (answer instanceof Cons && answer.cdr instanceof Table) {
-        answer = answer.car;
-      }
+    let answer: LispValue = this.environment.get(aSymbol);
+    if (answer instanceof Cons && answer.cdr instanceof Table) {
+      answer = answer.car;
+    }
 
-      if (this.isSpy(aSymbol)) {
-        this.setDepth(this.depth - 1);
-        this.spyPrint(
-          this.streamManager.spyStream(aSymbol),
-          String(answer) + ' <== ' + String(aSymbol),
-        );
-      }
-    } else {
-      console.error(noBinding(aSymbol));
+    if (this.isSpy(aSymbol)) {
+      this.setDepth(this.depth - 1);
+      this.spyPrint(
+        this.streamManager.spyStream(aSymbol),
+        String(answer) + ' <== ' + String(aSymbol),
+      );
     }
 
     return answer;
@@ -446,7 +440,7 @@ export class Evaluator {
 
   pop_(aCons: Cons): LispValue {
     if (Cons.isNotSymbol(aCons.car)) {
-      console.error(argumentNotSymbol(1));
+      throw new EvalError(argumentNotSymbol(1));
     }
     const aSymbol = aCons.car as InterpretedSymbol;
     const anObject = Evaluator.eval(aSymbol, this.environment, this.streamManager, this.depth);
@@ -485,7 +479,7 @@ export class Evaluator {
   push_(aCons: Cons): LispValue {
     let anObject = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
     if (Cons.isNotSymbol(aCons.nth(2))) {
-      console.error(argumentNotSymbol(2));
+      throw new EvalError(argumentNotSymbol(2));
     }
     const aSymbol = aCons.nth(2) as InterpretedSymbol;
     anObject = new Cons(
@@ -504,8 +498,7 @@ export class Evaluator {
   rplaca(args: Cons): LispValue {
     let anObject = Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
     if (Cons.isNotCons(anObject)) {
-      console.error(cannotApply('set-car!', anObject));
-      return Cons.nil;
+      throw new EvalError(cannotApply('set-car!', anObject));
     }
     const aCons = anObject as Cons;
     anObject = Evaluator.eval(args.nth(2), this.environment, this.streamManager, this.depth);
@@ -517,8 +510,7 @@ export class Evaluator {
   rplacd(args: Cons): LispValue {
     let anObject = Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
     if (Cons.isNotCons(anObject)) {
-      console.error(cannotApply('set-cdr!', anObject));
-      return Cons.nil;
+      throw new EvalError(cannotApply('set-cdr!', anObject));
     }
     const aCons = anObject as Cons;
     anObject = Evaluator.eval(args.nth(2), this.environment, this.streamManager, this.depth);
@@ -533,16 +525,13 @@ export class Evaluator {
     const index = -1;
 
     while (anIterator.hasNext()) {
-      let key: InterpretedSymbol | null = null;
-
-      if (Cons.isSymbol(args.nth(index + 2))) {
-        key = anIterator.next() as InterpretedSymbol;
-      } else {
-        console.error(notSymbol(args.car));
+      if (!Cons.isSymbol(args.nth(index + 2))) {
+        throw new EvalError(notSymbol(args.car));
       }
+      const key = anIterator.next() as InterpretedSymbol;
 
       if (!anIterator.hasNext()) {
-        console.error(SIZES_DO_NOT_MATCH);
+        throw new EvalError(SIZES_DO_NOT_MATCH);
       }
       anObject = Evaluator.eval(
         anIterator.next(),
@@ -562,20 +551,16 @@ export class Evaluator {
     const index = -1;
 
     while (anIterator.hasNext()) {
-      let key: InterpretedSymbol | null = null;
-
-      if (Cons.isSymbol(args.nth(index + 2))) {
-        key = anIterator.next() as InterpretedSymbol;
-      } else {
-        console.error(notSymbol(args.car));
+      if (!Cons.isSymbol(args.nth(index + 2))) {
+        throw new EvalError(notSymbol(args.car));
       }
+      const key = anIterator.next() as InterpretedSymbol;
       anObject = Evaluator.eval(
         anIterator.next(),
         this.environment,
         this.streamManager,
         this.depth,
       );
-      // Following the original: setIfExist is still called when key is null (Map allows a null key).
       this.environment.setIfExist(key, anObject);
     }
 
