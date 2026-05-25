@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { Cons } from '../../value/Cons/index.js';
-import { ExitError } from '../../runtime/ExitError/index.js';
+import { EvalError } from '../../errors/EvalError/index.js';
+import { ExitError } from '../../errors/ExitError/index.js';
+import { KeiLispError } from '../../errors/KeiLispError/index.js';
+import { ParseError } from '../../errors/ParseError/index.js';
 import { LispInterpreter } from './index.js';
 
 const evalStr = (src: string): string => {
@@ -92,8 +95,8 @@ describe('LispInterpreter', () => {
       expect(Cons.isCons(new LispInterpreter().parse('(+ 1 2)'))).toBe(true);
     });
 
-    it('returns nil on parse failure', () => {
-      expect(new LispInterpreter().parse('((')).toBe(Cons.nil);
+    it('throws ParseError on parse failure', () => {
+      expect(() => new LispInterpreter().parse('((')).toThrow(ParseError);
     });
   });
 
@@ -143,6 +146,25 @@ describe('LispInterpreter', () => {
       const interpreter = new LispInterpreter();
       const ast = interpreter.parse('(exit)') as Cons;
       expect(() => interpreter.eval(ast.car)).toThrow(ExitError);
+    });
+  });
+
+  describe('error throw API', () => {
+    it('throws EvalError on unbound symbol lookup', () => {
+      expect(() => new LispInterpreter().evalString('undefined-symbol')).toThrow(EvalError);
+    });
+
+    it('throws EvalError (subclass of KeiLispError) so library users can catch the family', () => {
+      expect(() => new LispInterpreter().evalString('undefined-symbol')).toThrow(KeiLispError);
+    });
+
+    it('throws ParseError on malformed input', () => {
+      expect(() => new LispInterpreter().evalString('(')).toThrow(ParseError);
+    });
+
+    it('ExitError is NOT a KeiLispError so catch-all on KeiLispError lets (exit) propagate', () => {
+      expect(() => new LispInterpreter().evalString('(exit)')).not.toThrow(KeiLispError);
+      expect(() => new LispInterpreter().evalString('(exit)')).toThrow(ExitError);
     });
   });
 });

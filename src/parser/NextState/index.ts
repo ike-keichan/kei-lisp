@@ -1,3 +1,4 @@
+import { ParseError } from '../../errors/ParseError/index.js';
 import type { Parser } from '../Parser/index.js';
 
 /**
@@ -33,7 +34,7 @@ export class NextState {
       try {
         this.method = (this.automaton as unknown as Record<string, unknown>)[this.methodName];
       } catch {
-        throw new Error('Not Found Method: ' + this.methodName);
+        throw new ParseError('Not Found Method: ' + this.methodName);
       }
     }
 
@@ -48,8 +49,11 @@ export class NextState {
       if (anObject != null) {
         aNumber = Number(anObject);
       }
-    } catch {
-      throw new Error('Not Invoke Method: ' + this.methodName);
+    } catch (error) {
+      // Preserve Lisp-domain parse errors; wrap anything else (e.g. TypeError from
+      // a malformed grammar table) as a ParseError so library users see the same family.
+      if (error instanceof ParseError) throw error;
+      throw new ParseError(`Not Invoke Method: ${this.methodName}`);
     }
 
     return aNumber;

@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Split `LispInterpreter` into a programmatic interpreter and a separate
+  `Repl` class. `Repl` wraps `LispInterpreter` and owns the readline I/O.
+- New error types under `src/errors/`:
+  - `KeiLispError` — base class for parse / eval failures
+  - `ParseError` — thrown by the parser on malformed input
+  - `EvalError` — thrown by the evaluator / applier on Lisp-level failures
+- Regrouped `src/` directories: `src/interpreter/` (LispInterpreter, Repl)
+  and `src/errors/` (KeiLispError family + relocated ExitError).
+- `.github/PULL_REQUEST_TEMPLATE.md` for consistent PR descriptions.
+- `CONTRIBUTING.md` documents the release-line branch workflow and branch
+  creation responsibilities (maintainer-only for version branches).
+
+### Changed (Breaking)
+
+- **Removed `LispInterpreter.run()`** — REPL is now started via
+  `new Repl().run()` (import `Repl` from `kei-lisp`).
+- **`LispInterpreter.parse` / `eval` / `evalString` / `evalAll` now throw
+  on failure** instead of returning `Cons.nil` and writing to stderr.
+  Library users should catch `KeiLispError` (or its subclasses
+  `ParseError` / `EvalError`); `ExitError` remains a sibling so a
+  catch-all `KeiLispError` handler does not swallow `(exit)` requests.
+- `Repl.run` catches `KeiLispError` and prints `*** <Name>: <message> ***`
+  to preserve the previous interactive behavior; any non-Lisp error
+  propagates.
+- `ExitError` moved from `src/runtime/ExitError/` to `src/errors/ExitError/`.
+  The package-level import (`import { ExitError } from 'kei-lisp'`) is
+  unaffected.
+
 ## [2.0.0] - 2026-05-22
 
 ### Changed
