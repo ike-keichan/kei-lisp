@@ -36,5 +36,8 @@ unicorn
 # npm パッケージ
 readline
 
+# 外部サービス
+npmjs
+
 # GitHub Actions
 softprops

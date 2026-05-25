@@ -12,7 +12,7 @@ concurrency:
 
 permissions:
   contents: write # for tag push + GitHub Release creation
-  id-token: write # for npm provenance via OIDC
+  id-token: write # for npm Trusted Publishing (OIDC auth) + provenance attestation
 
 jobs:
   check:
@@ -55,7 +55,8 @@ jobs:
         with:
           node-version-file: .node-version
           cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
+          # No registry-url here: Trusted Publishing authenticates via OIDC,
+          # so we deliberately avoid generating an .npmrc with an empty NODE_AUTH_TOKEN.
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -71,8 +72,6 @@ jobs:
 
       - name: Publish to npm
         run: pnpm publish --provenance --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create and push tag
         run: |
