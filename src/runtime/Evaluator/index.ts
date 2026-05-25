@@ -352,9 +352,21 @@ export class Evaluator {
     throw new ExitError();
   }
 
-  gc(): InterpretedSymbol {
+  gc(): Cons {
     triggerGc();
-    return InterpretedSymbol.of('t');
+    const usage = process.memoryUsage();
+    // Returns an association list so callers can do (assoc 'heap-used (gc)).
+    const pair = (key: string, value: number): Cons => new Cons(InterpretedSymbol.of(key), value);
+    const entries: Cons[] = [
+      pair('rss', usage.rss),
+      pair('heap-total', usage.heapTotal),
+      pair('heap-used', usage.heapUsed),
+    ];
+    let result: Cons = Cons.nil;
+    for (const entry of entries) {
+      result = new Cons(entry, result);
+    }
+    return result;
   }
 
   if_(aCons: Cons): LispValue {

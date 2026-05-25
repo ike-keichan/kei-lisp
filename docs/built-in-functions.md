@@ -523,12 +523,20 @@ returned `nil`).
 ### gc
 
 **(gc)**
-Functions to operate the garbage collection.<br>
-This function is KeiLisp only. This is no support with KeiLisp-onWeb.
+Triggers a garbage collection and returns an association list of
+post-GC memory statistics in bytes.
+
+| Key          | Value (bytes)                                        |
+| ------------ | ---------------------------------------------------- |
+| `heap-used`  | V8 heap actually used by live objects                |
+| `heap-total` | Total size of the V8 heap                            |
+| `rss`        | Resident Set Size (total memory held by the process) |
 
 ```
 >> (gc)
-t
+((heap-used . 12345678) (heap-total . 23456789) (rss . 45678901))
+>> (cdr (assoc 'heap-used (gc)))
+12345678
 ```
 
 ### gensym

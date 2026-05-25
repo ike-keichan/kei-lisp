@@ -20,6 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/PULL_REQUEST_TEMPLATE.md` for consistent PR descriptions.
 - `CONTRIBUTING.md` documents the release-line branch workflow and branch
   creation responsibilities (maintainer-only for version branches).
+- Documented the `Cons.isNot*` negation predicates (`isNotCons` /
+  `isNotList` / `isNotNil` / `isNotSymbol`) in `docs/api.md`.
+
+### Changed
+
+- **`(gc)` now returns an association list of post-GC memory statistics**
+  in bytes: `((heap-used . N) (heap-total . N) (rss . N))`. Use `assoc`
+  to extract a specific entry: `(cdr (assoc 'heap-used (gc)))`. Previously
+  returned `t`.
+- **`LispInterpreter.parse` return type narrowed from `LispValue` to
+  `Cons`**. Library users no longer need an `as Cons` cast (the result is
+  always a `Cons`, possibly `Cons.nil`, because the source is wrapped in
+  an outer list before parsing).
 
 ### Changed (Breaking)
 
