@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { Cons } from '../value/Cons/index.js';
-import { ExitError } from '../runtime/ExitError/index.js';
+import { Cons } from '../../value/Cons/index.js';
+import { ExitError } from '../../runtime/ExitError/index.js';
 import { LispInterpreter } from './index.js';
-
-// The LispInterpreter constructor creates a readline interface, so unit tests that instantiate
-// many interpreters trigger MaxListenersExceededWarning. Bumping the limit suppresses it.
-// This workaround becomes unnecessary once Round 13 separates REPL and interpreter concerns.
-process.stdin.setMaxListeners(500);
 
 const evalStr = (src: string): string => {
   const interpreter = new LispInterpreter();

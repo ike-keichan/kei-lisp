@@ -8,7 +8,7 @@ For Lisp **language** documentation, see [atoms](./atoms.md),
 ## Exports
 
 ```ts
-import { LispInterpreter, Cons, InterpretedSymbol, ExitError } from 'kei-lisp';
+import { LispInterpreter, Repl, Cons, InterpretedSymbol, ExitError } from 'kei-lisp';
 import type { LispValue } from 'kei-lisp';
 ```
 
@@ -23,15 +23,6 @@ Construct a new interpreter with an empty top-level environment
 
 ```ts
 const interpreter = new LispInterpreter();
-```
-
-### `interpreter.run(): null`
-
-Start an interactive REPL on `process.stdin` / `process.stdout`. Blocks
-until end-of-input or `(exit)` is called.
-
-```ts
-new LispInterpreter().run();
 ```
 
 ### `interpreter.evalString(source: string): LispValue`
@@ -72,6 +63,27 @@ expression). Returns `Cons.nil` on parse failure.
 ```ts
 const ast = interpreter.parse('(+ 1 2) (- 3 4)');
 ```
+
+## `Repl`
+
+Interactive REPL wrapper around `LispInterpreter`. Reads from
+`process.stdin`, writes to `process.stdout`.
+
+### `new Repl(interpreter?: LispInterpreter)`
+
+Construct a REPL. If `interpreter` is omitted, a new
+`LispInterpreter` is created internally.
+
+```ts
+new Repl().run();
+// or with a customized interpreter
+const interpreter = new LispInterpreter();
+new Repl(interpreter).run();
+```
+
+### `repl.run(): void`
+
+Start the REPL loop. Blocks until end-of-input or `(exit)` is called.
 
 ## `Cons`
 
