@@ -123,24 +123,24 @@ describe('LispInterpreter', () => {
   });
 
   describe('regressions', () => {
-    it('Round 4-J-3: setq inside nested let does not affect the outer binding', () => {
+    it('setq inside nested let does not affect the outer binding', () => {
       expect(evalStr('(let ((x 1)) (let ((x 2)) (setq x 100)) x)')).toBe('1');
     });
 
-    it('Round 6: does not crash on (format "~5a" ...)', () => {
+    it('does not crash on (format "~5a" ...)', () => {
       expect(() => evalStr('(format "~5a" "hi")')).not.toThrow();
     });
 
-    it('Round 4-A: displays a list of strings without quoting the elements', () => {
+    it('displays a list of strings without quoting the elements', () => {
       expect(evalStr('(list "a" "b" "c")')).toBe('(a b c)');
     });
 
-    it('Round 4-C: preserves a string containing emoji', () => {
+    it('preserves a string containing emoji', () => {
       const result = new LispInterpreter().evalString('"Hello 😀"');
       expect(result).toBe('Hello 😀');
     });
 
-    it('Round 4-C: preserves a Japanese string', () => {
+    it('preserves a Japanese string', () => {
       const result = new LispInterpreter().evalString('"こんにちは"');
       expect(result).toBe('こんにちは');
     });

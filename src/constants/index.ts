@@ -27,5 +27,5 @@ export const argumentNotSymbol = (position: number): string =>
 /** Multi-list arity mismatch. */
 export const SIZES_DO_NOT_MATCH = 'sizes do not match.';
 
-/** Preserved grammatical quirk from the original Java implementation. */
+/** Intentional ungrammatical wording: kept as-is for backward compatibility of error messages. */
 export const SIZE_DO_NOT_MATCH = 'size do not match.';

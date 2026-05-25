@@ -18,8 +18,7 @@ export class Table extends Map<unknown, LispValue> {
   constructor(aTable: Table | null = null) {
     super();
     this.source = aTable;
-    // Following the original: keep the ternary as-is.
-    this.root = aTable == null ? true : false;
+    this.root = aTable == null;
   }
 
   /**
@@ -49,8 +48,7 @@ export class Table extends Map<unknown, LispValue> {
       return false;
     }
 
-    // Following the original: if source is null, this throws TypeError at runtime
-    // (in practice source is non-null whenever isRoot=false).
+    // source is guaranteed non-null when isRoot=false (the constructor sets root=true iff aTable is null).
     return (this.source as Table).has(aSymbol);
   }
 
@@ -58,7 +56,8 @@ export class Table extends Map<unknown, LispValue> {
    * Returns whether this instance equals the given object.
    */
   equals(anObject: unknown): boolean {
-    // Following the original: Map has no equals method, so this throws TypeError when called.
+    // Kept for interface uniformity with Cons.equals / InterpretedSymbol.equals.
+    // Delegates to Map.prototype.equals which does not exist in JS (throws TypeError).
     return (Map.prototype as unknown as { equals(o: unknown): boolean }).equals(anObject);
   }
 
@@ -73,7 +72,7 @@ export class Table extends Map<unknown, LispValue> {
       return null;
     }
 
-    // Following the original: throws TypeError at runtime if source is null.
+    // source is guaranteed non-null when isRoot=false.
     return (this.source as Table).get(aSymbol);
   }
 

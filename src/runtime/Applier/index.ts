@@ -474,11 +474,9 @@ export class Applier {
     return buffer;
   }
 
-  // NOTE: Common Lisp's floatp is a type-tag predicate (integer vs float), but JS has only one
-  //       numeric type (double). The original chose to interpret floatp as a range check
-  //       "is this number representable in IEEE 32-bit (single-precision) float?" rather than a
-  //       type-tag check. Following the original semantics. Revisit if numeric types are split
-  //       in a future revision.
+  // Common Lisp's floatp is a type-tag predicate (integer vs float), but JS has only one
+  // numeric type (double). Approximated here as a range check: "is this number representable
+  // in IEEE 32-bit (single-precision) float?". Revisit if numeric types are split.
   float_(args: Cons): LispValue {
     if (Cons.isNumber(args.car) && -3.4e38 <= args.car && args.car <= 3.4e38) {
       return InterpretedSymbol.of('t');
@@ -964,11 +962,6 @@ export class Applier {
     throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
   }
 
-  // NOTE: Lisp's trace/spy writes the call line to a designated output stream. The original
-  //       implementation logged the stream object itself rather than writing to it (a bug that
-  //       went unnoticed because trace/spy is rarely exercised). We now write the indented line
-  //       to the given WritableStream, falling back to stdout when the argument is a string
-  //       descriptor (stored by `(spy fn "label")`) or null.
   spyPrint(aStream: NodeJS.WritableStream | string | null, line: string): null {
     const target: NodeJS.WritableStream =
       aStream != null && typeof aStream === 'object' && 'write' in aStream

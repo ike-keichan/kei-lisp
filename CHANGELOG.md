@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Cons`**. Library users no longer need an `as Cons` cast (the result is
   always a `Cons`, possibly `Cons.nil`, because the source is wrapped in
   an outer list before parsing).
+- **Bundler migrated from `tsup` to `tsdown`** (Rolldown-based). `tsup`
+  is no longer actively maintained and its README directs new projects to
+  `tsdown`. Output layout (`dist/index.js` / `dist/index.cjs` /
+  `dist/index.d.ts` / `dist/index.d.cts` / `dist/cli.cjs`) is preserved
+  via `fixedExtension: false`, so the `package.json` `exports` field and
+  consumers are unaffected.
 
 ### Changed (Breaking)
 
