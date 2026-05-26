@@ -585,6 +585,41 @@ export class Applier {
     return Cons.nil;
   }
 
+  even_(args: Cons): LispValue {
+    if (Cons.isNumber(args.car) && Number.isInteger(args.car) && args.car % 2 === 0) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
+  odd_(args: Cons): LispValue {
+    if (Cons.isNumber(args.car) && Number.isInteger(args.car) && args.car % 2 !== 0) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
+  zero_(args: Cons): LispValue {
+    if (Cons.isNumber(args.car) && args.car === 0) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
+  plus_(args: Cons): LispValue {
+    if (Cons.isNumber(args.car) && args.car > 0) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
+  minus_(args: Cons): LispValue {
+    if (Cons.isNumber(args.car) && args.car < 0) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
   isSpy(aSymbol: InterpretedSymbol): boolean {
     return this.streamManager.isSpy(aSymbol);
   }
@@ -907,6 +942,7 @@ export class Applier {
         ['doublep', 'number_'],
         ['eq', 'eq_'],
         ['equal', 'equal_'],
+        ['evenp', 'even_'],
         ['exp', 'exp'],
         ['format', 'format'],
         ['gensym', 'gensym'],
@@ -917,6 +953,7 @@ export class Applier {
         ['mapcar', 'mapcar'],
         ['member', 'member'],
         ['memq', 'memq'],
+        ['minusp', 'minus_'],
         ['mod', 'mod'],
         ['multiply', 'multiply'],
         ['napier', 'napier'],
@@ -925,7 +962,9 @@ export class Applier {
         ['nth', 'nth'],
         ['null', 'null_'],
         ['numberp', 'number_'],
+        ['oddp', 'odd_'],
         ['pi', 'pi'],
+        ['plusp', 'plus_'],
         ['random', 'random'],
         ['round', 'round'],
         ['sin', 'sin'],
@@ -934,6 +973,7 @@ export class Applier {
         ['stringp', 'string_'],
         ['symbolp', 'symbol_'],
         ['tan', 'tan'],
+        ['zerop', 'zero_'],
         ['+', 'add'],
         ['-', 'subtract'],
         ['*', 'multiply'],

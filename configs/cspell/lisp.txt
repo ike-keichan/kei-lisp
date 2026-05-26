@@ -5,10 +5,6 @@
 cons
 cdr
 car
-caar
-cadr
-cdar
-cddr
 nconc
 rplaca
 rplacd
@@ -37,6 +33,11 @@ symbolp
 numberp
 consp
 stringp
+evenp
+oddp
+zerop
+plusp
+minusp
 
 # 出力・制御
 terpri
@@ -49,4 +50,3 @@ nequal
 
 # データ構造
 alist
-plist

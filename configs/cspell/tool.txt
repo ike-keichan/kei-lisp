@@ -10,21 +10,12 @@ prepublish
 tsdown
 rolldown
 shims
-treeshake
 sourcemap
 
 # テスト
 vitest
-mypy
-
-# カンファレンス
-Kaigi
-
-# 言語実装ドメイン用語
-bignum
 
 # ドキュメント・Lint
-jsdoc
 classdesc
 typedoc
 tsconfig

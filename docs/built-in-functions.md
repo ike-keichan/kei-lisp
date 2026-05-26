@@ -7,7 +7,7 @@ Entries are organized into the following categories:
 - [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `sqrt`, `sin`, `cos`, `tan`, `round`, `random`, `pi`, `napier`
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
-- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`
+- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
 - [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `rplaca`, `rplacd`, `push`, `pop`, `copy`
 - [Variables and bindings](#variables-and-bindings) — `setq`, `set-allq`, `bind`, `gensym`
 - [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`
@@ -429,6 +429,25 @@ nil
 t
 ```
 
+### evenp
+
+**(evenp X)**
+Predicate that returns t if X is an even integer, nil otherwise. Non-integer
+numbers and non-numbers return nil.
+
+```
+>> (evenp 4)
+t
+>> (evenp 0)
+t
+>> (evenp -6)
+t
+>> (evenp 3)
+nil
+>> (evenp 2.5)
+nil
+```
+
 ### exit
 
 **(exit)**
@@ -745,6 +764,23 @@ nil
 nil
 ```
 
+### minusp
+
+**(minusp X)**
+Predicate that returns t if X is a number strictly less than zero, nil
+otherwise. Non-numbers return nil.
+
+```
+>> (minusp -3)
+t
+>> (minusp -0.1)
+t
+>> (minusp 0)
+nil
+>> (minusp 2)
+nil
+```
+
 ### mod
 
 **(mod X1 X2 ... Xn)**
@@ -944,6 +980,25 @@ t
 nil
 ```
 
+### oddp
+
+**(oddp X)**
+Predicate that returns t if X is an odd integer, nil otherwise. Non-integer
+numbers and non-numbers return nil.
+
+```
+>> (oddp 5)
+t
+>> (oddp -7)
+t
+>> (oddp 0)
+nil
+>> (oddp 4)
+nil
+>> (oddp 3.5)
+nil
+```
+
 ### pi
 
 **(pi)**
@@ -952,6 +1007,23 @@ Function to answer Pi.
 ```
 >> (pi)
 3.141592653589793
+```
+
+### plusp
+
+**(plusp X)**
+Predicate that returns t if X is a number strictly greater than zero, nil
+otherwise. Non-numbers return nil.
+
+```
+>> (plusp 3)
+t
+>> (plusp 0.1)
+t
+>> (plusp 0)
+nil
+>> (plusp -2)
+nil
 ```
 
 ### pop
@@ -1318,6 +1390,23 @@ nil
 >> (when (= 1 1) (+ 3 4))
 7
 >> (when (= 1 2) (+ 3 4))
+nil
+```
+
+### zerop
+
+**(zerop X)**
+Predicate that returns t if X is the number zero (either integer or
+floating-point), nil otherwise. Non-numbers return nil.
+
+```
+>> (zerop 0)
+t
+>> (zerop 0.0)
+t
+>> (zerop 1)
+nil
+>> (zerop -1)
 nil
 ```
 

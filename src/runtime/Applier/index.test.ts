@@ -427,6 +427,124 @@ describe('Applier', () => {
     });
   });
 
+  describe('evenp', () => {
+    it('returns t for an even integer', () => {
+      expect(evalStr('(evenp 4)')).toBe('t');
+    });
+
+    it('returns t for zero', () => {
+      expect(evalStr('(evenp 0)')).toBe('t');
+    });
+
+    it('returns t for a negative even integer', () => {
+      expect(evalStr('(evenp -6)')).toBe('t');
+    });
+
+    it('returns nil for an odd integer', () => {
+      expect(evalStr('(evenp 3)')).toBe('nil');
+    });
+
+    it('returns nil for a non-integer number', () => {
+      expect(evalStr('(evenp 2.5)')).toBe('nil');
+    });
+
+    it('returns nil for a non-number', () => {
+      expect(evalStr('(evenp "foo")')).toBe('nil');
+    });
+  });
+
+  describe('oddp', () => {
+    it('returns t for an odd integer', () => {
+      expect(evalStr('(oddp 5)')).toBe('t');
+    });
+
+    it('returns t for a negative odd integer', () => {
+      expect(evalStr('(oddp -7)')).toBe('t');
+    });
+
+    it('returns nil for zero', () => {
+      expect(evalStr('(oddp 0)')).toBe('nil');
+    });
+
+    it('returns nil for an even integer', () => {
+      expect(evalStr('(oddp 4)')).toBe('nil');
+    });
+
+    it('returns nil for a non-integer number', () => {
+      expect(evalStr('(oddp 3.5)')).toBe('nil');
+    });
+
+    it('returns nil for a non-number', () => {
+      expect(evalStr('(oddp "bar")')).toBe('nil');
+    });
+  });
+
+  describe('zerop', () => {
+    it('returns t for zero', () => {
+      expect(evalStr('(zerop 0)')).toBe('t');
+    });
+
+    it('returns t for floating-point zero', () => {
+      expect(evalStr('(zerop 0.0)')).toBe('t');
+    });
+
+    it('returns nil for a positive number', () => {
+      expect(evalStr('(zerop 1)')).toBe('nil');
+    });
+
+    it('returns nil for a negative number', () => {
+      expect(evalStr('(zerop -1)')).toBe('nil');
+    });
+
+    it('returns nil for a non-number', () => {
+      expect(evalStr('(zerop "0")')).toBe('nil');
+    });
+  });
+
+  describe('plusp', () => {
+    it('returns t for a positive integer', () => {
+      expect(evalStr('(plusp 3)')).toBe('t');
+    });
+
+    it('returns t for a positive float', () => {
+      expect(evalStr('(plusp 0.1)')).toBe('t');
+    });
+
+    it('returns nil for zero', () => {
+      expect(evalStr('(plusp 0)')).toBe('nil');
+    });
+
+    it('returns nil for a negative number', () => {
+      expect(evalStr('(plusp -2)')).toBe('nil');
+    });
+
+    it('returns nil for a non-number', () => {
+      expect(evalStr('(plusp "1")')).toBe('nil');
+    });
+  });
+
+  describe('minusp', () => {
+    it('returns t for a negative integer', () => {
+      expect(evalStr('(minusp -3)')).toBe('t');
+    });
+
+    it('returns t for a negative float', () => {
+      expect(evalStr('(minusp -0.1)')).toBe('t');
+    });
+
+    it('returns nil for zero', () => {
+      expect(evalStr('(minusp 0)')).toBe('nil');
+    });
+
+    it('returns nil for a positive number', () => {
+      expect(evalStr('(minusp 2)')).toBe('nil');
+    });
+
+    it('returns nil for a non-number', () => {
+      expect(evalStr('(minusp "-1")')).toBe('nil');
+    });
+  });
+
   describe('neq', () => {
     it('returns the negation of eq', () => {
       expect(evalStr("(neq 'x 'y)")).toBe('t');
