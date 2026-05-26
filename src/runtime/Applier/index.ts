@@ -625,6 +625,20 @@ export class Applier {
     return Cons.nil;
   }
 
+  oneplus(args: Cons): LispValue {
+    if (Cons.isNumber(args.car)) {
+      return args.car + 1;
+    }
+    throw new EvalError(cannotApply('1+', args.car));
+  }
+
+  oneminus(args: Cons): LispValue {
+    if (Cons.isNumber(args.car)) {
+      return args.car - 1;
+    }
+    throw new EvalError(cannotApply('1-', args.car));
+  }
+
   expt(args: Cons): LispValue {
     const base = args.car;
     const exponent = args.nth(2);
@@ -1370,6 +1384,8 @@ export class Applier {
         ['tan', 'tan'],
         ['truncate', 'truncate'],
         ['zerop', 'zero_'],
+        ['1+', 'oneplus'],
+        ['1-', 'oneminus'],
         ['+', 'add'],
         ['-', 'subtract'],
         ['*', 'multiply'],

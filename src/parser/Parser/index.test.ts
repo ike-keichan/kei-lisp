@@ -107,6 +107,31 @@ describe('Parser', () => {
       expect(call.car).toBe(InterpretedSymbol.of('foo'));
       expect(call.nth(4)).toBe(3);
     });
+
+    it('tokenizes 1+ as the symbol 1+ (CL-style increment)', () => {
+      const result = Parser.parse('((1+ 5))');
+      const call = (result as Cons).car as Cons;
+      expect(call.car).toBe(InterpretedSymbol.of('1+'));
+      expect(call.nth(2)).toBe(5);
+    });
+
+    it('tokenizes 1- as the symbol 1- (CL-style decrement)', () => {
+      const result = Parser.parse('((1- 5))');
+      const call = (result as Cons).car as Cons;
+      expect(call.car).toBe(InterpretedSymbol.of('1-'));
+      expect(call.nth(2)).toBe(5);
+    });
+
+    it('tokenizes 1+2 as a single symbol (digit followed by + then symbol char)', () => {
+      const result = Parser.parse("('1+2)");
+      const quoted = (result as Cons).car as Cons;
+      expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of('1+2'));
+    });
+
+    it('still parses 1e+10 as a float (exponent sign in state 4)', () => {
+      const result = Parser.parse('(1e+10)');
+      expect((result as Cons).car).toBe(1e10);
+    });
   });
 
   describe('nextChar', () => {

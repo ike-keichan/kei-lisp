@@ -182,6 +182,8 @@ export class LispInterpreter {
       'unless',
       'when',
       'zerop',
+      '1+',
+      '1-',
       '+',
       '-',
       '*',
