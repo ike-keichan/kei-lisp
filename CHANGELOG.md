@@ -32,6 +32,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `doublep`, `bind`, `exit`, `gc`, `set-allq`. Added a legend explaining
   the convention at the top of the reference.
 
+### Added (string + sequence)
+
+- String functions: `string-upcase` / `string-downcase` / `string-trim` /
+  `substring` / `concatenate`. `string-trim` and `concatenate` deviate
+  slightly from CL semantics (trim takes no character bag; concatenate
+  takes no type designator); see `docs/built-in-functions.md` for
+  details.
+- Sequence functions that work on both lists and strings: `elt` /
+  `subseq` / `count`. `subseq` returns a list when given a list and a
+  string when given a string.
+- **`length` now also accepts strings** (returns code point count) in
+  addition to lists. Previously a list-only Lisp lambda; now an Applier
+  built-in.
+- `format` / `eval` are now also registered in the root environment, so
+  they can be referenced as values (`(setq f format)` no longer errors).
+  Previously only callable in operator position.
+
 ## [2.1.0] - 2026-05-26
 
 ### Added

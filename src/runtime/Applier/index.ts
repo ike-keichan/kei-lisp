@@ -14,6 +14,11 @@ import type { LispValue } from '../../types/index.js';
 
 const SELECT_PRINT_FUNCTION_NOT_DEFINED = 'selectPrintFunction is not defined';
 
+// Splits a string into an array of Unicode code points. Intentional choice over
+// .length / charAt, which would split surrogate pairs (emoji etc.) into halves.
+// eslint-disable-next-line @typescript-eslint/no-misused-spread
+const toCodePoints = (s: string): string[] => [...s];
+
 /**
  * Class that mimics Lisp's universal function Apply.
  * @class
@@ -678,6 +683,150 @@ export class Applier {
     return Math.max(...values);
   }
 
+  length(args: Cons): LispValue {
+    const target = args.car;
+    if (Cons.isString(target)) {
+      return toCodePoints(target).length;
+    }
+    if (Cons.isCons(target)) {
+      return target.length();
+    }
+    if (Cons.isNil(target)) {
+      return 0;
+    }
+    throw new EvalError(cannotApply('length', target));
+  }
+
+  stringUpcase(args: Cons): LispValue {
+    if (Cons.isString(args.car)) {
+      return args.car.toUpperCase();
+    }
+    throw new EvalError(cannotApply('string-upcase', args.car));
+  }
+
+  stringDowncase(args: Cons): LispValue {
+    if (Cons.isString(args.car)) {
+      return args.car.toLowerCase();
+    }
+    throw new EvalError(cannotApply('string-downcase', args.car));
+  }
+
+  stringTrim(args: Cons): LispValue {
+    if (Cons.isString(args.car)) {
+      return args.car.trim();
+    }
+    throw new EvalError(cannotApply('string-trim', args.car));
+  }
+
+  substring(args: Cons): LispValue {
+    const target = args.car;
+    const start = args.nth(2);
+    const end = args.nth(3);
+    if (!Cons.isString(target)) {
+      throw new EvalError(cannotApply('substring', target));
+    }
+    if (!Cons.isNumber(start)) {
+      throw new EvalError(cannotApply('substring', start));
+    }
+    const chars = toCodePoints(target);
+    if (Cons.isNil(end)) {
+      return chars.slice(start).join('');
+    }
+    if (!Cons.isNumber(end)) {
+      throw new EvalError(cannotApply('substring', end));
+    }
+    return chars.slice(start, end).join('');
+  }
+
+  concatenate(args: Cons): LispValue {
+    let result = '';
+    for (const each of args.loop()) {
+      if (!Cons.isString(each)) {
+        throw new EvalError(cannotApply('concatenate', each));
+      }
+      result += each;
+    }
+    return result;
+  }
+
+  elt(args: Cons): LispValue {
+    const target = args.car;
+    const index = args.nth(2);
+    if (!Cons.isNumber(index)) {
+      throw new EvalError(cannotApply('elt', index));
+    }
+    if (Cons.isString(target)) {
+      const chars = toCodePoints(target);
+      if (index < 0 || index >= chars.length) {
+        throw new EvalError(`elt: index ${String(index)} out of range`);
+      }
+      return chars[index];
+    }
+    if (Cons.isCons(target)) {
+      if (index < 0 || index >= target.length()) {
+        throw new EvalError(`elt: index ${String(index)} out of range`);
+      }
+      return target.nth(index + 1);
+    }
+    throw new EvalError(cannotApply('elt', target));
+  }
+
+  subseq(args: Cons): LispValue {
+    const target = args.car;
+    const start = args.nth(2);
+    const end = args.nth(3);
+    if (!Cons.isNumber(start)) {
+      throw new EvalError(cannotApply('subseq', start));
+    }
+    if (Cons.isString(target)) {
+      const chars = toCodePoints(target);
+      if (Cons.isNil(end)) {
+        return chars.slice(start).join('');
+      }
+      if (!Cons.isNumber(end)) {
+        throw new EvalError(cannotApply('subseq', end));
+      }
+      return chars.slice(start, end).join('');
+    }
+    if (Cons.isCons(target)) {
+      const stop = Cons.isNil(end) ? target.length() : (end as number);
+      if (!Cons.isNumber(stop)) {
+        throw new EvalError(cannotApply('subseq', end));
+      }
+      let result: Cons = Cons.nil;
+      for (let i = stop - 1; i >= start; i--) {
+        result = new Cons(target.nth(i + 1), result);
+      }
+      return result;
+    }
+    throw new EvalError(cannotApply('subseq', target));
+  }
+
+  count(args: Cons): LispValue {
+    const item = args.car;
+    const target = args.nth(2);
+    let n = 0;
+    if (Cons.isString(target)) {
+      if (!Cons.isString(item) || item.length !== 1) {
+        return 0;
+      }
+      for (const ch of target) {
+        if (ch === item) n++;
+      }
+      return n;
+    }
+    if (Cons.isCons(target) || Cons.isNil(target)) {
+      const list = Cons.isNil(target) ? Cons.nil : target;
+      if (Cons.isCons(list)) {
+        for (const each of list.loop()) {
+          if (each === item) n++;
+        }
+      }
+      return n;
+    }
+    throw new EvalError(cannotApply('count', target));
+  }
+
   isSpy(aSymbol: InterpretedSymbol): boolean {
     return this.streamManager.isSpy(aSymbol);
   }
@@ -1008,7 +1157,11 @@ export class Applier {
         ['format', 'format'],
         ['gensym', 'gensym'],
         ['integerp', 'integer_'],
+        ['concatenate', 'concatenate'],
+        ['count', 'count'],
+        ['elt', 'elt'],
         ['last', 'last'],
+        ['length', 'length'],
         ['list', 'list'],
         ['listp', 'list_'],
         ['mapcar', 'mapcar'],
@@ -1032,8 +1185,13 @@ export class Applier {
         ['round', 'round'],
         ['sin', 'sin'],
         ['sqrt', 'sqrt'],
-        ['subtract', 'subtract'],
+        ['string-downcase', 'stringDowncase'],
+        ['string-trim', 'stringTrim'],
+        ['string-upcase', 'stringUpcase'],
         ['stringp', 'string_'],
+        ['subseq', 'subseq'],
+        ['substring', 'substring'],
+        ['subtract', 'subtract'],
         ['symbolp', 'symbol_'],
         ['tan', 'tan'],
         ['truncate', 'truncate'],

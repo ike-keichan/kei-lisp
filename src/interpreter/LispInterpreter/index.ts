@@ -92,10 +92,12 @@ export class LispInterpreter {
       'characterp',
       'cond',
       'ceiling',
+      'concatenate',
       'cons',
       'consp',
       'copy',
       'cos',
+      'count',
       'floatp',
       'floor',
       'defun',
@@ -104,12 +106,15 @@ export class LispInterpreter {
       'do*',
       'dolist',
       'doublep',
+      'elt',
       'eq',
       'equal',
+      'eval',
       'evenp',
       'exit',
       'exp',
       'expt',
+      'format',
       'gc',
       'gensym',
       'if',
@@ -118,6 +123,7 @@ export class LispInterpreter {
       'let',
       'let*',
       'last',
+      'length',
       'list',
       'listp',
       'mapcar',
@@ -154,8 +160,13 @@ export class LispInterpreter {
       'set-allq',
       'sin',
       'sqrt',
-      'subtract',
+      'string-downcase',
+      'string-trim',
+      'string-upcase',
       'stringp',
+      'subseq',
+      'substring',
+      'subtract',
       'symbolp',
       'tan',
       'terpri',
@@ -198,11 +209,6 @@ export class LispInterpreter {
     aCons = Cons.parse(aString) as Cons;
     aCons.last().setCdr(new Cons(aTable, Cons.nil));
     aTable.set(InterpretedSymbol.of('butlast'), aCons);
-
-    aString = '(lambda (l) (cond ((null (listp l)) nil) ((null l) 0) (t (+ 1 (length (cdr l))))))';
-    aCons = Cons.parse(aString) as Cons;
-    aCons.last().setCdr(new Cons(aTable, Cons.nil));
-    aTable.set(InterpretedSymbol.of('length'), aCons);
 
     aString =
       '(lambda (n l) (cond ((> n (length l)) nil) ((= 0 n) l) (t (nthcdr (- n 1) (cdr l)))))';
