@@ -50,6 +50,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "doc": "typedoc",
+    "typecheck": "tsc --noEmit",
     "check": "run-s check:*",
     "check:format": "prettier \"./src/**/*.ts\" \"./examples/**/*.ts\" --check",
     "check:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" \"./.github/**/*.yml\" \"./configs/**/*.mjs\" --check",
