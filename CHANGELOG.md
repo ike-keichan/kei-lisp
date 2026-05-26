@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Common Lisp-compatible numeric predicates: `evenp` / `oddp` / `zerop`
+  / `plusp` / `minusp`. All return `t` / `nil`; non-numbers and (for
+  `evenp` / `oddp`) non-integers return `nil` rather than throwing,
+  matching the existing `integerp` / `numberp` style.
+
 ## [2.1.0] - 2026-05-26
 
 ### Added

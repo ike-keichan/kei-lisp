@@ -37,6 +37,11 @@ symbolp
 numberp
 consp
 stringp
+evenp
+oddp
+zerop
+plusp
+minusp
 
 # 出力・制御
 terpri
