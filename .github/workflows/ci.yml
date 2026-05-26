@@ -2,17 +2,17 @@ name: CI
 
 on:
   push:
-    branches: [master, 'feature/**']
+    branches: [main, 'v*', 'feature/**', 'hotfix/**']
   pull_request:
-    branches: [master]
+    branches: [main, 'v*']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Check
+  ci:
+    name: CI
     runs-on: ubuntu-latest
 
     steps:
@@ -30,11 +30,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
+      - name: Type check (tsc --noEmit)
+        run: npx tsc --noEmit
 
-      - name: Check
+      - name: Format / Lint / Spell (pnpm check)
         run: pnpm check
 
-      - name: Test
+      - name: Tests (vitest)
         run: pnpm test
+
+      - name: Build (tsdown)
+        run: pnpm build
