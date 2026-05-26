@@ -5,10 +5,6 @@
 cons
 cdr
 car
-caar
-cadr
-cdar
-cddr
 nconc
 rplaca
 rplacd
@@ -54,4 +50,3 @@ nequal
 
 # データ構造
 alist
-plist
