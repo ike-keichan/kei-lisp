@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, 'v*', 'feature/**', 'hotfix/**']
+    branches: [main]
   pull_request:
     branches: [main, 'v*']
 
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   typecheck:
-    name: Type check (tsc --noEmit)
+    name: Type check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -22,10 +22,10 @@ jobs:
           node-version-file: .node-version
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: npx tsc --noEmit
+      - run: pnpm typecheck
 
   lint:
-    name: Format / Lint / Spell (pnpm check)
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -38,7 +38,7 @@ jobs:
       - run: pnpm check
 
   tests:
-    name: Tests (vitest)
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -51,7 +51,7 @@ jobs:
       - run: pnpm test
 
   build:
-    name: Build (tsdown)
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

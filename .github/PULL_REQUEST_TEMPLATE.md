@@ -29,7 +29,7 @@ None
 
 <!-- How did you verify this change? Bullet list is fine. -->
 
-- [ ] `npx tsc --noEmit` passes
+- [ ] `pnpm typecheck` passes
 - [ ] `pnpm check` passes
 - [ ] `pnpm test` passes
 - [ ] `pnpm build` passes

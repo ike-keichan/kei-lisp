@@ -23,11 +23,11 @@ pnpm install
 ### Verify your setup
 
 ```sh
-npx tsc --noEmit  # Type check
-pnpm check        # Runs format, lint, and spell checks
-pnpm test         # Runs the test suite
-pnpm build        # Builds for distribution
-pnpm start        # Runs the built CLI (REPL)
+pnpm typecheck  # Type check (tsc --noEmit)
+pnpm check      # Runs format, lint, and spell checks
+pnpm test       # Runs the test suite
+pnpm build      # Builds for distribution
+pnpm start      # Runs the built CLI (REPL)
 ```
 
 ## Project layout
@@ -80,6 +80,7 @@ directories group multiple related classes.
 | `pnpm test`       | Run the test suite                         |
 | `pnpm test:watch` | Run tests in watch mode                    |
 | `pnpm doc`        | Generate API documentation with TypeDoc    |
+| `pnpm typecheck`  | Type check (`tsc --noEmit`)                |
 | `pnpm check`      | Run all checks (format / lint / spell)     |
 | `pnpm fix`        | Auto-fix format and lint issues            |
 
@@ -93,7 +94,7 @@ directories group multiple related classes.
 Before opening a pull request, please run:
 
 ```sh
-npx tsc --noEmit && pnpm check && pnpm test && pnpm build
+pnpm typecheck && pnpm check && pnpm test && pnpm build
 ```
 
 ## Testing
@@ -151,7 +152,7 @@ or open a draft PR and the maintainer will guide you.
 3. **Update tests** to cover new behavior or regressions.
 4. **Update documentation** (`README.md`, `CHANGELOG.md`, `docs/`) when
    public behavior changes.
-5. **Pass all checks** (`npx tsc --noEmit && pnpm check && pnpm test && pnpm build`).
+5. **Pass all checks** (`pnpm typecheck && pnpm check && pnpm test && pnpm build`).
 6. **Commit messages** should follow the existing style:
    `<type>: <description>` (e.g. `fix:`, `feat:`, `docs:`, `test:`,
    `refactor:`, `chore:`).
