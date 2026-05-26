@@ -105,7 +105,6 @@ export class LispInterpreter {
       'dolist',
       'doublep',
       'eq',
-      'eql',
       'equal',
       'evenp',
       'exit',

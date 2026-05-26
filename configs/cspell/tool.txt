@@ -32,3 +32,6 @@ npmjs
 
 # GitHub Actions
 softprops
+
+# Lisp 処理系
+SBCL

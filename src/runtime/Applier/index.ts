@@ -1002,7 +1002,6 @@ export class Applier {
         ['doublep', 'number_'],
         ['eq', 'eq_'],
         ['equal', 'equal_'],
-        ['eql', 'eq_'],
         ['evenp', 'even_'],
         ['exp', 'exp'],
         ['expt', 'expt'],

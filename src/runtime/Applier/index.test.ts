@@ -198,32 +198,6 @@ describe('Applier', () => {
     });
   });
 
-  describe('eql', () => {
-    it('returns t for two equal numbers', () => {
-      expect(evalStr('(eql 1 1)')).toBe('t');
-    });
-
-    it('returns t for equal floating-point numbers', () => {
-      expect(evalStr('(eql 1.5 1.5)')).toBe('t');
-    });
-
-    it('returns t for identical interned symbols', () => {
-      expect(evalStr("(eql 'foo 'foo)")).toBe('t');
-    });
-
-    it('returns t for equal primitive strings', () => {
-      expect(evalStr('(eql "abc" "abc")')).toBe('t');
-    });
-
-    it('returns nil for different numbers', () => {
-      expect(evalStr('(eql 1 2)')).toBe('nil');
-    });
-
-    it('returns nil for two distinct Cons (no structural equality)', () => {
-      expect(evalStr("(eql '(1 2) '(1 2))")).toBe('nil');
-    });
-  });
-
   describe('stringp', () => {
     it('returns t for strings', () => {
       expect(evalStr('(stringp "foo")')).toBe('t');

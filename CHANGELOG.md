@@ -13,10 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   / `plusp` / `minusp`. All return `t` / `nil`; non-numbers and (for
   `evenp` / `oddp`) non-integers return `nil` rather than throwing,
   matching the existing `integerp` / `numberp` style.
-- Common Lisp-compatible identity predicate `eql`. In kei-lisp this is
-  functionally equivalent to `eq` because JS has a single numeric type
-  (CL distinguishes integer vs float at `eql` level, which cannot be
-  reproduced here).
 - Common Lisp-compatible arithmetic functions:
   - `expt` — `(expt B E)` raises B to the exponent E
   - `truncate` / `floor` / `ceiling` — integer rounding (toward zero /
@@ -26,6 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Note: `1+` / `1-` are not yet supported. They require parser extension
   to tokenize `1+` / `1-` as symbols rather than as a number followed by
   an operator.
+
+### Documentation
+
+- Annotated kei-lisp-specific or non-CL-standard built-ins in
+  `docs/built-in-functions.md` with a **(kei-lisp specific)** note so
+  users can spot differences from Common Lisp at a glance. Covered
+  entries: `=`, `==`, `~=`, `~~`, `//`, `floatp` (range-check semantics),
+  `doublep`, `bind`, `exit`, `gc`, `set-allq`. Added a legend explaining
+  the convention at the top of the reference.
 
 ## [2.1.0] - 2026-05-26
 
