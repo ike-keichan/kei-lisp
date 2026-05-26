@@ -11,6 +11,7 @@ rplacd
 nthcdr
 butlast
 mapcar
+mapcan
 assoc
 memq
 

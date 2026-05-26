@@ -32,6 +32,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `doublep`, `bind`, `exit`, `gc`, `set-allq`. Added a legend explaining
   the convention at the top of the reference.
 
+### Added (callback-based list operations)
+
+- Higher-order list functions that take a function as the first argument:
+  - `reduce` — left-fold with optional initial value (`(reduce fn list)`
+    or `(reduce fn list init)`)
+  - `every` — t if predicate is non-nil for all elements (vacuous truth
+    for empty list)
+  - `some` — first non-nil result, or nil
+  - `find` — first element equal (`eq`) to item, or nil
+  - `mapcan` — map + concatenate the returned lists (non-cons / nil
+    results contribute nothing)
+  - `sort` — non-destructive sort using a 2-arg predicate
+
+  All accept the positional argument form only; CL's keyword arguments
+  (`:test` / `:key` / `:from-end` / `:initial-value` etc.) are not
+  supported. See `docs/built-in-functions.md` for per-function
+  deviations.
+
 ### Added (string + sequence)
 
 - String functions: `string-upcase` / `string-downcase` / `string-trim` /

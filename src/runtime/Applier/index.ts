@@ -827,6 +827,174 @@ export class Applier {
     throw new EvalError(cannotApply('count', target));
   }
 
+  reduce(args: Cons): LispValue {
+    const procedure = args.car;
+    const list = args.nth(2);
+    const hasInit = args.length() >= 3;
+    const init = args.nth(3);
+
+    if (Cons.isNil(list)) {
+      if (hasInit) return init;
+      // CL semantics: (reduce fn '()) calls fn with no args
+      return Applier.apply(procedure, Cons.nil, this.environment, this.streamManager, this.depth);
+    }
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('reduce', list));
+    }
+
+    const iter = list.loop();
+    let acc: LispValue;
+    if (hasInit) {
+      acc = init;
+    } else {
+      if (!iter.hasNext()) {
+        return Applier.apply(procedure, Cons.nil, this.environment, this.streamManager, this.depth);
+      }
+      acc = iter.next();
+    }
+    while (iter.hasNext()) {
+      const next = iter.next();
+      acc = Applier.apply(
+        procedure,
+        new Cons(acc, new Cons(next, Cons.nil)),
+        this.environment,
+        this.streamManager,
+        this.depth,
+      );
+    }
+    return acc;
+  }
+
+  every(args: Cons): LispValue {
+    const procedure = args.car;
+    const list = args.nth(2);
+
+    if (Cons.isNil(list)) {
+      return InterpretedSymbol.of('t');
+    }
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('every', list));
+    }
+    for (const each of list.loop()) {
+      const result = Applier.apply(
+        procedure,
+        new Cons(each, Cons.nil),
+        this.environment,
+        this.streamManager,
+        this.depth,
+      );
+      if (Cons.isNil(result)) {
+        return Cons.nil;
+      }
+    }
+    return InterpretedSymbol.of('t');
+  }
+
+  some(args: Cons): LispValue {
+    const procedure = args.car;
+    const list = args.nth(2);
+
+    if (Cons.isNil(list)) {
+      return Cons.nil;
+    }
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('some', list));
+    }
+    for (const each of list.loop()) {
+      const result = Applier.apply(
+        procedure,
+        new Cons(each, Cons.nil),
+        this.environment,
+        this.streamManager,
+        this.depth,
+      );
+      if (Cons.isNotNil(result)) {
+        return result;
+      }
+    }
+    return Cons.nil;
+  }
+
+  find(args: Cons): LispValue {
+    const item = args.car;
+    const list = args.nth(2);
+
+    if (Cons.isNil(list)) return Cons.nil;
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('find', list));
+    }
+    for (const each of list.loop()) {
+      // Use eq_ (identity) for matching, mirroring CL's default :test #'eql semantics.
+      if (this.eq_(new Cons(item, new Cons(each, Cons.nil))) === InterpretedSymbol.of('t')) {
+        return each;
+      }
+    }
+    return Cons.nil;
+  }
+
+  mapcan(args: Cons): LispValue {
+    const procedure = args.car;
+    const list = args.nth(2);
+
+    if (Cons.isNil(list)) return Cons.nil;
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('mapcan', list));
+    }
+
+    const collected: LispValue[] = [];
+    for (const each of list.loop()) {
+      const part = Applier.apply(
+        procedure,
+        new Cons(each, Cons.nil),
+        this.environment,
+        this.streamManager,
+        this.depth,
+      );
+      if (Cons.isCons(part)) {
+        for (const x of part.loop()) {
+          collected.push(x);
+        }
+      }
+      // nil and non-cons results contribute nothing (matches CL nconc-of-nil)
+    }
+    let result: Cons = Cons.nil;
+    for (let i = collected.length - 1; i >= 0; i--) {
+      result = new Cons(collected[i], result);
+    }
+    return result;
+  }
+
+  sort(args: Cons): LispValue {
+    const list = args.car;
+    const procedure = args.nth(2);
+
+    if (Cons.isNil(list)) return Cons.nil;
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('sort', list));
+    }
+
+    const items: LispValue[] = [];
+    for (const each of list.loop()) {
+      items.push(each);
+    }
+    items.sort((a, b) => {
+      const result = Applier.apply(
+        procedure,
+        new Cons(a, new Cons(b, Cons.nil)),
+        this.environment,
+        this.streamManager,
+        this.depth,
+      );
+      // CL: predicate returns truthy when a should come before b.
+      return Cons.isNil(result) ? 1 : -1;
+    });
+    let result: Cons = Cons.nil;
+    for (let i = items.length - 1; i >= 0; i--) {
+      result = new Cons(items[i], result);
+    }
+    return result;
+  }
+
   isSpy(aSymbol: InterpretedSymbol): boolean {
     return this.streamManager.isSpy(aSymbol);
   }
@@ -1152,8 +1320,10 @@ export class Applier {
         ['eq', 'eq_'],
         ['equal', 'equal_'],
         ['evenp', 'even_'],
+        ['every', 'every'],
         ['exp', 'exp'],
         ['expt', 'expt'],
+        ['find', 'find'],
         ['format', 'format'],
         ['gensym', 'gensym'],
         ['integerp', 'integer_'],
@@ -1164,6 +1334,7 @@ export class Applier {
         ['length', 'length'],
         ['list', 'list'],
         ['listp', 'list_'],
+        ['mapcan', 'mapcan'],
         ['mapcar', 'mapcar'],
         ['max', 'max'],
         ['member', 'member'],
@@ -1182,8 +1353,11 @@ export class Applier {
         ['pi', 'pi'],
         ['plusp', 'plus_'],
         ['random', 'random'],
+        ['reduce', 'reduce'],
         ['round', 'round'],
         ['sin', 'sin'],
+        ['some', 'some'],
+        ['sort', 'sort'],
         ['sqrt', 'sqrt'],
         ['string-downcase', 'stringDowncase'],
         ['string-trim', 'stringTrim'],

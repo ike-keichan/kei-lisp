@@ -366,6 +366,108 @@ describe('Applier', () => {
     });
   });
 
+  describe('reduce', () => {
+    it('left-folds with no initial value', () => {
+      expect(evalStr('(reduce (lambda (a b) (+ a b)) (list 1 2 3 4 5))')).toBe('15');
+    });
+
+    it('uses the initial value when provided', () => {
+      expect(evalStr('(reduce (lambda (a b) (+ a b)) (list 1 2 3) 100)')).toBe('106');
+    });
+
+    it('returns the initial value on empty list', () => {
+      expect(evalStr('(reduce + nil 0)')).toBe('0');
+    });
+
+    it('returns the lone element when no initial value and single element', () => {
+      expect(evalStr('(reduce + (list 42))')).toBe('42');
+    });
+  });
+
+  describe('every', () => {
+    it('returns t when all elements satisfy the predicate', () => {
+      expect(evalStr('(every (lambda (x) (> x 0)) (list 1 2 3))')).toBe('t');
+    });
+
+    it('returns nil when at least one element fails', () => {
+      expect(evalStr('(every (lambda (x) (> x 0)) (list 1 -1 3))')).toBe('nil');
+    });
+
+    it('returns t for an empty list (vacuous truth)', () => {
+      expect(evalStr('(every (lambda (x) (> x 0)) nil)')).toBe('t');
+    });
+  });
+
+  describe('some', () => {
+    it('returns the first truthy result', () => {
+      expect(evalStr('(some (lambda (x) (> x 5)) (list 1 2 9))')).toBe('t');
+    });
+
+    it('returns nil when no element satisfies', () => {
+      expect(evalStr('(some (lambda (x) (> x 5)) (list 1 2 3))')).toBe('nil');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr('(some (lambda (x) (> x 0)) nil)')).toBe('nil');
+    });
+  });
+
+  describe('find', () => {
+    it('returns the matching element', () => {
+      expect(evalStr('(find 3 (list 1 2 3 4))')).toBe('3');
+    });
+
+    it('returns nil when not found', () => {
+      expect(evalStr('(find 10 (list 1 2 3))')).toBe('nil');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr('(find 1 nil)')).toBe('nil');
+    });
+  });
+
+  describe('mapcan', () => {
+    it('concatenates the lists returned by the function', () => {
+      expect(
+        Cons.toString(
+          new LispInterpreter().evalString('(mapcan (lambda (x) (list x x)) (list 1 2 3))'),
+        ),
+      ).toBe('(1 1 2 2 3 3)');
+    });
+
+    it('skips nil results', () => {
+      expect(
+        Cons.toString(
+          new LispInterpreter().evalString(
+            '(mapcan (lambda (x) (if (> x 0) (list x) nil)) (list -1 1 -2 2))',
+          ),
+        ),
+      ).toBe('(1 2)');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr('(mapcan (lambda (x) (list x)) nil)')).toBe('nil');
+    });
+  });
+
+  describe('sort', () => {
+    it('sorts ascending with <', () => {
+      expect(
+        Cons.toString(new LispInterpreter().evalString('(sort (list 3 1 4 1 5 9 2 6) <)')),
+      ).toBe('(1 1 2 3 4 5 6 9)');
+    });
+
+    it('sorts descending with >', () => {
+      expect(
+        Cons.toString(new LispInterpreter().evalString('(sort (list 3 1 4 1 5 9 2 6) >)')),
+      ).toBe('(9 6 5 4 3 2 1 1)');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr('(sort nil <)')).toBe('nil');
+    });
+  });
+
   describe('symbolp', () => {
     it('returns t for symbols', () => {
       expect(evalStr("(symbolp 'foo)")).toBe('t');

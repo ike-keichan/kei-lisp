@@ -8,7 +8,7 @@ Entries are organized into the following categories:
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
 - [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
-- [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`
+- [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `mapcan`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`, `reduce`, `every`, `some`, `find`, `sort`
 - [Strings](#strings) — `string-upcase`, `string-downcase`, `string-trim`, `substring`, `concatenate`
 - [Variables and bindings](#variables-and-bindings) — `setq`, `set-allq`, `bind`, `gensym`
 - [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`
@@ -492,6 +492,22 @@ nil
 nil
 ```
 
+### every
+
+**(every PREDICATE LIST)**
+Predicate that returns t if PREDICATE returns a non-nil value for every
+element of LIST, nil otherwise. Returns t for the empty list (vacuous
+truth).
+
+```
+>> (every (lambda (x) (> x 0)) '(1 2 3))
+t
+>> (every (lambda (x) (> x 0)) '(1 -1 3))
+nil
+>> (every (lambda (x) (> x 0)) nil)
+t
+```
+
 ### exit
 
 **(kei-lisp specific)** Not present in Common Lisp (CL exit behavior is
@@ -556,6 +572,23 @@ Function that returns the smallest integer greater than or equal to X
 4
 >> (ceiling -3.7)
 -3
+```
+
+### find
+
+**(find ITEM LIST)**
+Function that returns the first element of LIST that is `eq` to ITEM, or
+nil if not found. Returns nil for the empty list.
+
+**(kei-lisp specific behavior)** Common Lisp's `find` accepts `:test` /
+`:key` / `:from-end` keyword arguments; kei-lisp's variant uses `eq`
+(identity) and only supports the positional 2-arg form.
+
+```
+>> (find 3 '(1 2 3 4))
+3
+>> (find 10 '(1 2 3))
+nil
 ```
 
 ### floatp
@@ -832,6 +865,20 @@ Functions to apply X to the elements of list L in sequence.
 ((a) (b) (c))
 >>  (mapcar (lambda (a) (* a 10)) '(1 2 3))
 (10 20 30)
+```
+
+### mapcan
+
+**(mapcan FN LIST)**
+Function that applies FN to each element of LIST and concatenates the
+resulting lists into a single list. Non-cons (including nil) results
+contribute nothing.
+
+```
+>> (mapcan (lambda (x) (list x x)) '(1 2 3))
+(1 1 2 2 3 3)
+>> (mapcan (lambda (x) (if (> x 0) (list x) nil)) '(-1 1 -2 2))
+(1 2)
 ```
 
 ### max
@@ -1255,6 +1302,28 @@ Function to answer a random number greater than or equal to 0 and less than or e
 0.9867023484200941
 ```
 
+### reduce
+
+**(reduce FN LIST [INIT])**
+Function that left-folds LIST using FN. With INIT, starts the accumulator
+from INIT and folds: `(fn init e1)`, `(fn r1 e2)`, … With no INIT,
+starts from the first element and folds the rest. For an empty LIST,
+returns INIT if given, otherwise calls FN with no arguments.
+
+**(kei-lisp specific behavior)** Common Lisp's `reduce` accepts `:from-end`,
+`:initial-value`, `:key`, `:start`, `:end` keyword arguments; kei-lisp's
+variant only supports the positional 2 or 3-arg form (initial value as
+the third positional argument).
+
+```
+>> (reduce (lambda (a b) (+ a b)) '(1 2 3 4 5))
+15
+>> (reduce (lambda (a b) (+ a b)) '(1 2 3) 100)
+106
+>> (reduce + nil 0)
+0
+```
+
 ### reverse
 
 **(reverse L)**
@@ -1358,6 +1427,38 @@ Due to the limited accuracy of PI, there will be a slight error.
 1
 >> (sin (pi))
 1.2246467991473532e-16
+```
+
+### some
+
+**(some PREDICATE LIST)**
+Function that applies PREDICATE to each element in turn and returns the
+first non-nil result, or nil if all results were nil. Returns nil for
+an empty list.
+
+```
+>> (some (lambda (x) (> x 5)) '(1 2 9))
+t
+>> (some (lambda (x) (> x 5)) '(1 2 3))
+nil
+```
+
+### sort
+
+**(sort LIST PREDICATE)**
+Function that returns LIST sorted using PREDICATE as the comparison
+function. PREDICATE should return a non-nil value when its first argument
+should come before its second.
+
+**(kei-lisp specific behavior)** Common Lisp's `sort` is destructive and
+accepts `:key`; kei-lisp's variant is non-destructive (returns a new
+list) and only supports the positional 2-arg form.
+
+```
+>> (sort '(3 1 4 1 5 9 2 6) <)
+(1 1 2 3 4 5 6 9)
+>> (sort '(3 1 4 1 5 9 2 6) >)
+(9 6 5 4 3 2 1 1)
 ```
 
 ### sqrt
