@@ -4,7 +4,7 @@ Reference for all built-in functions, special forms, and operators in kei-lisp.
 
 Entries are organized into the following categories:
 
-- [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `expt`, `sqrt`, `sin`, `cos`, `tan`, `round`, `truncate`, `floor`, `ceiling`, `min`, `max`, `random`, `pi`, `napier`
+- [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `expt`, `sqrt`, `sin`, `cos`, `tan`, `round`, `truncate`, `floor`, `ceiling`, `min`, `max`, `1+`, `1-`, `random`, `pi`, `napier`
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
 - [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
@@ -1743,6 +1743,36 @@ t
 nil
 >> (zerop -1)
 nil
+```
+
+### 1+
+
+**(1+ X)**
+Function that returns X plus 1. Conventional CL name for incrementing a
+numeric value.
+
+```
+>> (1+ 5)
+6
+>> (1+ 2.5)
+3.5
+>> (1+ -3)
+-2
+```
+
+### 1-
+
+**(1- X)**
+Function that returns X minus 1. Note: this is a decrement operation, not
+"1 minus X".
+
+```
+>> (1- 5)
+4
+>> (1- 2.5)
+1.5
+>> (1- -3)
+-4
 ```
 
 ### +

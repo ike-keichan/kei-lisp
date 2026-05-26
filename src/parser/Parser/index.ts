@@ -447,6 +447,11 @@ export class Parser {
     for (const index of IntStream.rangeClosed(9, 13))
       aTable.set(String(index), this.nextState(0, 'tokenToInteger'));
     aTable.set(String(32), this.nextState(0, 'tokenToInteger'));
+    // `+` / `-` after a digit are not numeric continuations (exponent sign is
+    // handled in state 4 after E/e). Route them into the symbol state so that
+    // forms like `1+` / `1-` / `1+2` parse as the symbols "1+" / "1-" / "1+2".
+    aTable.set(String(43), this.nextState(8, 'symbolToken'));
+    aTable.set(String(45), this.nextState(8, 'symbolToken'));
     aTable.set(String(46), this.nextState(3, 'doubleToken'));
     for (const index of IntStream.rangeClosed(48, 57))
       aTable.set(String(index), this.nextState(2, 'integerToken'));

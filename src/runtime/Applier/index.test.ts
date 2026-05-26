@@ -761,6 +761,50 @@ describe('Applier', () => {
     });
   });
 
+  describe('1+', () => {
+    it('returns argument + 1 for an integer', () => {
+      expect(evalStr('(1+ 5)')).toBe('6');
+    });
+
+    it('returns argument + 1 for a float', () => {
+      expect(evalStr('(1+ 2.5)')).toBe('3.5');
+    });
+
+    it('handles zero', () => {
+      expect(evalStr('(1+ 0)')).toBe('1');
+    });
+
+    it('handles negative numbers', () => {
+      expect(evalStr('(1+ -3)')).toBe('-2');
+    });
+
+    it('throws on non-number', () => {
+      expect(() => evalStr('(1+ "x")')).toThrow();
+    });
+  });
+
+  describe('1-', () => {
+    it('returns argument - 1 for an integer', () => {
+      expect(evalStr('(1- 5)')).toBe('4');
+    });
+
+    it('returns argument - 1 for a float', () => {
+      expect(evalStr('(1- 2.5)')).toBe('1.5');
+    });
+
+    it('handles zero', () => {
+      expect(evalStr('(1- 0)')).toBe('-1');
+    });
+
+    it('handles negative numbers', () => {
+      expect(evalStr('(1- -3)')).toBe('-4');
+    });
+
+    it('throws on non-number', () => {
+      expect(() => evalStr('(1- "x")')).toThrow();
+    });
+  });
+
   describe('plusp', () => {
     it('returns t for a positive integer', () => {
       expect(evalStr('(plusp 3)')).toBe('t');

@@ -19,9 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     negative infinity / positive infinity respectively)
   - `min` / `max` — variadic, returns the smallest / largest argument
 
-  Note: `1+` / `1-` are not yet supported. They require parser extension
-  to tokenize `1+` / `1-` as symbols rather than as a number followed by
-  an operator.
+- Common Lisp-compatible increment / decrement: `1+` / `1-`. Required a
+  parser extension: the integer-accumulation state now routes `+` / `-`
+  to the symbol state, so `1+` / `1-` / `1+something` parse as symbols
+  (matching CL). Exponent sign (`1e+10`) is handled in a different state
+  and remains unaffected.
 
 ### Documentation
 
