@@ -49,5 +49,9 @@ neq
 nequal
 expt
 
+# シーケンス
+subseq
+sublist
+
 # データ構造
 alist

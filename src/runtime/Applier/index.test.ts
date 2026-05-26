@@ -208,6 +208,164 @@ describe('Applier', () => {
     });
   });
 
+  describe('string-upcase', () => {
+    it('converts to uppercase', () => {
+      expect(evalStr('(string-upcase "hello")')).toBe('HELLO');
+    });
+
+    it('returns empty for empty string', () => {
+      expect(evalStr('(string-upcase "")')).toBe('');
+    });
+
+    it('throws on non-string', () => {
+      expect(() => evalStr('(string-upcase 42)')).toThrow();
+    });
+  });
+
+  describe('string-downcase', () => {
+    it('converts to lowercase', () => {
+      expect(evalStr('(string-downcase "WORLD")')).toBe('world');
+    });
+
+    it('throws on non-string', () => {
+      expect(() => evalStr('(string-downcase 42)')).toThrow();
+    });
+  });
+
+  describe('string-trim', () => {
+    it('strips leading and trailing whitespace', () => {
+      expect(evalStr('(string-trim "  abc  ")')).toBe('abc');
+    });
+
+    it('preserves interior whitespace', () => {
+      expect(evalStr('(string-trim " a b ")')).toBe('a b');
+    });
+
+    it('throws on non-string', () => {
+      expect(() => evalStr('(string-trim 42)')).toThrow();
+    });
+  });
+
+  describe('substring', () => {
+    it('extracts substring from start', () => {
+      expect(evalStr('(substring "hello world" 6)')).toBe('world');
+    });
+
+    it('extracts substring with end', () => {
+      expect(evalStr('(substring "hello world" 0 5)')).toBe('hello');
+    });
+
+    it('handles multi-byte characters by code point', () => {
+      expect(evalStr('(substring "abc😀def" 3 4)')).toBe('😀');
+    });
+
+    it('throws on non-string target', () => {
+      expect(() => evalStr('(substring 42 0)')).toThrow();
+    });
+
+    it('throws on non-number start', () => {
+      expect(() => evalStr('(substring "abc" "x")')).toThrow();
+    });
+  });
+
+  describe('concatenate', () => {
+    it('joins multiple strings', () => {
+      expect(evalStr('(concatenate "a" "b" "c")')).toBe('abc');
+    });
+
+    it('returns empty for no args', () => {
+      expect(evalStr('(concatenate)')).toBe('');
+    });
+
+    it('throws on non-string argument', () => {
+      expect(() => evalStr('(concatenate "a" 1)')).toThrow();
+    });
+  });
+
+  describe('length', () => {
+    it('returns character count for a string', () => {
+      expect(evalStr('(length "hello")')).toBe('5');
+    });
+
+    it('counts emoji as single code point', () => {
+      expect(evalStr('(length "😀😀")')).toBe('2');
+    });
+
+    it('returns element count for a list', () => {
+      expect(evalStr('(length (list 1 2 3 4))')).toBe('4');
+    });
+
+    it('returns 0 for nil', () => {
+      expect(evalStr('(length nil)')).toBe('0');
+    });
+
+    it('returns 0 for empty string', () => {
+      expect(evalStr('(length "")')).toBe('0');
+    });
+
+    it('throws on non-sequence', () => {
+      expect(() => evalStr('(length 42)')).toThrow();
+    });
+  });
+
+  describe('elt', () => {
+    it('returns nth character (0-indexed)', () => {
+      expect(evalStr('(elt "abc" 1)')).toBe('b');
+    });
+
+    it('returns nth list element (0-indexed)', () => {
+      expect(evalStr('(elt (list 10 20 30) 2)')).toBe('30');
+    });
+
+    it('throws on out-of-range index', () => {
+      expect(() => evalStr('(elt "abc" 5)')).toThrow();
+    });
+
+    it('throws on non-number index', () => {
+      expect(() => evalStr('(elt "abc" "x")')).toThrow();
+    });
+  });
+
+  describe('subseq', () => {
+    it('returns substring of a string with start and end', () => {
+      expect(evalStr('(subseq "hello" 1 4)')).toBe('ell');
+    });
+
+    it('returns sublist with start and end', () => {
+      expect(Cons.toString(new LispInterpreter().evalString('(subseq (list 1 2 3 4 5) 1 4)'))).toBe(
+        '(2 3 4)',
+      );
+    });
+
+    it('omits end to take rest of string', () => {
+      expect(evalStr('(subseq "hello" 2)')).toBe('llo');
+    });
+
+    it('omits end to take rest of list', () => {
+      expect(Cons.toString(new LispInterpreter().evalString('(subseq (list 1 2 3 4 5) 2)'))).toBe(
+        '(3 4 5)',
+      );
+    });
+  });
+
+  describe('count', () => {
+    it('counts occurrences of a character in a string', () => {
+      expect(evalStr('(count "l" "hello")')).toBe('2');
+    });
+
+    it('counts occurrences in a list', () => {
+      expect(evalStr('(count 2 (list 1 2 3 2 1))')).toBe('2');
+    });
+
+    it('returns 0 when not found', () => {
+      expect(evalStr('(count "z" "hello")')).toBe('0');
+    });
+
+    it('returns 0 for empty sequence', () => {
+      expect(evalStr('(count 1 nil)')).toBe('0');
+    });
+  });
+
   describe('symbolp', () => {
     it('returns t for symbols', () => {
       expect(evalStr("(symbolp 'foo)")).toBe('t');

@@ -8,7 +8,8 @@ Entries are organized into the following categories:
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
 - [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
-- [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `rplaca`, `rplacd`, `push`, `pop`, `copy`
+- [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`
+- [Strings](#strings) — `string-upcase`, `string-downcase`, `string-trim`, `substring`, `concatenate`
 - [Variables and bindings](#variables-and-bindings) — `setq`, `set-allq`, `bind`, `gensym`
 - [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`
 - [Control flow](#control-flow) — `if`, `cond`, `when`, `unless`, `do`, `do*`, `dolist`
@@ -287,6 +288,24 @@ Due to the limited accuracy of PI, there will be a slight error.
 -1
 ```
 
+### count
+
+**(count ITEM SEQ)**
+Function that returns the number of times ITEM appears in SEQ. For strings,
+ITEM must be a single-character string. Returns 0 when SEQ is empty or
+ITEM does not occur.
+
+```
+>> (count 2 '(1 2 3 2 1))
+2
+>> (count "l" "hello")
+2
+>> (count "z" "hello")
+0
+>> (count 1 nil)
+0
+```
+
 ### defun
 
 **(defun N L X1 X2 ... Xn)**
@@ -394,6 +413,20 @@ Function to answer the result of applying X to L.
 ```
 >> (eval (+ 1 2))
 3
+```
+
+### elt
+
+**(elt SEQ INDEX)**
+Function that returns the element of SEQ at the zero-based INDEX. Works
+on both strings (returns a single-character string) and lists. Throws if
+INDEX is out of range.
+
+```
+>> (elt "abc" 1)
+b
+>> (elt '(10 20 30) 2)
+30
 ```
 
 ### eq
@@ -710,16 +743,19 @@ Functions to answer the last element of the list L.
 
 ### length
 
-**(length L)**
-Function to answer the length of the list L.
+**(length SEQ)**
+Function that returns the number of elements in a list, the number of code
+points in a string, or 0 for nil. Throws on other types.
 
 ```
 >> (length '(a b c d e f g h i j))
 10
->> (length '(1 (2 (3 4) (5) (6 7) 8) 9))
-3
->> (length '(((k (r s t u)) g (m)) c d ((n) (o (v w x y z) q))))
-4
+>> (length "hello")
+5
+>> (length "😀😀")
+2
+>> (length nil)
+0
 ```
 
 ### let
@@ -1342,6 +1378,59 @@ Function to answer the square root of X.
 3
 ```
 
+### subseq
+
+**(subseq SEQ START [END])**
+Function that returns the sub-sequence of SEQ from START (inclusive) to
+END (exclusive). If END is omitted, returns through the end of SEQ.
+Works on both strings (returns a string) and lists (returns a list).
+
+```
+>> (subseq "hello" 1 4)
+ell
+>> (subseq "hello" 2)
+llo
+>> (subseq '(1 2 3 4 5) 1 4)
+(2 3 4)
+>> (subseq '(1 2 3 4 5) 2)
+(3 4 5)
+```
+
+### substring
+
+**(substring STR START [END])**
+Function that returns a substring of STR from START (inclusive) to END
+(exclusive). If END is omitted, returns through the end of STR.
+
+**(kei-lisp specific)** Not present in Common Lisp; use `subseq` for the
+CL-compatible form (`subseq` also handles strings). `substring` is kept
+for naming familiarity with other Lisp dialects.
+
+```
+>> (substring "hello world" 0 5)
+hello
+>> (substring "hello world" 6)
+world
+```
+
+### concatenate
+
+**(concatenate STR1 STR2 ...)**
+Function that concatenates string arguments into a single string. Returns
+the empty string when given no arguments.
+
+**(kei-lisp specific behavior)** Common Lisp's `concatenate` takes a
+type designator (`(concatenate 'string ...)`); kei-lisp's variant accepts
+strings directly and only produces strings. Throws if any argument is
+not a string.
+
+```
+>> (concatenate "a" "b" "c")
+abc
+>> (concatenate)
+
+```
+
 ### subtract
 
 **(subtract X1 X2 ... Xn)**
@@ -1352,6 +1441,43 @@ Function to answer the difference of X1 minus X2 ... and Xn.
 5
 >> (subtract 30 12.3 4.5)
 13.2
+```
+
+### string-downcase
+
+**(string-downcase STR)**
+Function that returns STR converted to lowercase.
+
+```
+>> (string-downcase "WORLD")
+world
+```
+
+### string-trim
+
+**(string-trim STR)**
+Function that returns STR with leading and trailing whitespace removed.
+Interior whitespace is preserved.
+
+**(kei-lisp specific behavior)** Common Lisp's `string-trim` takes a
+character bag; kei-lisp uses JavaScript's `String.prototype.trim`, which
+trims any Unicode whitespace.
+
+```
+>> (string-trim "  abc  ")
+abc
+>> (string-trim " a b ")
+a b
+```
+
+### string-upcase
+
+**(string-upcase STR)**
+Function that returns STR converted to uppercase.
+
+```
+>> (string-upcase "hello")
+HELLO
 ```
 
 ### stringp
