@@ -23,10 +23,11 @@ pnpm install
 ### Verify your setup
 
 ```sh
-pnpm check   # Runs format, lint, and spell checks
-pnpm test    # Runs the test suite
-pnpm build   # Builds for distribution
-pnpm start   # Runs the built CLI (REPL)
+npx tsc --noEmit  # Type check
+pnpm check        # Runs format, lint, and spell checks
+pnpm test         # Runs the test suite
+pnpm build        # Builds for distribution
+pnpm start        # Runs the built CLI (REPL)
 ```
 
 ## Project layout
@@ -92,7 +93,7 @@ directories group multiple related classes.
 Before opening a pull request, please run:
 
 ```sh
-pnpm check && pnpm test && pnpm build
+npx tsc --noEmit && pnpm check && pnpm test && pnpm build
 ```
 
 ## Testing
@@ -131,26 +132,26 @@ feature/* ──┘
 
 ### Branch creation responsibilities
 
-| Branch type           | Created by          | When                                                              |
-| --------------------- | ------------------- | ----------------------------------------------------------------- |
-| `vX.Y` (release line) | **Maintainer only** | When planning a minor release that bundles 2+ features            |
-| `vX` (maintenance)    | **Maintainer only** | Right after the next major (`v(X+1).0.0`) is tagged               |
-| `hotfix/*`            | **Maintainer only** | When a critical bug needs a patch to a released version           |
-| `feature/*`           | Anyone              | Anytime, branching from the **active release line** (e.g. `v2.1`) |
+| Branch type           | Created by          | When                                                         |
+| --------------------- | ------------------- | ------------------------------------------------------------ |
+| `vX.Y` (release line) | **Maintainer only** | When planning a minor release that bundles 2+ features       |
+| `vX` (maintenance)    | **Maintainer only** | Right after the next major (`v(X+1).0.0`) is tagged          |
+| `hotfix/*`            | **Maintainer only** | When a critical bug needs a patch to a released version      |
+| `feature/*`           | Anyone              | Anytime, branching from the **active release line** (`vX.Y`) |
 
 If you are unsure which base branch to target, ask in the PR description
 or open a draft PR and the maintainer will guide you.
 
 ## Pull request guidelines
 
-1. **Branch from the active release line** (e.g. `v2.1`) and use a
+1. **Branch from the active release line** (`vX.Y`) and use a
    descriptive branch name (e.g. `feature/add-quasiquote`,
    `fix/setq-shadowing`).
 2. **Keep changes focused** — one logical change per PR.
 3. **Update tests** to cover new behavior or regressions.
 4. **Update documentation** (`README.md`, `CHANGELOG.md`, `docs/`) when
    public behavior changes.
-5. **Pass all checks** (`pnpm check && pnpm test && pnpm build`).
+5. **Pass all checks** (`npx tsc --noEmit && pnpm check && pnpm test && pnpm build`).
 6. **Commit messages** should follow the existing style:
    `<type>: <description>` (e.g. `fix:`, `feat:`, `docs:`, `test:`,
    `refactor:`, `chore:`).
@@ -169,7 +170,7 @@ the workflow is a no-op, so it is safe to re-trigger.
 
 ### Maintainer steps
 
-1. On the release-line branch (e.g. `v2.1`), update `CHANGELOG.md` —
+1. On the release-line branch (`vX.Y`), update `CHANGELOG.md` —
    move pending entries under a new
    `## [<new-version>] - <YYYY-MM-DD>` header.
 2. Bump `version` in `package.json` to match.
