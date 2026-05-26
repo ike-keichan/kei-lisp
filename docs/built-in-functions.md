@@ -4,10 +4,10 @@ Reference for all built-in functions, special forms, and operators in kei-lisp.
 
 Entries are organized into the following categories:
 
-- [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `sqrt`, `sin`, `cos`, `tan`, `round`, `random`, `pi`, `napier`
+- [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `expt`, `sqrt`, `sin`, `cos`, `tan`, `round`, `truncate`, `floor`, `ceiling`, `min`, `max`, `random`, `pi`, `napier`
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
-- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
+- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `eql`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
 - [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `rplaca`, `rplacd`, `push`, `pop`, `copy`
 - [Variables and bindings](#variables-and-bindings) — `setq`, `set-allq`, `bind`, `gensym`
 - [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`
@@ -407,6 +407,27 @@ nil
 nil
 ```
 
+### eql
+
+**(eql X Y)**
+Predicate that returns t if X and Y are identical, nil otherwise. In Common
+Lisp `eql` is `eq` plus a guarantee for numbers and characters of the same
+type/value. Because JS has a single numeric type, `eql` is functionally
+equivalent to `eq` in kei-lisp.
+
+```
+>> (eql 1 1)
+t
+>> (eql 1.5 1.5)
+t
+>> (eql 'foo 'foo)
+t
+>> (eql "abc" "abc")
+t
+>> (eql '(1 2) '(1 2))
+nil
+```
+
 ### equal
 
 **(equal X Y)**
@@ -469,6 +490,46 @@ Function to answer the X power of e.
 2.718281828459045
 >> (exp 2)
 7.38905609893065
+```
+
+### expt
+
+**(expt B E)**
+Function that returns the base B raised to the exponent E.
+
+```
+>> (expt 2 10)
+1024
+>> (expt 9 0.5)
+3
+>> (expt 5 0)
+1
+```
+
+### floor
+
+**(floor X)**
+Function that returns the largest integer less than or equal to X (rounded
+toward negative infinity).
+
+```
+>> (floor 3.7)
+3
+>> (floor -3.2)
+-4
+```
+
+### ceiling
+
+**(ceiling X)**
+Function that returns the smallest integer greater than or equal to X
+(rounded toward positive infinity).
+
+```
+>> (ceiling 3.2)
+4
+>> (ceiling -3.7)
+-3
 ```
 
 ### floatp
@@ -736,6 +797,21 @@ Functions to apply X to the elements of list L in sequence.
 (10 20 30)
 ```
 
+### max
+
+**(max X1 X2 ... Xn)**
+Function that returns the largest of its numeric arguments. Requires at
+least one argument.
+
+```
+>> (max 3 1 4 1 5 9 2 6)
+9
+>> (max 42)
+42
+>> (max 2 1.5 3)
+3
+```
+
 ### member
 
 **(member X L)**
@@ -762,6 +838,21 @@ t
 nil
 >> (memq '2 '(1 (2 (3 4) (5) (6 7) 8) 9))
 nil
+```
+
+### min
+
+**(min X1 X2 ... Xn)**
+Function that returns the smallest of its numeric arguments. Requires at
+least one argument.
+
+```
+>> (min 3 1 4 1 5 9 2 6)
+1
+>> (min 42)
+42
+>> (min 2 1.5 3)
+1.5
 ```
 
 ### minusp
@@ -1359,6 +1450,20 @@ t
 | (+ 1 14)
 | 15 <== (+ 1 14)
 15
+```
+
+### truncate
+
+**(truncate X)**
+Function that returns the integer part of X by rounding toward zero.
+
+```
+>> (truncate 3.7)
+3
+>> (truncate -3.7)
+-3
+>> (truncate 5)
+5
 ```
 
 ### unless

@@ -620,6 +620,64 @@ export class Applier {
     return Cons.nil;
   }
 
+  expt(args: Cons): LispValue {
+    const base = args.car;
+    const exponent = args.nth(2);
+    if (Cons.isNumber(base) && Cons.isNumber(exponent)) {
+      return Math.pow(base, exponent);
+    }
+    throw new EvalError(cannotApply('expt', base));
+  }
+
+  truncate(args: Cons): LispValue {
+    if (Cons.isNumber(args.car)) {
+      return Math.trunc(args.car);
+    }
+    throw new EvalError(cannotApply('truncate', args.car));
+  }
+
+  floor(args: Cons): LispValue {
+    if (Cons.isNumber(args.car)) {
+      return Math.floor(args.car);
+    }
+    throw new EvalError(cannotApply('floor', args.car));
+  }
+
+  ceiling(args: Cons): LispValue {
+    if (Cons.isNumber(args.car)) {
+      return Math.ceil(args.car);
+    }
+    throw new EvalError(cannotApply('ceiling', args.car));
+  }
+
+  min(args: Cons): LispValue {
+    const values: number[] = [];
+    for (const each of args.loop()) {
+      if (!Cons.isNumber(each)) {
+        throw new EvalError(cannotApply('min', each));
+      }
+      values.push(each);
+    }
+    if (values.length === 0) {
+      throw new EvalError('min requires at least one argument');
+    }
+    return Math.min(...values);
+  }
+
+  max(args: Cons): LispValue {
+    const values: number[] = [];
+    for (const each of args.loop()) {
+      if (!Cons.isNumber(each)) {
+        throw new EvalError(cannotApply('max', each));
+      }
+      values.push(each);
+    }
+    if (values.length === 0) {
+      throw new EvalError('max requires at least one argument');
+    }
+    return Math.max(...values);
+  }
+
   isSpy(aSymbol: InterpretedSymbol): boolean {
     return this.streamManager.isSpy(aSymbol);
   }
@@ -936,14 +994,18 @@ export class Applier {
         ['cons', 'cons'],
         ['consp', 'cons_'],
         ['copy', 'copy'],
+        ['ceiling', 'ceiling'],
         ['cos', 'cos'],
         ['floatp', 'float_'],
+        ['floor', 'floor'],
         ['divide', 'divide'],
         ['doublep', 'number_'],
         ['eq', 'eq_'],
         ['equal', 'equal_'],
+        ['eql', 'eq_'],
         ['evenp', 'even_'],
         ['exp', 'exp'],
+        ['expt', 'expt'],
         ['format', 'format'],
         ['gensym', 'gensym'],
         ['integerp', 'integer_'],
@@ -951,8 +1013,10 @@ export class Applier {
         ['list', 'list'],
         ['listp', 'list_'],
         ['mapcar', 'mapcar'],
+        ['max', 'max'],
         ['member', 'member'],
         ['memq', 'memq'],
+        ['min', 'min'],
         ['minusp', 'minus_'],
         ['mod', 'mod'],
         ['multiply', 'multiply'],
@@ -973,6 +1037,7 @@ export class Applier {
         ['stringp', 'string_'],
         ['symbolp', 'symbol_'],
         ['tan', 'tan'],
+        ['truncate', 'truncate'],
         ['zerop', 'zero_'],
         ['+', 'add'],
         ['-', 'subtract'],
