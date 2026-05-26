@@ -4,7 +4,7 @@ Reference for all built-in functions, special forms, and operators in kei-lisp.
 
 Entries are organized into the following categories:
 
-- [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `sqrt`, `sin`, `cos`, `tan`, `round`, `random`, `pi`, `napier`
+- [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `expt`, `sqrt`, `sin`, `cos`, `tan`, `round`, `truncate`, `floor`, `ceiling`, `min`, `max`, `random`, `pi`, `napier`
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
 - [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
@@ -16,6 +16,11 @@ Entries are organized into the following categories:
 - [System](#system) — `exit`, `gc`, `time`, `trace`, `notrace`
 
 > The original alphabetical reference of each function follows below.
+
+> **Legend**: Entries marked **(kei-lisp specific)** are either not part of
+> the Common Lisp standard or behave differently from CL. They are kept for
+> historical reasons or because of platform constraints (e.g. JS has only
+> one numeric type).
 
 ## Comments
 
@@ -130,6 +135,8 @@ t
 ```
 
 ### bind
+
+**(kei-lisp specific)** Not present in Common Lisp.
 
 **(bind X)**
 Functions to answer the number of values bound to the X Symbol.
@@ -343,6 +350,10 @@ t
 
 ### doublep
 
+**(kei-lisp specific)** Not present in Common Lisp; in kei-lisp it is the
+same as `numberp` (JS has only one numeric type, so "double" and "number"
+collapse to the same check).
+
 **(doublep X)**
 Function to answer whether X is a Double.
 
@@ -450,9 +461,12 @@ nil
 
 ### exit
 
+**(kei-lisp specific)** Not present in Common Lisp (CL exit behavior is
+implementation-defined, e.g. SBCL provides `sb-ext:exit`). Throws an
+`ExitError` that library users can catch at the boundary.
+
 **(exit)**
-Function to exit the Lisp interpreter.<br>
-This function is KeiLisp only. This is no support with KeiLisp-onWeb.
+Function to exit the Lisp interpreter.
 
 ```
 >> (exit)
@@ -471,7 +485,52 @@ Function to answer the X power of e.
 7.38905609893065
 ```
 
+### expt
+
+**(expt B E)**
+Function that returns the base B raised to the exponent E.
+
+```
+>> (expt 2 10)
+1024
+>> (expt 9 0.5)
+3
+>> (expt 5 0)
+1
+```
+
+### floor
+
+**(floor X)**
+Function that returns the largest integer less than or equal to X (rounded
+toward negative infinity).
+
+```
+>> (floor 3.7)
+3
+>> (floor -3.2)
+-4
+```
+
+### ceiling
+
+**(ceiling X)**
+Function that returns the smallest integer greater than or equal to X
+(rounded toward positive infinity).
+
+```
+>> (ceiling 3.2)
+4
+>> (ceiling -3.7)
+-3
+```
+
 ### floatp
+
+**(kei-lisp specific behavior)** In Common Lisp `floatp` is a type-tag
+predicate (integer vs float). In kei-lisp, because JS has only one numeric
+type (double), `floatp` is interpreted as a **range check**: it returns
+`t` when X is representable in IEEE 32-bit (single-precision) float range.
 
 **(floatp X)**
 Function to answer whether X is a Float.
@@ -540,6 +599,9 @@ REPL itself (use `~%` to insert a newline between the output and the
 returned `nil`).
 
 ### gc
+
+**(kei-lisp specific)** Not present in Common Lisp (CL's `room` prints
+memory info but returns no value).
 
 **(gc)**
 Triggers a garbage collection and returns an association list of
@@ -736,6 +798,21 @@ Functions to apply X to the elements of list L in sequence.
 (10 20 30)
 ```
 
+### max
+
+**(max X1 X2 ... Xn)**
+Function that returns the largest of its numeric arguments. Requires at
+least one argument.
+
+```
+>> (max 3 1 4 1 5 9 2 6)
+9
+>> (max 42)
+42
+>> (max 2 1.5 3)
+3
+```
+
 ### member
 
 **(member X L)**
@@ -762,6 +839,21 @@ t
 nil
 >> (memq '2 '(1 (2 (3 4) (5) (6 7) 8) 9))
 nil
+```
+
+### min
+
+**(min X1 X2 ... Xn)**
+Function that returns the smallest of its numeric arguments. Requires at
+least one argument.
+
+```
+>> (min 3 1 4 1 5 9 2 6)
+1
+>> (min 42)
+42
+>> (min 2 1.5 3)
+1.5
 ```
 
 ### minusp
@@ -1202,6 +1294,8 @@ hello
 
 ### set-allq
 
+**(kei-lisp specific)** Not present in Common Lisp.
+
 **(set-allq X Y)**
 Functions to bind the value of Y to X to the entire environment.
 
@@ -1361,6 +1455,20 @@ t
 15
 ```
 
+### truncate
+
+**(truncate X)**
+Function that returns the integer part of X by rounding toward zero.
+
+```
+>> (truncate 3.7)
+3
+>> (truncate -3.7)
+-3
+>> (truncate 5)
+5
+```
+
 ### unless
 
 **(unless X Y)**
@@ -1464,6 +1572,9 @@ Same as the function "[divide](#divide)".
 
 ### //
 
+**(kei-lisp specific)** Common Lisp uses `mod` / `rem`; `//` as an operator
+is unique to kei-lisp.
+
 **(// X1 X2 ... Xn)**
 Function to answer the excess of X1 divide by X2 ... and Xn.<br>
 Same as the function "[mod](#mod)".
@@ -1476,6 +1587,10 @@ Same as the function "[mod](#mod)".
 ```
 
 ### =
+
+**(kei-lisp specific)** In Common Lisp `=` is the **numeric** comparison
+operator; in kei-lisp it is an alias for `equal` (structural equality
+including non-numeric values).
 
 **(= X Y)**
 Function that answers whether X and Y are equal or not.<br>
@@ -1500,6 +1615,9 @@ t
 
 ### ==
 
+**(kei-lisp specific)** Not present in Common Lisp; alias for `eq`
+(identity comparison).
+
 **(== X Y)**
 Function that answers whether X and Y are equal or not.<br>
 Same as the function "[eq](#eq)".
@@ -1523,7 +1641,10 @@ nil
 
 ### ~=
 
-**(= X Y)**
+**(kei-lisp specific)** Not present in Common Lisp; alias for `nequal`
+(structural not-equal).
+
+**(~= X Y)**
 Function that answers whether X and Y are not equal or not.<br>
 Same as the function "[nequal](#nequal)".
 
@@ -1545,6 +1666,9 @@ nil
 ```
 
 ### ~~
+
+**(kei-lisp specific)** Not present in Common Lisp; alias for `neq`
+(identity not-equal).
 
 **(~~ X Y)**
 Function that answers whether X and Y are not equal or not.<br>

@@ -604,6 +604,106 @@ describe('Applier', () => {
     });
   });
 
+  describe('expt', () => {
+    it('computes integer exponent', () => {
+      expect(evalStr('(expt 2 10)')).toBe('1024');
+    });
+
+    it('computes fractional exponent (square root)', () => {
+      expect(evalStr('(expt 9 0.5)')).toBe('3');
+    });
+
+    it('returns 1 for any base raised to 0', () => {
+      expect(evalStr('(expt 5 0)')).toBe('1');
+    });
+
+    it('throws when base is not a number', () => {
+      expect(() => evalStr('(expt "x" 2)')).toThrow();
+    });
+  });
+
+  describe('truncate', () => {
+    it('truncates toward zero for positive', () => {
+      expect(evalStr('(truncate 3.7)')).toBe('3');
+    });
+
+    it('truncates toward zero for negative', () => {
+      expect(evalStr('(truncate -3.7)')).toBe('-3');
+    });
+
+    it('returns the integer unchanged', () => {
+      expect(evalStr('(truncate 5)')).toBe('5');
+    });
+
+    it('throws on non-number', () => {
+      expect(() => evalStr('(truncate "x")')).toThrow();
+    });
+  });
+
+  describe('floor', () => {
+    it('rounds toward negative infinity for positive', () => {
+      expect(evalStr('(floor 3.7)')).toBe('3');
+    });
+
+    it('rounds toward negative infinity for negative', () => {
+      expect(evalStr('(floor -3.2)')).toBe('-4');
+    });
+
+    it('throws on non-number', () => {
+      expect(() => evalStr('(floor "x")')).toThrow();
+    });
+  });
+
+  describe('ceiling', () => {
+    it('rounds toward positive infinity for positive', () => {
+      expect(evalStr('(ceiling 3.2)')).toBe('4');
+    });
+
+    it('rounds toward positive infinity for negative', () => {
+      expect(evalStr('(ceiling -3.7)')).toBe('-3');
+    });
+
+    it('throws on non-number', () => {
+      expect(() => evalStr('(ceiling "x")')).toThrow();
+    });
+  });
+
+  describe('min', () => {
+    it('returns the smallest of multiple arguments', () => {
+      expect(evalStr('(min 3 1 4 1 5 9 2 6)')).toBe('1');
+    });
+
+    it('returns the single argument when given one', () => {
+      expect(evalStr('(min 42)')).toBe('42');
+    });
+
+    it('handles mixed integer and float', () => {
+      expect(evalStr('(min 2 1.5 3)')).toBe('1.5');
+    });
+
+    it('throws on non-number argument', () => {
+      expect(() => evalStr('(min 1 "x" 3)')).toThrow();
+    });
+  });
+
+  describe('max', () => {
+    it('returns the largest of multiple arguments', () => {
+      expect(evalStr('(max 3 1 4 1 5 9 2 6)')).toBe('9');
+    });
+
+    it('returns the single argument when given one', () => {
+      expect(evalStr('(max 42)')).toBe('42');
+    });
+
+    it('handles mixed integer and float', () => {
+      expect(evalStr('(max 2 1.5 3)')).toBe('3');
+    });
+
+    it('throws on non-number argument', () => {
+      expect(() => evalStr('(max 1 "x" 3)')).toThrow();
+    });
+  });
+
   describe('rplaca / rplacd', () => {
     it('rplaca mutates car in place', () => {
       const interpreter = new LispInterpreter();

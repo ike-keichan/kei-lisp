@@ -47,6 +47,7 @@ notrace
 # 算術
 neq
 nequal
+expt
 
 # データ構造
 alist
