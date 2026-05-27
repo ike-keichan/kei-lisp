@@ -10,6 +10,7 @@ import {
 } from '../../constants/index.js';
 import type { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
+import type { KeiLispPlugin } from '../../plugin/types.js';
 import type { LispValue } from '../../types/index.js';
 
 const SELECT_PRINT_FUNCTION_NOT_DEFINED = 'selectPrintFunction is not defined';
@@ -45,6 +46,10 @@ export class Applier extends Object {
    * The current recursion depth, used for spy indentation.
    */
   depth: number;
+  /**
+   * Registered plugins forwarded back into Evaluator on recursive evaluation (e.g. `entrustEvaluator`).
+   */
+  plugins: KeiLispPlugin[];
 
   /**
    * Constructor.
@@ -52,12 +57,19 @@ export class Applier extends Object {
    * @param aTable the parent environment to extend
    * @param aStreamManager the stream manager for I/O
    * @param aNumber the initial recursion depth
+   * @param plugins the plugin chain to forward when re-entering the Evaluator
    */
-  constructor(aTable: Table, aStreamManager: StreamManager, aNumber: number) {
+  constructor(
+    aTable: Table,
+    aStreamManager: StreamManager,
+    aNumber: number,
+    plugins: KeiLispPlugin[] = [],
+  ) {
     super();
     this.environment = new Table(aTable);
     this.streamManager = aStreamManager;
     this.depth = aNumber;
+    this.plugins = plugins;
   }
 
   /**
@@ -119,6 +131,7 @@ export class Applier extends Object {
    * @param environment the environment to use
    * @param aStreamManager the stream manager for I/O
    * @param depth the current recursion depth
+   * @param plugins the plugin chain to forward when re-entering the Evaluator
    * @return the result of applying the procedure
    */
   static override apply(
@@ -127,8 +140,9 @@ export class Applier extends Object {
     environment: Table,
     aStreamManager: StreamManager,
     depth: number,
+    plugins: KeiLispPlugin[] = [],
   ): LispValue {
-    return new Applier(environment, aStreamManager, depth).apply(procedure, args);
+    return new Applier(environment, aStreamManager, depth, plugins).apply(procedure, args);
   }
 
   /**
@@ -385,7 +399,13 @@ export class Applier extends Object {
       if (each instanceof Table) {
         break;
       }
-      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      anObject = Evaluator.eval(
+        each,
+        this.environment,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
     }
 
     return anObject;

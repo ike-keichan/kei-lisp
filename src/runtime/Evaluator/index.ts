@@ -15,6 +15,7 @@ import {
 } from '../../constants/index.js';
 import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
+import type { KeiLispPlugin, PluginContext } from '../../plugin/types.js';
 import type { LispValue } from '../../types/index.js';
 
 // Lazily expose V8's gc() to user-land on first use, avoiding the need for the
@@ -52,18 +53,29 @@ export class Evaluator extends Object {
    * The current call depth, used for indenting trace/spy output.
    */
   depth: number;
+  /**
+   * Registered plugins consulted by `eval` when no special form matches.
+   */
+  plugins: KeiLispPlugin[];
 
   /**
    * Constructor.
    * @param aTable the variable binding environment
    * @param aStreamManager the stream manager for trace and spy output
    * @param aNumber the initial call depth
+   * @param plugins the plugin chain consulted before falling through to Applier
    */
-  constructor(aTable: Table, aStreamManager: StreamManager, aNumber: number) {
+  constructor(
+    aTable: Table,
+    aStreamManager: StreamManager,
+    aNumber: number,
+    plugins: KeiLispPlugin[] = [],
+  ) {
     super();
     this.environment = aTable;
     this.streamManager = aStreamManager;
     this.depth = aNumber;
+    this.plugins = plugins;
   }
 
   /**
@@ -73,7 +85,13 @@ export class Evaluator extends Object {
    */
   and(aCons: Cons): LispValue {
     for (const each of aCons.loop()) {
-      const anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      const anObject = Evaluator.eval(
+        each,
+        this.environment,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
       if (Cons.isNil(anObject)) {
         return Cons.nil;
       }
@@ -88,14 +106,26 @@ export class Evaluator extends Object {
    * @return the result of applying the procedure to the arguments
    */
   apply_lisp(aCons: Cons): LispValue {
-    const procedure = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
-    const args = Evaluator.eval(aCons.nth(2), this.environment, this.streamManager, this.depth);
+    const procedure = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
+    const args = Evaluator.eval(
+      aCons.nth(2),
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     let aTable: Table = this.environment;
     if (procedure instanceof Cons && procedure.last().car instanceof Table) {
       aTable = procedure.last().car as Table;
     }
 
-    return Applier.apply(procedure, args, aTable, this.streamManager, this.depth);
+    return Applier.apply(procedure, args, aTable, this.streamManager, this.depth, this.plugins);
   }
 
   /**
@@ -153,7 +183,13 @@ export class Evaluator extends Object {
         throw new EvalError(notSymbol(theCons.car));
       }
       const key = theCons.car as InterpretedSymbol;
-      const value = Evaluator.eval(theCons.nth(2), aTable, this.streamManager, this.depth);
+      const value = Evaluator.eval(
+        theCons.nth(2),
+        aTable,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
       aTable.set(key, value);
     }
 
@@ -173,7 +209,13 @@ export class Evaluator extends Object {
         throw new EvalError(notSymbol(theCons.car));
       }
       const key = theCons.car as InterpretedSymbol;
-      const value = Evaluator.eval(theCons.nth(2), aTable, this.streamManager, this.depth);
+      const value = Evaluator.eval(
+        theCons.nth(2),
+        aTable,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
       theTable.set(key, value);
     }
 
@@ -200,13 +242,20 @@ export class Evaluator extends Object {
       this.environment,
       this.streamManager,
       this.depth,
+      this.plugins,
     );
     if (Cons.isNil(anObject)) {
       return this.cond(consCell.cdr);
     }
     const consequent = clause.cdr as Cons;
     for (const each of consequent.loop()) {
-      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      anObject = Evaluator.eval(
+        each,
+        this.environment,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
     }
     return anObject;
   }
@@ -223,7 +272,13 @@ export class Evaluator extends Object {
       aCons.length() === 2
         ? (lambda as Cons).car
         : new Cons(InterpretedSymbol.of('lambda'), lambda);
-    lambda = Evaluator.eval(lambda, new Table(this.environment), this.streamManager, this.depth);
+    lambda = Evaluator.eval(
+      lambda,
+      new Table(this.environment),
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     this.environment.set(variable, lambda);
 
     return variable;
@@ -243,10 +298,14 @@ export class Evaluator extends Object {
       bool.setCar(Cons.nil);
     }
 
-    while (Cons.isNil(Evaluator.eval(bool.car, this.environment, this.streamManager, this.depth))) {
+    while (
+      Cons.isNil(
+        Evaluator.eval(bool.car, this.environment, this.streamManager, this.depth, this.plugins),
+      )
+    ) {
       const theTable = new Map<InterpretedSymbol, LispValue>();
       for (const each of expressions.loop()) {
-        Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+        Evaluator.eval(each, this.environment, this.streamManager, this.depth, this.plugins);
       }
       for (const each of parameters.loop()) {
         const theCons = each as Cons;
@@ -260,6 +319,7 @@ export class Evaluator extends Object {
             this.environment,
             this.streamManager,
             this.depth,
+            this.plugins,
           );
           theTable.set(key, value);
         }
@@ -268,7 +328,13 @@ export class Evaluator extends Object {
         this.environment.set(key, value);
       }
     }
-    return Evaluator.eval(bool.nth(2), this.environment, this.streamManager, this.depth);
+    return Evaluator.eval(
+      bool.nth(2),
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
   }
 
   /**
@@ -284,15 +350,22 @@ export class Evaluator extends Object {
       this.environment,
       this.streamManager,
       this.depth,
+      this.plugins,
     ) as Cons;
     for (const element of args.loop()) {
       this.environment.set(parameter.car, element);
       for (const each of theCons.loop()) {
-        Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+        Evaluator.eval(each, this.environment, this.streamManager, this.depth, this.plugins);
       }
     }
 
-    return Evaluator.eval(parameter.nth(3), this.environment, this.streamManager, this.depth);
+    return Evaluator.eval(
+      parameter.nth(3),
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
   }
 
   /**
@@ -309,9 +382,13 @@ export class Evaluator extends Object {
       bool.setCar(Cons.nil);
     }
 
-    while (Cons.isNil(Evaluator.eval(bool.car, this.environment, this.streamManager, this.depth))) {
+    while (
+      Cons.isNil(
+        Evaluator.eval(bool.car, this.environment, this.streamManager, this.depth, this.plugins),
+      )
+    ) {
       for (const each of expressions.loop()) {
-        Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+        Evaluator.eval(each, this.environment, this.streamManager, this.depth, this.plugins);
       }
       for (const each of parameters.loop()) {
         const theCons = each as Cons;
@@ -325,12 +402,19 @@ export class Evaluator extends Object {
             this.environment,
             this.streamManager,
             this.depth,
+            this.plugins,
           );
           this.environment.set(key, value);
         }
       }
     }
-    return Evaluator.eval(bool.nth(2), this.environment, this.streamManager, this.depth);
+    return Evaluator.eval(
+      bool.nth(2),
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
   }
 
   /**
@@ -356,14 +440,23 @@ export class Evaluator extends Object {
       if (each instanceof Table) {
         break;
       }
-      args.add(Evaluator.eval(each, this.environment, this.streamManager, this.depth));
+      args.add(
+        Evaluator.eval(each, this.environment, this.streamManager, this.depth, this.plugins),
+      );
     }
     if (this.isSpy(aSymbol)) {
       this.setDepth(this.depth - 1);
     }
 
     args = args.cdr as Cons;
-    return Applier.apply(procedure, args, this.environment, this.streamManager, this.depth);
+    return Applier.apply(
+      procedure,
+      args,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
   }
 
   /**
@@ -372,6 +465,7 @@ export class Evaluator extends Object {
    * @param environment the variable binding environment
    * @param aStreamManager the stream manager for trace and spy output
    * @param depth the current call depth
+   * @param plugins the plugin chain consulted before falling through to Applier
    * @return the evaluation result
    */
   static eval(
@@ -379,8 +473,9 @@ export class Evaluator extends Object {
     environment: Table,
     aStreamManager: StreamManager = new StreamManager(),
     depth: number = 1,
+    plugins: KeiLispPlugin[] = [],
   ): LispValue {
-    return new Evaluator(environment, aStreamManager, depth).eval(form);
+    return new Evaluator(environment, aStreamManager, depth, plugins).eval(form);
   }
 
   /**
@@ -399,8 +494,56 @@ export class Evaluator extends Object {
     if (Cons.isSymbol(formCons.car) && Evaluator.buildInFunctions.has(formCons.car)) {
       return this.specialForm(formCons);
     }
+    if (Cons.isSymbol(formCons.car) && this.plugins.length > 0) {
+      const symbol = formCons.car;
+      const plugin = this.plugins.find((p) => p.has(symbol));
+      if (plugin !== undefined) {
+        return this.entrustPlugin(plugin, formCons);
+      }
+    }
 
     return this.entrustApplier(formCons);
+  }
+
+  /**
+   * Evaluates the argument list (the same way `entrustApplier` does), then
+   * delegates the call to the matched plugin with a context that allows
+   * recursive evaluation.
+   * @param plugin the plugin that claimed the call symbol
+   * @param form the call form whose car is the symbol and whose cdr is the argument list
+   * @return the result returned by the plugin
+   */
+  entrustPlugin(plugin: KeiLispPlugin, form: Cons): LispValue {
+    const aCons = form.cdr as Cons;
+    let args: Cons = new Cons(Cons.nil, Cons.nil);
+    const symbol = form.car as InterpretedSymbol;
+
+    if (this.isSpy(symbol)) {
+      this.spyPrint(this.streamManager.spyStream(symbol), form.toString());
+      this.setDepth(this.depth + 1);
+    }
+
+    for (const each of aCons.loop()) {
+      if (each instanceof Table) {
+        break;
+      }
+      args.add(
+        Evaluator.eval(each, this.environment, this.streamManager, this.depth, this.plugins),
+      );
+    }
+    if (this.isSpy(symbol)) {
+      this.setDepth(this.depth - 1);
+    }
+
+    args = args.cdr as Cons;
+    const ctx: PluginContext = {
+      environment: this.environment,
+      streamManager: this.streamManager,
+      depth: this.depth,
+      eval: (subForm: LispValue): LispValue =>
+        Evaluator.eval(subForm, this.environment, this.streamManager, this.depth, this.plugins),
+    };
+    return plugin.apply(symbol, args, ctx);
   }
 
   /**
@@ -410,10 +553,11 @@ export class Evaluator extends Object {
    */
   eval_lisp(aCons: Cons): LispValue {
     return Evaluator.eval(
-      Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth),
+      Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth, this.plugins),
       this.environment,
       this.streamManager,
       this.depth,
+      this.plugins,
     );
   }
 
@@ -482,10 +626,16 @@ export class Evaluator extends Object {
    * @return the result of evaluating the selected branch
    */
   if_(aCons: Cons): LispValue {
-    const bool = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    const bool = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     const anObject: LispValue = Cons.isNil(bool) ? aCons.nth(3) : aCons.nth(2);
 
-    return Evaluator.eval(anObject, this.environment, this.streamManager, this.depth);
+    return Evaluator.eval(anObject, this.environment, this.streamManager, this.depth, this.plugins);
   }
 
   /**
@@ -539,7 +689,7 @@ export class Evaluator extends Object {
     let anObject: LispValue = Cons.nil;
     this.bindingParallel(parameters, aTable);
     for (const each of forms.loop()) {
-      anObject = Evaluator.eval(each, aTable, this.streamManager, this.depth);
+      anObject = Evaluator.eval(each, aTable, this.streamManager, this.depth, this.plugins);
     }
 
     return anObject;
@@ -557,7 +707,7 @@ export class Evaluator extends Object {
     let anObject: LispValue = Cons.nil;
     this.binding(parameters, aTable);
     for (const each of forms.loop()) {
-      anObject = Evaluator.eval(each, aTable, this.streamManager, this.depth);
+      anObject = Evaluator.eval(each, aTable, this.streamManager, this.depth, this.plugins);
     }
 
     return anObject;
@@ -569,7 +719,11 @@ export class Evaluator extends Object {
    * @return t if the expression evaluates to nil, otherwise nil
    */
   not(aCons: Cons): LispValue {
-    if (Cons.isNil(Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth))) {
+    if (
+      Cons.isNil(
+        Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth, this.plugins),
+      )
+    ) {
       return InterpretedSymbol.of('t');
     }
     return Cons.nil;
@@ -591,7 +745,13 @@ export class Evaluator extends Object {
    */
   or(aCons: Cons): LispValue {
     for (const each of aCons.loop()) {
-      const anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      const anObject = Evaluator.eval(
+        each,
+        this.environment,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
       if (Cons.isNotNil(anObject)) {
         return InterpretedSymbol.of('t');
       }
@@ -610,7 +770,13 @@ export class Evaluator extends Object {
       throw new EvalError(argumentNotSymbol(1));
     }
     const aSymbol = aCons.car as InterpretedSymbol;
-    const anObject = Evaluator.eval(aSymbol, this.environment, this.streamManager, this.depth);
+    const anObject = Evaluator.eval(
+      aSymbol,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     if (Cons.isNotCons(anObject)) {
       return Cons.nil;
     }
@@ -628,7 +794,13 @@ export class Evaluator extends Object {
   progn(aCons: Cons): LispValue {
     let anObject: LispValue = Cons.nil;
     for (const each of aCons.loop()) {
-      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      anObject = Evaluator.eval(
+        each,
+        this.environment,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
     }
 
     return anObject;
@@ -640,7 +812,13 @@ export class Evaluator extends Object {
    * @return the printed value
    */
   princ(aCons: Cons): LispValue {
-    const anObject = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    const anObject = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     process.stdout.write(String(anObject));
 
     return anObject;
@@ -652,7 +830,13 @@ export class Evaluator extends Object {
    * @return the printed value
    */
   print(aCons: Cons): LispValue {
-    const anObject = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    const anObject = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     process.stdout.write(String(anObject) + '\n');
 
     return anObject;
@@ -664,14 +848,20 @@ export class Evaluator extends Object {
    * @return the new Cons stored in the symbol
    */
   push_(aCons: Cons): LispValue {
-    let anObject = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    let anObject = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     if (Cons.isNotSymbol(aCons.nth(2))) {
       throw new EvalError(argumentNotSymbol(2));
     }
     const aSymbol = aCons.nth(2) as InterpretedSymbol;
     anObject = new Cons(
       anObject,
-      Evaluator.eval(aSymbol, this.environment, this.streamManager, this.depth),
+      Evaluator.eval(aSymbol, this.environment, this.streamManager, this.depth, this.plugins),
     );
     this.environment.setIfExist(aSymbol, anObject);
 
@@ -693,15 +883,27 @@ export class Evaluator extends Object {
    * @return the modified Cons
    */
   rplaca(args: Cons): LispValue {
-    let anObject = Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
+    let anObject = Evaluator.eval(
+      args.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     if (Cons.isNotCons(anObject)) {
       throw new EvalError(cannotApply('set-car!', anObject));
     }
     const aCons = anObject as Cons;
-    anObject = Evaluator.eval(args.nth(2), this.environment, this.streamManager, this.depth);
+    anObject = Evaluator.eval(
+      args.nth(2),
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     aCons.setCar(anObject);
 
-    return Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
+    return Evaluator.eval(args.car, this.environment, this.streamManager, this.depth, this.plugins);
   }
 
   /**
@@ -710,15 +912,27 @@ export class Evaluator extends Object {
    * @return the modified Cons
    */
   rplacd(args: Cons): LispValue {
-    let anObject = Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
+    let anObject = Evaluator.eval(
+      args.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     if (Cons.isNotCons(anObject)) {
       throw new EvalError(cannotApply('set-cdr!', anObject));
     }
     const aCons = anObject as Cons;
-    anObject = Evaluator.eval(args.nth(2), this.environment, this.streamManager, this.depth);
+    anObject = Evaluator.eval(
+      args.nth(2),
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     aCons.setCdr(anObject);
 
-    return Evaluator.eval(args.car, this.environment, this.streamManager, this.depth);
+    return Evaluator.eval(args.car, this.environment, this.streamManager, this.depth, this.plugins);
   }
 
   /**
@@ -745,6 +959,7 @@ export class Evaluator extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
       this.environment.set(key, anObject);
     }
@@ -772,6 +987,7 @@ export class Evaluator extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
       this.environment.setIfExist(key, anObject);
     }
@@ -899,7 +1115,7 @@ export class Evaluator extends Object {
    */
   time(aCons: Cons): number {
     const start = process.hrtime();
-    Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth, this.plugins);
     const end = process.hrtime(start);
 
     return end[1] / 1_000_000;
@@ -922,12 +1138,24 @@ export class Evaluator extends Object {
   unless(aCons: Cons): LispValue {
     let anObject: LispValue = Cons.nil;
     const theCons = aCons.cdr as Cons;
-    const flag = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    const flag = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     if (Cons.isNotNil(flag)) {
       return Cons.nil;
     }
     for (const each of theCons.loop()) {
-      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      anObject = Evaluator.eval(
+        each,
+        this.environment,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
     }
 
     return anObject;
@@ -941,12 +1169,24 @@ export class Evaluator extends Object {
   when(aCons: Cons): LispValue {
     let anObject: LispValue = Cons.nil;
     const theCons = aCons.cdr as Cons;
-    const flag = Evaluator.eval(aCons.car, this.environment, this.streamManager, this.depth);
+    const flag = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
     if (Cons.isNil(flag)) {
       return Cons.nil;
     }
     for (const each of theCons.loop()) {
-      anObject = Evaluator.eval(each, this.environment, this.streamManager, this.depth);
+      anObject = Evaluator.eval(
+        each,
+        this.environment,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
     }
 
     return anObject;

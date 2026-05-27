@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (plugin system)
+
+- **Plugin mechanism for adding Lisp-callable functions from external
+  packages.** Implement `KeiLispPlugin` and register with
+  `interpreter.use(plugin)`. The evaluator consults registered plugins
+  (in registration order, first match wins) after the special-form
+  check and before falling through to `Applier` built-ins. Plugins
+  receive already-evaluated arguments and a `PluginContext` that
+  exposes `environment` / `streamManager` / `depth` / `eval`, so they
+  can recursively re-enter the evaluator (designed so that kei-lisp-web's
+  legacy hard-coded graphics hook can be re-implemented as an external
+  plugin package).
+- New public exports to support plugin authoring: `Evaluator`,
+  `StreamManager`, `Table`, and the `KeiLispPlugin` / `PluginContext`
+  type definitions.
+- `docs/plugins.md` — plugin authoring guide.
+
 ### Added
 
 - Common Lisp-compatible numeric predicates: `evenp` / `oddp` / `zerop`
