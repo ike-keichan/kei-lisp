@@ -16,6 +16,8 @@ allq
 # インタープリタ内部
 PEEKCOUNT
 nexts
+oneplus
+oneminus
 
 # サンプルコード
 tasu

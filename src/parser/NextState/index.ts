@@ -7,16 +7,32 @@ import type { Parser } from '../Parser/index.js';
  * @author Keisuke Ikeda
  * @this {NextState}
  */
-export class NextState {
+export class NextState extends Object {
+  /**
+   * The parser whose method will be invoked. Set on each call to `next`.
+   */
   automaton: Parser | null = null;
+  /**
+   * The fallback state number returned when no method is configured (or as the initial value).
+   */
   nextState: number | null;
+  /**
+   * Cached reference to the resolved method (kept as `unknown` because lookup happens by name).
+   */
   method: unknown;
+  /**
+   * The name of the parser method to invoke, or null if only `nextState` should be returned.
+   */
   methodName: string | null;
 
   /**
    * Constructor.
+   * @constructor
+   * @param aNumber the fallback state number (or null)
+   * @param aString the parser method name to invoke (or null)
    */
   constructor(aNumber: number | null, aString: string | null) {
+    super();
     this.nextState = aNumber;
     this.method = null;
     this.methodName = aString;
@@ -24,6 +40,8 @@ export class NextState {
 
   /**
    * Invokes the method corresponding to the input character and returns the resulting token number.
+   * @param anAutomaton the parser to invoke the method on
+   * @return the next state number
    */
   next(anAutomaton: Parser): number {
     this.automaton = anAutomaton;

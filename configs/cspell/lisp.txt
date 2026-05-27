@@ -5,16 +5,13 @@
 cons
 cdr
 car
-caar
-cadr
-cdar
-cddr
 nconc
 rplaca
 rplacd
 nthcdr
 butlast
 mapcar
+mapcan
 assoc
 memq
 
@@ -37,6 +34,11 @@ symbolp
 numberp
 consp
 stringp
+evenp
+oddp
+zerop
+plusp
+minusp
 
 # 出力・制御
 terpri
@@ -46,7 +48,11 @@ notrace
 # 算術
 neq
 nequal
+expt
+
+# シーケンス
+subseq
+sublist
 
 # データ構造
 alist
-plist

@@ -5,6 +5,102 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [2.2.0] - 2026-05-28
+
+### Added
+
+- **Plugin mechanism for adding Lisp-callable functions from external
+  packages.** Implement `KeiLispPlugin` and register with
+  `interpreter.use(plugin)`. The evaluator consults registered plugins
+  (in registration order, first match wins) after the special-form
+  check and before falling through to `Applier` built-ins. Plugins
+  receive already-evaluated arguments and a `PluginContext` that
+  exposes `environment` / `streamManager` / `depth` / `eval`, so they
+  can recursively re-enter the evaluator (designed so that kei-lisp-web's
+  legacy hard-coded graphics hook can be re-implemented as an external
+  plugin package).
+- New public exports to support plugin authoring: `Evaluator`,
+  `StreamManager`, `Table`, and the `KeiLispPlugin` / `PluginContext`
+  type definitions.
+- Common Lisp-compatible numeric predicates: `evenp` / `oddp` / `zerop`
+  / `plusp` / `minusp`. All return `t` / `nil`; non-numbers and (for
+  `evenp` / `oddp`) non-integers return `nil` rather than throwing,
+  matching the existing `integerp` / `numberp` style.
+- Common Lisp-compatible arithmetic functions:
+  - `expt` — `(expt B E)` raises B to the exponent E
+  - `truncate` / `floor` / `ceiling` — integer rounding (toward zero /
+    negative infinity / positive infinity respectively)
+  - `min` / `max` — variadic, returns the smallest / largest argument
+- Common Lisp-compatible increment / decrement: `1+` / `1-`. Required a
+  parser extension: the integer-accumulation state now routes `+` / `-`
+  to the symbol state, so `1+` / `1-` / `1+something` parse as symbols
+  (matching CL). Exponent sign (`1e+10`) is handled in a different state
+  and remains unaffected.
+- Higher-order list functions that take a function as the first argument:
+  - `reduce` — left-fold with optional initial value (`(reduce fn list)`
+    or `(reduce fn list init)`)
+  - `every` — t if predicate is non-nil for all elements (vacuous truth
+    for empty list)
+  - `some` — first non-nil result, or nil
+  - `find` — first element equal (`eq`) to item, or nil
+  - `mapcan` — map + concatenate the returned lists (non-cons / nil
+    results contribute nothing)
+  - `sort` — non-destructive sort using a 2-arg predicate
+
+  All accept the positional argument form only; CL's keyword arguments
+  (`:test` / `:key` / `:from-end` / `:initial-value` etc.) are not
+  supported. See `docs/built-in-functions.md` for per-function
+  deviations.
+
+- String functions: `string-upcase` / `string-downcase` / `string-trim` /
+  `substring` / `concatenate`. `string-trim` and `concatenate` deviate
+  slightly from CL semantics (trim takes no character bag; concatenate
+  takes no type designator); see `docs/built-in-functions.md` for
+  details.
+- Sequence functions that work on both lists and strings: `elt` /
+  `subseq` / `count`. `subseq` returns a list when given a list and a
+  string when given a string.
+
+### Changed
+
+- **`length` now also accepts strings** (returns code point count) in
+  addition to lists. Previously a list-only Lisp lambda; now an Applier
+  built-in.
+- `format` / `eval` are now also registered in the root environment, so
+  they can be referenced as values (`(setq f format)` no longer errors).
+  Previously only callable in operator position.
+- Restored `extends Object` on the runtime value / parser / interpreter
+  classes that had it pre-TS-migration (`Cons`, `InterpretedSymbol`,
+  `Loop`, `Parser`, `NextState`, `IntStream`, `Applier`, `Evaluator`,
+  `StreamManager`, `LispInterpreter`, `Repl`). Constructors call
+  `super()` and `override` is added where TypeScript's
+  `noImplicitOverride` requires it (`Cons.toString` / static
+  `Cons.toString`, `InterpretedSymbol.toString`, `Table.toString`,
+  static `Applier.apply`). Instance behavior is unchanged; the
+  static side of each class additionally inherits `Object`'s static
+  methods.
+
+### Documentation
+
+- Annotated kei-lisp-specific or non-CL-standard built-ins in
+  `docs/built-in-functions.md` with a **(kei-lisp specific)** note so
+  users can spot differences from Common Lisp at a glance. Covered
+  entries: `=`, `==`, `~=`, `~~`, `//`, `floatp` (range-check semantics),
+  `doublep`, `bind`, `exit`, `gc`, `set-allq`. Added a legend explaining
+  the convention at the top of the reference.
+- `docs/plugins.md` — plugin authoring guide covering the
+  `KeiLispPlugin` / `PluginContext` interfaces, dispatch order, and the
+  packaging conventions expected for external plugin packages.
+- Restored class / field / method JSDoc across the codebase to match the
+  pre-TS-migration documentation density. All public classes, fields,
+  and methods now carry a one-line English summary with `@param` /
+  `@return` tags (no `@type`), matching the `Cons` / `Parser` style.
+  TypeDoc output is again exhaustive for `Applier`, `Evaluator`, `Cons`,
+  `Parser`, `Table`, `StreamManager`, `LispInterpreter`, `Repl`, `Loop`,
+  `IntStream`, `NextState`, `InterpretedSymbol`, and the error family.
+
 ## [2.1.0] - 2026-05-26
 
 ### Added

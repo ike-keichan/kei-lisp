@@ -1,6 +1,6 @@
 {
   "name": "kei-lisp",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "A Lisp interpreter implemented in TypeScript",
   "author": "Keisuke Ikeda",
   "license": "MIT",
@@ -50,6 +50,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "doc": "typedoc",
+    "typecheck": "tsc --noEmit",
     "check": "run-s check:*",
     "check:format": "prettier \"./src/**/*.ts\" \"./examples/**/*.ts\" --check",
     "check:format-config": "prettier \"./*.{js,mjs,json,md}\" \"./docs/**/*.md\" \"./.github/**/*.yml\" \"./configs/**/*.mjs\" --check",

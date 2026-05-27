@@ -1,6 +1,7 @@
 import pluginSonarjs from 'eslint-plugin-sonarjs';
-import { RULE_LEVEL } from '../const/index.mjs';
+import { FILES, RULE_LEVEL } from '../const/index.mjs';
 
+const { TEST } = FILES;
 const { WARN, OFF } = RULE_LEVEL;
 
 /**
@@ -29,6 +30,13 @@ export const sonarjsConfigs = [
       // NOTE: # 構文 (ECMAScript private field) を public と誤検知するため無効化
       // public な静的プロパティに readonly 修飾子の使用を強制
       'sonarjs/public-static-readonly': OFF,
+    },
+  },
+  {
+    // NOTE: テストケースの説明文 (`it('returns nil for ...')` 等) は describe ブロックを跨いで意図的に重複させる慣習があるため、テストファイル全体で無効化
+    files: TEST,
+    rules: {
+      'sonarjs/no-duplicate-string': OFF,
     },
   },
 ];

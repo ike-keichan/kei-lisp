@@ -14,11 +14,23 @@ const require = createRequire(import.meta.url);
  * @author Keisuke Ikeda
  * @this {Repl}
  */
-export class Repl {
+export class Repl extends Object {
+  /**
+   * The underlying interpreter used to parse and evaluate user input.
+   */
   interpreter: LispInterpreter;
+  /**
+   * The Node.js readline interface that supplies prompt I/O.
+   */
   rl: ReadlineInterface;
 
+  /**
+   * Constructor.
+   * @constructor
+   * @param interpreter the interpreter to evaluate input against (defaults to a fresh one)
+   */
   constructor(interpreter: LispInterpreter = new LispInterpreter()) {
+    super();
     this.interpreter = interpreter;
 
     const readline = require('node:readline') as typeof import('node:readline');
@@ -31,6 +43,7 @@ export class Repl {
 
   /**
    * Starts the REPL loop.
+   * @return void
    */
   run(): void {
     let aString = '';

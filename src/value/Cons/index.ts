@@ -10,10 +10,19 @@ import type { LispValue } from '../../types/index.js';
  * @author Keisuke Ikeda
  * @this {Cons}
  */
-export class Cons {
+export class Cons extends Object {
+  /**
+   * The shared empty-list sentinel. A Cons whose car and cdr are both itself, representing Lisp `nil`.
+   */
   static readonly nil: Cons = new Cons();
 
+  /**
+   * The head element of this Cons cell.
+   */
   car: LispValue;
+  /**
+   * The tail of this Cons cell (typically another Cons or nil).
+   */
   cdr: LispValue;
 
   /**
@@ -23,6 +32,7 @@ export class Cons {
    * @param cdr the cdr; defaults to nil when no argument is given.
    */
   constructor(car: LispValue = Cons.nil, cdr: LispValue = Cons.nil) {
+    super();
     this.car = car;
     this.cdr = cdr;
   }
@@ -299,7 +309,7 @@ export class Cons {
   /**
    * Returns a formatted string representation of this Cons.
    */
-  toString(): string {
+  override toString(): string {
     let aString = '';
     if (Cons.isNil(this)) {
       aString += Cons.toString(Cons.nil);
@@ -330,7 +340,7 @@ export class Cons {
    * Returns a formatted string representation of the given object.
    * @param anObject the object to format
    */
-  static toString(anObject: LispValue): string {
+  static override toString(anObject: LispValue): string {
     return Cons.isNil(anObject) ? 'nil' : (anObject as { toString(): string }).toString();
   }
 }
