@@ -11,11 +11,22 @@ import type { LispValue } from '../../types/index.js';
  * @author Keisuke Ikeda
  * @this {LispInterpreter}
  */
-export class LispInterpreter {
+export class LispInterpreter extends Object {
+  /**
+   * The root (top-level) environment table, pre-populated with built-in symbols.
+   */
   root: Table;
+  /**
+   * The stream manager that owns the interpreter's output / spy streams.
+   */
   streamManager: StreamManager;
 
+  /**
+   * Constructor.
+   * @constructor
+   */
   constructor() {
+    super();
     this.root = this.initializeTable();
     this.streamManager = new StreamManager();
   }
@@ -24,6 +35,8 @@ export class LispInterpreter {
    * Evaluates the given expression and returns the result. Throws `ParseError`,
    * `EvalError`, or `ExitError` on failure; library users are expected to catch
    * these (see the `KeiLispError` base class for the parse/eval family).
+   * @param aCons the expression to evaluate
+   * @return the evaluation result
    */
   eval(aCons: LispValue): LispValue {
     return Evaluator.eval(aCons, this.root, this.streamManager);
@@ -31,6 +44,8 @@ export class LispInterpreter {
 
   /**
    * Parses the source string, evaluates every expression it contains, and returns the results as an array.
+   * @param source the Lisp source string
+   * @return the array of evaluation results, one per top-level expression
    */
   evalAll(source: string): LispValue[] {
     const ast = this.parse(source);
@@ -43,6 +58,8 @@ export class LispInterpreter {
 
   /**
    * Parses and evaluates the source string and returns the value of the last expression.
+   * @param source the Lisp source string
+   * @return the value of the last expression, or `Cons.nil` for empty input
    */
   evalString(source: string): LispValue {
     const results = this.evalAll(source);
@@ -54,6 +71,8 @@ export class LispInterpreter {
    * it. The result is always a `Cons` (possibly `Cons.nil` for empty input)
    * because the source is wrapped in an outer list before parsing. Throws
    * `ParseError` if the source cannot be parsed.
+   * @param aString the Lisp source string
+   * @return a Cons containing the parsed top-level expressions
    */
   parse(aString: string): Cons {
     return Cons.parse('(' + aString + '\n);') as Cons;
@@ -61,6 +80,8 @@ export class LispInterpreter {
 
   /**
    * Sets the given environment as the root of the environment chain.
+   * @param environment the environment table to install as root
+   * @return null
    */
   setRoot(environment: Table): null {
     if (environment instanceof Table) {
@@ -72,7 +93,8 @@ export class LispInterpreter {
   }
 
   /**
-   * Initializes the environment table.
+   * Builds the root environment table by pre-registering every built-in symbol and the small set of bootstrap lambdas (append / butlast / nthcdr / reverse).
+   * @return the freshly initialized root environment
    */
   initializeTable(): Table {
     const aList: string[] = [];

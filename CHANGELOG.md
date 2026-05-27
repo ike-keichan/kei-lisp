@@ -69,6 +69,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they can be referenced as values (`(setq f format)` no longer errors).
   Previously only callable in operator position.
 
+### Documentation (JSDoc backfill)
+
+- Restored class / field / method JSDoc across the codebase to match the
+  pre-TS-migration documentation density. All public classes, fields,
+  and methods now carry a one-line English summary with `@param` /
+  `@return` tags (no `@type`), matching the `Cons` / `Parser` style.
+  TypeDoc output is again exhaustive for `Applier`, `Evaluator`, `Cons`,
+  `Parser`, `Table`, `StreamManager`, `LispInterpreter`, `Repl`, `Loop`,
+  `IntStream`, `NextState`, `InterpretedSymbol`, and the error family.
+
+### Changed (internal)
+
+- Restored `extends Object` on the runtime value / parser / interpreter
+  classes that had it pre-TS-migration (`Cons`, `InterpretedSymbol`,
+  `Loop`, `Parser`, `NextState`, `IntStream`, `Applier`, `Evaluator`,
+  `StreamManager`, `LispInterpreter`, `Repl`). Constructors call
+  `super()` and `override` is added where TypeScript's
+  `noImplicitOverride` requires it (`Cons.toString` / static
+  `Cons.toString`, `InterpretedSymbol.toString`, `Table.toString`,
+  static `Applier.apply`). Instance behavior is unchanged; the
+  static side of each class additionally inherits `Object`'s static
+  methods.
+
 ## [2.1.0] - 2026-05-26
 
 ### Added
