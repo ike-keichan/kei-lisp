@@ -6,23 +6,32 @@ import { Table } from '../../runtime/Table/index.js';
  * @author Keisuke Ikeda
  * @this {InterpretedSymbol}
  */
-export class InterpretedSymbol {
+export class InterpretedSymbol extends Object {
   /**
    * Table that stores InterpretedSymbol instances (lazily initialized to avoid a circular dependency).
    */
   static #intern: Table | null = null;
+  /**
+   * Lazy accessor for the intern table that holds every InterpretedSymbol instance.
+   * @return the intern Table (created on first access)
+   */
   static get table(): Table {
     this.#intern ??= new Table();
     return this.#intern;
   }
 
+  /**
+   * The printed name of this symbol.
+   */
   name: string;
 
   /**
    * Constructor.
+   * @constructor
    * @param name printed name
    */
   constructor(name: string = 'null') {
+    super();
     this.name = name;
   }
 
@@ -42,6 +51,8 @@ export class InterpretedSymbol {
 
   /**
    * Returns whether this symbol equals the given object.
+   * @param anObject the object to compare against
+   * @return true when identity-equal (since intern guarantees uniqueness)
    */
   equals(anObject: unknown): boolean {
     return this === anObject;
@@ -50,6 +61,7 @@ export class InterpretedSymbol {
   /**
    * Returns the same interpreted symbol for a given printed name.
    * @param aString printed name
+   * @return the canonical InterpretedSymbol for that name
    */
   static of(aString: string): InterpretedSymbol {
     let aSymbol = this.table.get(aString) as InterpretedSymbol | null;
@@ -64,8 +76,9 @@ export class InterpretedSymbol {
 
   /**
    * Returns the string representation of this symbol.
+   * @return the printed name
    */
-  toString(): string {
+  override toString(): string {
     return this.name;
   }
 }

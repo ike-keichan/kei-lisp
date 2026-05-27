@@ -14,19 +14,39 @@ const SYNTAX_ERROR = 'Syntax Error!';
  * @author Keisuke Ikeda
  * @this {Parser}
  */
-export class Parser {
+export class Parser extends Object {
+  /**
+   * Iterator over the input source characters.
+   */
   stream: Iterator<string>;
+  /**
+   * The most recently produced parse token (a value or sub-Cons).
+   */
   token: LispValue;
+  /**
+   * The accumulator for the current literal being read (number, symbol, string).
+   */
   tokenString: string;
+  /**
+   * The state transition table: current state -> (input code point string -> NextState).
+   */
   states: Map<number, Map<string, NextState>>;
+  /**
+   * The current automaton state number.
+   */
   state: number;
+  /**
+   * The look-ahead buffer of characters (size `PEEKCOUNT + 1`).
+   */
   nexts: Array<string | null>;
 
   /**
    * Constructor.
+   * @constructor
    * @param aString the string to parse
    */
   constructor(aString: string) {
+    super();
     this.stream = aString[Symbol.iterator]();
     this.token = null;
     this.tokenString = '';
@@ -42,6 +62,7 @@ export class Parser {
 
   /**
    * Returns whether this is the last element.
+   * @return true if there are no more characters to read
    */
   atEnd(): boolean {
     return this.peekChar() == null;
@@ -49,6 +70,7 @@ export class Parser {
 
   /**
    * Concatenates the current character into the token string.
+   * @return null
    */
   concatCharacter(): null {
     this.tokenString = this.tokenString.concat(String(this.nexts[0]));
@@ -57,6 +79,8 @@ export class Parser {
 
   /**
    * Parses a single character of the input string.
+   * @param aCharacter the character to feed into the automaton; defaults to the next character
+   * @return the token produced so far (may be null if still accumulating)
    */
   input(aCharacter: string | null = this.nextChar()): LispValue {
     // Following the original: throws TypeError on .has when inputs is undefined.
@@ -78,6 +102,7 @@ export class Parser {
 
   /**
    * Returns the next character to be parsed from the input string.
+   * @return the next character, or null at end of input
    */
   nextChar(): string | null {
     let aCharacter: string | null = null;
@@ -102,6 +127,7 @@ export class Parser {
 
   /**
    * Determines and returns the next token.
+   * @return the next parsed token
    */
   nextToken(): LispValue {
     this.token = null;
@@ -123,6 +149,9 @@ export class Parser {
 
   /**
    * Instantiates and returns a NextState.
+   * @param aNumber the fallback state number (or null)
+   * @param aString the parser method name (or null)
+   * @return the new NextState
    */
   nextState(aNumber: number | null, aString: string | null): NextState {
     return new NextState(aNumber, aString);
@@ -130,6 +159,8 @@ export class Parser {
 
   /**
    * Parses the given string and returns the result.
+   * @param aString the source string
+   * @return the parsed value
    */
   static parse(aString: string): LispValue {
     return new Parser(aString).nextToken();
@@ -137,6 +168,8 @@ export class Parser {
 
   /**
    * Returns the next character if one exists.
+   * @param aNumber 1-based offset into the look-ahead buffer
+   * @return the character at that offset, or null if not present
    */
   peekChar(aNumber: number = 1): string | null {
     if (aNumber > this.nexts.length) {
@@ -147,6 +180,7 @@ export class Parser {
 
   /**
    * Concatenates characters; invoked from NextState.
+   * @return null
    */
   concat(): null {
     this.concatCharacter();
@@ -158,6 +192,7 @@ export class Parser {
    * (`\n`, `\t`, `\r`, `\\`, `\"`) into their actual characters. Invoked from NextState
    * inside a string literal after a backslash. Unknown escapes pass through as the
    * literal character (e.g. `\x` becomes `x`).
+   * @return null
    */
   escapeConcat(): null {
     const c = String(this.nexts[0]);
@@ -174,6 +209,7 @@ export class Parser {
 
   /**
    * Returns the token number for a Number-type (double-precision floating point: pseudo-Double); invoked from NextState.
+   * @return the next state number (3, or 0 when the literal is complete)
    */
   doubleToken(): number {
     this.concat();
@@ -187,6 +223,7 @@ export class Parser {
 
   /**
    * Returns the token number for a Number-type (double-precision floating point: pseudo-Double); invoked from NextState.
+   * @return the next state number (5, or 0 when the literal is complete)
    */
   doubleTokenAUX(): number {
     this.concat();
@@ -200,6 +237,7 @@ export class Parser {
 
   /**
    * Returns the token number for a Number-type (integer: pseudo-Integer); invoked from NextState.
+   * @return the next state number (2, or 0 when the literal is complete)
    */
   integerToken(): number {
     this.concat();
@@ -213,6 +251,7 @@ export class Parser {
 
   /**
    * Converts the token into a list (Cons) and returns the token number for a list (Cons); invoked from NextState.
+   * @return 0
    */
   parseList(): number {
     this.skippingSpaces();
@@ -228,6 +267,7 @@ export class Parser {
 
   /**
    * Helper that converts the token into a list (Cons); invoked from NextState.
+   * @return the parsed Cons (or its cdr in dotted-pair form)
    */
   parseListAUX(): LispValue {
     this.skippingSpaces();
@@ -260,6 +300,7 @@ export class Parser {
 
   /**
    * Recognizes a quote, wraps the token into a list (Cons), and returns the token number; invoked from NextState.
+   * @return 0
    */
   quote(): number {
     const anObject = new Cons(this.nextToken(), Cons.nil);
@@ -270,6 +311,7 @@ export class Parser {
 
   /**
    * Returns the token number for a quote or for a 0-origin String-type (pseudo-Character); invoked from NextState.
+   * @return the next state number
    */
   quoteOrChar(): number {
     let aNumber = this.peekChar() === '\\' ? 3 : 2;
@@ -280,6 +322,7 @@ export class Parser {
 
   /**
    * Detects a right parenthesis (')', ']', '}') and returns the result; invoked from NextState.
+   * @return true when the next character is any right paren
    */
   rightParen(): boolean {
     return this.peekChar() === ')' || this.peekChar() === ']' || this.peekChar() === '}';
@@ -287,6 +330,7 @@ export class Parser {
 
   /**
    * Returns the token number for a sign symbol ('+', '-'); invoked from NextState.
+   * @return the next state number (7, or 0 when the literal is complete)
    */
   sign(): number {
     this.concat();
@@ -299,6 +343,7 @@ export class Parser {
 
   /**
    * Skips whitespace; invoked from NextState.
+   * @return null
    */
   skippingSpaces(): null {
     while (
@@ -317,6 +362,7 @@ export class Parser {
 
   /**
    * Returns the token number for an InterpretedSymbol; invoked from NextState.
+   * @return the next state number (8, or 0 when the literal is complete)
    */
   symbolToken(): number {
     this.concat();
@@ -330,6 +376,7 @@ export class Parser {
 
   /**
    * Converts the token into a 0-origin String-type (pseudo-Character); invoked from NextState.
+   * @return null
    */
   tokenToCharacter(): null {
     this.token = this.tokenString.charAt(0);
@@ -338,6 +385,7 @@ export class Parser {
 
   /**
    * Converts the token into a Number-type (double-precision floating point: pseudo-Double); invoked from NextState.
+   * @return null
    */
   tokenToDouble(): null {
     this.token = Number(this.tokenString);
@@ -346,6 +394,7 @@ export class Parser {
 
   /**
    * Converts the token into a Number-type (double-precision floating point: pseudo-Double); invoked from NextState.
+   * @return null
    */
   tokenToDoubleAUX(): null {
     this.concat();
@@ -355,6 +404,7 @@ export class Parser {
 
   /**
    * Converts the token into a Number-type (integer: pseudo-Integer); invoked from NextState.
+   * @return null
    */
   tokenToInteger(): null {
     const aCharacter = this.tokenString[0];
@@ -367,6 +417,7 @@ export class Parser {
 
   /**
    * Converts the token into a String-type; invoked from NextState.
+   * @return null
    */
   tokenToString(): null {
     this.token = this.tokenString;
@@ -375,6 +426,7 @@ export class Parser {
 
   /**
    * Converts the token into an InterpretedSymbol; invoked from NextState.
+   * @return null
    */
   tokenToSymbol(): null {
     this.token = InterpretedSymbol.of(this.tokenString);
@@ -386,6 +438,7 @@ export class Parser {
 
   /**
    * Builds the lookup table that maps character codes to their corresponding methods (tokens).
+   * @return null
    */
   initializeStateTransitionTable(): null {
     let aTable = new Map<string, NextState>();
