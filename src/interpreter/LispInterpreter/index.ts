@@ -3,6 +3,7 @@ import { Evaluator } from '../../runtime/Evaluator/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import { StreamManager } from '../../runtime/StreamManager/index.js';
 import { Table } from '../../runtime/Table/index.js';
+import type { KeiLispPlugin } from '../../plugin/types.js';
 import type { LispValue } from '../../types/index.js';
 
 /**
@@ -20,6 +21,10 @@ export class LispInterpreter extends Object {
    * The stream manager that owns the interpreter's output / spy streams.
    */
   streamManager: StreamManager;
+  /**
+   * Registered plugins consulted by the evaluator on every call. See `use`.
+   */
+  plugins: KeiLispPlugin[];
 
   /**
    * Constructor.
@@ -29,6 +34,19 @@ export class LispInterpreter extends Object {
     super();
     this.root = this.initializeTable();
     this.streamManager = new StreamManager();
+    this.plugins = [];
+  }
+
+  /**
+   * Registers a plugin. Subsequent `eval` calls will consult the plugin chain
+   * (in registration order, first match wins) when no special form matches a
+   * symbol, before falling through to the Applier built-ins.
+   * @param plugin the plugin to register
+   * @return this interpreter, for chaining
+   */
+  use(plugin: KeiLispPlugin): this {
+    this.plugins.push(plugin);
+    return this;
   }
 
   /**
@@ -39,7 +57,7 @@ export class LispInterpreter extends Object {
    * @return the evaluation result
    */
   eval(aCons: LispValue): LispValue {
-    return Evaluator.eval(aCons, this.root, this.streamManager);
+    return Evaluator.eval(aCons, this.root, this.streamManager, 1, this.plugins);
   }
 
   /**
