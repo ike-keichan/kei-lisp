@@ -112,33 +112,40 @@ Conventions:
 
 ## Branch strategy
 
-kei-lisp bundles several features into one minor release using
-**release-line branches** (`v2.1`, `v2.2`, ...), then merges them into
-`main` at release time.
+kei-lisp bundles several features into one minor (or major) release
+using **release-line branches** (`v2.1`, `v2.2`, `v3.0`, ...), then
+merges them into `main` at release time. Patches go directly through
+`hotfix/*` PRs to `main`.
 
 ```
 feature/* ──┐
 feature/* ──┤── vX.Y (release line) ──→ main ──→ tag vX.Y.0 ──→ npm
-feature/* ──┘
-                                        hotfix/* ──→ main (direct, urgent only)
+feature/* ──┘                          ↑
+                                       │ (vX.Y is kept as a permanent snapshot)
+                                hotfix/* ──→ main (patches, direct)
 ```
 
-| Branch                | Purpose                                             | Lifetime                        |
-| --------------------- | --------------------------------------------------- | ------------------------------- |
-| `main`                | Latest released state. Always tag-ready             | Permanent                       |
-| `vX.Y` (release line) | Integrates multiple features for the next minor     | Until release; merged & deleted |
-| `feature/*`           | A single logical change targeting the active `vX.Y` | Until merged                    |
-| `hotfix/*`            | Urgent fix targeting `main` directly                | Until merged                    |
-| `vX` (maintenance)    | Security/critical fixes for an older major          | Permanent (long-lived)          |
+| Branch                | Purpose                                                                                                                               | Lifetime               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `main`                | Latest released state. Always tag-ready                                                                                               | Permanent              |
+| `vX.Y` (release line) | Integrates multiple features for the next minor or major release. Retained after release as a snapshot of that minor's released state | Permanent (long-lived) |
+| `feature/*`           | A single logical change targeting the active `vX.Y`                                                                                   | Until merged           |
+| `hotfix/*`            | Patch or urgent fix targeting `main` directly. Used for both routine patch releases and emergency fixes                               | Until merged           |
+
+All major / minor lines (`v1.0`, `v2.0`, `v2.1`, `v2.2`, ...) are kept
+around as snapshots of their released state. There is no separate
+`vX` (bare-major) maintenance branch; the `vX.0` branch doubles as the
+v(X).0.x maintenance line. The `release.yml` workflow currently only
+fires on pushes to `main`, so backporting a patch to an older line
+requires either extending the workflow trigger or publishing manually.
 
 ### Branch creation responsibilities
 
-| Branch type           | Created by          | When                                                         |
-| --------------------- | ------------------- | ------------------------------------------------------------ |
-| `vX.Y` (release line) | **Maintainer only** | When planning a minor release that bundles 2+ features       |
-| `vX` (maintenance)    | **Maintainer only** | Right after the next major (`v(X+1).0.0`) is tagged          |
-| `hotfix/*`            | **Maintainer only** | When a critical bug needs a patch to a released version      |
-| `feature/*`           | Anyone              | Anytime, branching from the **active release line** (`vX.Y`) |
+| Branch type           | Created by          | When                                                                        |
+| --------------------- | ------------------- | --------------------------------------------------------------------------- |
+| `vX.Y` (release line) | **Maintainer only** | When planning a minor or major release that bundles 2+ features             |
+| `hotfix/*`            | **Maintainer only** | When a patch (routine or urgent) needs to be cut against a released version |
+| `feature/*`           | Anyone              | Anytime, branching from the **active release line** (`vX.Y`)                |
 
 If you are unsure which base branch to target, ask in the PR description
 or open a draft PR and the maintainer will guide you.
