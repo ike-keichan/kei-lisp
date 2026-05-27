@@ -1,6 +1,6 @@
 {
   "name": "kei-lisp",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "A Lisp interpreter implemented in TypeScript",
   "author": "Keisuke Ikeda",
   "license": "MIT",
