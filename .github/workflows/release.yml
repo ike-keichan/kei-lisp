@@ -22,7 +22,7 @@ jobs:
       should-release: ${{ steps.decide.outputs.should-release }}
       version: ${{ steps.decide.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # tags must be available for the existence check
 
@@ -45,7 +45,7 @@ jobs:
     if: needs.check.outputs.should-release == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
