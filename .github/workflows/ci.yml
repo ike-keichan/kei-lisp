@@ -12,53 +12,69 @@ concurrency:
 
 jobs:
   typecheck:
-    name: Type check
+    name: Type check (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
-          node-version-file: .node-version
+          node-version: ${{ matrix.node }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
 
   lint:
-    name: Lint
+    name: Lint (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
-          node-version-file: .node-version
+          node-version: ${{ matrix.node }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
 
   tests:
-    name: Tests
+    name: Tests (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
-          node-version-file: .node-version
+          node-version: ${{ matrix.node }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
   build:
-    name: Build
+    name: Build (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
-          node-version-file: .node-version
+          node-version: ${{ matrix.node }}
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build

@@ -3,7 +3,7 @@
  * Programmatic evaluation samples using `evalString` and `evalAll`.
  *
  * Run with:
- *   pnpm build && pnpm exec tsx examples/basic-eval.ts
+ *   pnpm build && node --experimental-strip-types examples/basic-eval.ts
  */
 import { Cons, LispInterpreter } from 'kei-lisp';
 

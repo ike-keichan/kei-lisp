@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-06-27
+
+### Added
+
+- **Macro mechanism.** New `defmacro` special form defines macros whose
+  arguments are received unevaluated; the body is evaluated to produce a
+  form that is then evaluated in the caller's environment. Macros are
+  detected during evaluation after the special-form check and before the
+  plugin / `Applier` fallthrough.
+- **Backquote (quasiquote) reader syntax** for building macro expansions:
+  - `` `X `` — quasiquote: returns the template `X` with substitutions
+  - `,Y` — unquote: replaces with the value of `Y`
+  - `,@Z` — unquote-splicing: splices the elements of the list `Z`
+  - Nested backquotes raise the level so inner unquotes only fire at the
+    matching depth; dotted unquote tails (`` `(a . ,b) ``) are supported.
+- **`macroexpand` / `macroexpand-1`** special forms for inspecting
+  expansions without evaluating them (`macroexpand-1` expands the
+  top-level form once; `macroexpand` repeats until it is no longer a
+  macro call). Works with the existing `gensym` to write capture-safe
+  macros.
+- CI status badge in the README.
+
+### Changed
+
+- **CI now runs across a Node version matrix (24 and 26)** for the
+  typecheck / lint / tests / build jobs, aligning verification with the
+  declared `engines` range (`node >=24.0.0`).
+- The backquote character `` ` `` now denotes quasiquote (previously an
+  undocumented alias for `quote`), and the comma `,` is now the unquote
+  reader macro (previously a symbol-constituent character at token
+  start).
+- dependabot PRs are grouped (npm dev / prod, and GitHub Actions) to
+  reduce PR noise.
+- README example instructions now use
+  `node --experimental-strip-types examples/...` instead of the
+  uninstalled `pnpm exec tsx`.
+
+### Fixed
+
+- `unquote-splicing` (`,@`) on an improper (dotted) list now signals an
+  error instead of silently dropping the dotted tail.
+- `typedoc.json` no longer lists the now-exported `Table` /
+  `StreamManager` under `intentionallyNotExported`, removing the
+  warnings emitted by `pnpm doc`.
+
 ## [2.2.0] - 2026-05-28
 
 ### Added

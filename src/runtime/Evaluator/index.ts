@@ -42,6 +42,12 @@ export class Evaluator extends Object {
   static readonly buildInFunctions: Map<InterpretedSymbol, string> = Evaluator.setup();
 
   /**
+   * Marker symbol stored as the car of the Cons that represents a macro binding,
+   * distinguishing macros from ordinary `lambda` closures in the environment.
+   */
+  static readonly macroMarker: InterpretedSymbol = InterpretedSymbol.of('macro');
+
+  /**
    * The variable binding environment used during evaluation.
    */
   environment: Table;
@@ -285,6 +291,138 @@ export class Evaluator extends Object {
   }
 
   /**
+   * Implementation of the Lisp `defmacro` special form. Defines a macro: a
+   * transformer whose body receives its arguments unevaluated and returns a
+   * form that is then evaluated in the caller's environment.
+   * @param aCons the argument Cons containing the macro name, parameter list, and body
+   * @return the macro name symbol
+   */
+  defmacro(aCons: Cons): LispValue {
+    const variable = aCons.car;
+    const lambda = Evaluator.eval(
+      new Cons(InterpretedSymbol.of('lambda'), aCons.cdr),
+      new Table(this.environment),
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
+    const macro = new Cons(Evaluator.macroMarker, new Cons(lambda, Cons.nil));
+    this.environment.set(variable, macro);
+
+    return variable;
+  }
+
+  /**
+   * Returns the macro transformer (a lambda Cons) bound to the given symbol, or
+   * null when the symbol is not bound to a macro. Special-form symbols are never
+   * treated as macros.
+   * @param car the operator position of a call form
+   * @return the macro's lambda Cons, or null
+   */
+  lookupMacro(car: LispValue): Cons | null {
+    if (Cons.isNotSymbol(car) || Evaluator.buildInFunctions.has(car as InterpretedSymbol)) {
+      return null;
+    }
+    const value = this.environment.get(car);
+    if (Cons.isCons(value) && value.car === Evaluator.macroMarker) {
+      return value.nth(2) as Cons;
+    }
+
+    return null;
+  }
+
+  /**
+   * Expands a macro call exactly once by applying its transformer to the
+   * unevaluated argument forms in the macro's captured environment.
+   * @param form the call form whose car names the macro
+   * @param macroLambda the macro's transformer lambda Cons
+   * @return the expansion form
+   */
+  expandMacro1(form: Cons, macroLambda: Cons): LispValue {
+    const capturedEnvironment = macroLambda.last().car as Table;
+
+    return Applier.apply(
+      macroLambda,
+      form.cdr,
+      capturedEnvironment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
+  }
+
+  /**
+   * Expands a macro call once and evaluates the resulting form in the current
+   * environment.
+   * @param form the call form whose car names the macro
+   * @param macroLambda the macro's transformer lambda Cons
+   * @return the result of evaluating the expansion
+   */
+  evalMacroCall(form: Cons, macroLambda: Cons): LispValue {
+    const expansion = this.expandMacro1(form, macroLambda);
+
+    return Evaluator.eval(
+      expansion,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
+  }
+
+  /**
+   * Implementation of the Lisp `macroexpand-1` special form. Evaluates its
+   * argument to obtain a form and, when that form is a macro call, expands it
+   * exactly once without evaluating the result.
+   * @param aCons the argument Cons whose car evaluates to the form to expand
+   * @return the once-expanded form, or the form unchanged when it is not a macro call
+   */
+  macroexpand_1(aCons: Cons): LispValue {
+    const form = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
+    if (Cons.isNotCons(form)) {
+      return form;
+    }
+    const macroLambda = this.lookupMacro((form as Cons).car);
+    if (macroLambda == null) {
+      return form;
+    }
+
+    return this.expandMacro1(form as Cons, macroLambda);
+  }
+
+  /**
+   * Implementation of the Lisp `macroexpand` special form. Evaluates its
+   * argument to obtain a form and repeatedly expands it until the result is no
+   * longer a macro call, without evaluating the result.
+   * @param aCons the argument Cons whose car evaluates to the form to expand
+   * @return the fully expanded form
+   */
+  macroexpand(aCons: Cons): LispValue {
+    let form = Evaluator.eval(
+      aCons.car,
+      this.environment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
+    while (Cons.isCons(form)) {
+      const macroLambda = this.lookupMacro(form.car);
+      if (macroLambda == null) {
+        break;
+      }
+      form = this.expandMacro1(form, macroLambda);
+    }
+
+    return form;
+  }
+
+  /**
    * Implementation of the Lisp `do` special form (parallel binding update).
    * @param aCons the argument Cons containing bindings, termination clause, and body
    * @return the value of the termination clause's result form
@@ -493,6 +631,12 @@ export class Evaluator extends Object {
     const formCons = form as Cons;
     if (Cons.isSymbol(formCons.car) && Evaluator.buildInFunctions.has(formCons.car)) {
       return this.specialForm(formCons);
+    }
+    if (Cons.isSymbol(formCons.car)) {
+      const macroLambda = this.lookupMacro(formCons.car);
+      if (macroLambda != null) {
+        return this.evalMacroCall(formCons, macroLambda);
+      }
     }
     if (Cons.isSymbol(formCons.car) && this.plugins.length > 0) {
       const symbol = formCons.car;
@@ -878,6 +1022,154 @@ export class Evaluator extends Object {
   }
 
   /**
+   * Implementation of the Lisp `quasiquote` (`` ` ``) special form. Returns the
+   * template with every `unquote` (`,`) and `unquote-splicing` (`,@`) at the
+   * matching nesting level replaced by the evaluation of its operand. Nested
+   * quasiquotes increase the level so inner unquotes are preserved.
+   * @param aCons the argument Cons whose car is the template
+   * @return the constructed form
+   */
+  quasiquote(aCons: Cons): LispValue {
+    return this.quasiquoteExpand(aCons.car, 1);
+  }
+
+  /**
+   * Recursively expands a quasiquote template at the given nesting level.
+   * @param template the template to expand
+   * @param level the current quasiquote nesting level (1 is the outermost)
+   * @return the expanded value
+   */
+  quasiquoteExpand(template: LispValue, level: number): LispValue {
+    if (Cons.isNotCons(template)) {
+      return template;
+    }
+    const aCons = template as Cons;
+    if (aCons.car === InterpretedSymbol.of('unquote')) {
+      if (level === 1) {
+        return Evaluator.eval(
+          aCons.nth(2),
+          this.environment,
+          this.streamManager,
+          this.depth,
+          this.plugins,
+        );
+      }
+      return new Cons(
+        InterpretedSymbol.of('unquote'),
+        new Cons(this.quasiquoteExpand(aCons.nth(2), level - 1), Cons.nil),
+      );
+    }
+    if (aCons.car === InterpretedSymbol.of('quasiquote')) {
+      return new Cons(
+        InterpretedSymbol.of('quasiquote'),
+        new Cons(this.quasiquoteExpand(aCons.nth(2), level + 1), Cons.nil),
+      );
+    }
+
+    return this.quasiquoteList(aCons, level);
+  }
+
+  /**
+   * Expands the elements of a quasiquoted list, handling `unquote-splicing`
+   * (`,@`) elements and a possible dotted `unquote` (`,`) tail.
+   * @param template the list template to expand
+   * @param level the current quasiquote nesting level
+   * @return the constructed list
+   */
+  quasiquoteList(template: Cons, level: number): LispValue {
+    const parts: LispValue[] = [];
+    let tail: LispValue = Cons.nil;
+    let current: LispValue = template;
+
+    while (Cons.isCons(current)) {
+      // A dotted `(... . ,x)` tail surfaces as a cell whose car is the `unquote` symbol.
+      if (current.car === InterpretedSymbol.of('unquote')) {
+        tail = this.quasiquoteExpand(current, level);
+        current = Cons.nil;
+        break;
+      }
+      const head = current.car;
+      if (Cons.isCons(head) && head.car === InterpretedSymbol.of('unquote-splicing')) {
+        if (level === 1) {
+          this.spliceInto(
+            parts,
+            Evaluator.eval(
+              head.nth(2),
+              this.environment,
+              this.streamManager,
+              this.depth,
+              this.plugins,
+            ),
+          );
+        } else {
+          parts.push(
+            new Cons(
+              InterpretedSymbol.of('unquote-splicing'),
+              new Cons(this.quasiquoteExpand(head.nth(2), level - 1), Cons.nil),
+            ),
+          );
+        }
+      } else {
+        parts.push(this.quasiquoteExpand(head, level));
+      }
+      current = current.cdr;
+    }
+    if (Cons.isNotNil(current)) {
+      tail = current;
+    }
+
+    let result: LispValue = tail;
+    for (let index = parts.length - 1; index >= 0; index--) {
+      result = new Cons(parts[index], result);
+    }
+
+    return result;
+  }
+
+  /**
+   * Appends the elements of a spliced value (`,@`) onto the accumulator. The
+   * value must be a proper list (or nil); an atom or an improper (dotted) list
+   * is rejected rather than silently dropping the dotted tail.
+   * @param parts the accumulator of list elements
+   * @param value the value produced by an `unquote-splicing` operand
+   */
+  spliceInto(parts: LispValue[], value: LispValue): null {
+    if (Cons.isNil(value)) {
+      return null;
+    }
+    if (Cons.isNotCons(value)) {
+      throw new EvalError(cannotApply('unquote-splicing', value));
+    }
+    let current: LispValue = value;
+    while (Cons.isCons(current)) {
+      parts.push(current.car);
+      current = current.cdr;
+    }
+    if (Cons.isNotNil(current)) {
+      throw new EvalError(cannotApply('unquote-splicing', value));
+    }
+
+    return null;
+  }
+
+  /**
+   * Implementation of the Lisp `unquote` (`,`) special form. Signals an error
+   * because unquote is only meaningful inside a `quasiquote` template.
+   */
+  unquote(): never {
+    throw new EvalError('unquote (",") is only valid inside a quasiquote ("`")');
+  }
+
+  /**
+   * Implementation of the Lisp `unquote-splicing` (`,@`) special form. Signals
+   * an error because unquote-splicing is only meaningful inside a `quasiquote`
+   * template.
+   */
+  unquoteSplicing(): never {
+    throw new EvalError('unquote-splicing (",@") is only valid inside a quasiquote ("`")');
+  }
+
+  /**
    * Implementation of the Lisp `rplaca` special form; destructively replaces the car of a Cons.
    * @param args the argument Cons containing the target Cons expression and the new car value
    * @return the modified Cons
@@ -1015,6 +1307,7 @@ export class Evaluator extends Object {
         ['apply', 'apply_lisp'],
         ['bind', 'bind'],
         ['cond', 'cond'],
+        ['defmacro', 'defmacro'],
         ['defun', 'defun'],
         ['do', 'do_'],
         ['dolist', 'doList'],
@@ -1026,6 +1319,8 @@ export class Evaluator extends Object {
         ['lambda', 'lambda'],
         ['let', 'let'],
         ['let*', 'letStar'],
+        ['macroexpand', 'macroexpand'],
+        ['macroexpand-1', 'macroexpand_1'],
         ['not', 'not'],
         ['notrace', 'notrace'],
         ['or', 'or'],
@@ -1034,6 +1329,7 @@ export class Evaluator extends Object {
         ['princ', 'princ'],
         ['print', 'print'],
         ['push', 'push_'],
+        ['quasiquote', 'quasiquote'],
         ['quote', 'quote'],
         ['rplaca', 'rplaca'],
         ['rplacd', 'rplacd'],
@@ -1043,6 +1339,8 @@ export class Evaluator extends Object {
         ['time', 'time'],
         ['trace', 'trace'],
         ['unless', 'unless'],
+        ['unquote', 'unquote'],
+        ['unquote-splicing', 'unquoteSplicing'],
         ['when', 'when'],
       ];
       return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
