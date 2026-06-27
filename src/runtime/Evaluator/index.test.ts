@@ -282,4 +282,102 @@ describe('Evaluator', () => {
       expect(newEvaluator().spyPrint(null, 'x')).toBeNull();
     });
   });
+
+  describe('quasiquote', () => {
+    it('returns the template unchanged when there are no unquotes', () => {
+      expect(evalStr('`(a b c)')).toBe('(a b c)');
+    });
+
+    it('substitutes an unquoted value', () => {
+      expect(evalStr('(let ((x 5)) `(a ,x c))')).toBe('(a 5 c)');
+    });
+
+    it('evaluates an unquoted expression', () => {
+      expect(evalStr('`(sum ,(+ 1 2 3))')).toBe('(sum 6)');
+    });
+
+    it('splices a list with unquote-splicing', () => {
+      expect(evalStr('(let ((xs (list 1 2 3))) `(a ,@xs z))')).toBe('(a 1 2 3 z)');
+    });
+
+    it('splices nil as nothing', () => {
+      expect(evalStr('`(a ,@nil b)')).toBe('(a b)');
+    });
+
+    it('substitutes a dotted unquote tail', () => {
+      expect(evalStr('(let ((b 9)) `(a . ,b))')).toBe('(a . 9)');
+    });
+
+    it('preserves inner unquotes across a nested quasiquote', () => {
+      expect(evalStr('(let ((x 1)) `(a `(b ,(+ 1 ,x))))')).toBe(
+        '(a (quasiquote (b (unquote (+ 1 1)))))',
+      );
+    });
+
+    it('signals an error for a bare unquote outside quasiquote', () => {
+      expect(() => evalStr(',x')).toThrow();
+    });
+
+    it('signals an error when splicing a non-list', () => {
+      expect(() => evalStr('`(a ,@5)')).toThrow();
+    });
+  });
+
+  describe('defmacro', () => {
+    it('returns the macro name', () => {
+      expect(evalStr('(defmacro noop () nil)')).toBe('noop');
+    });
+
+    it('defines a macro that controls evaluation of its arguments', () => {
+      expect(
+        evalStr(
+          '(progn (defmacro my-when (c . body) `(if ,c (progn ,@body) nil)) (my-when t 1 2 3))',
+        ),
+      ).toBe('3');
+    });
+
+    it('does not evaluate arguments on the non-taken branch', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(defmacro my-when (c . body) `(if ,c (progn ,@body) nil))');
+      interpreter.evalString('(setq x 0)');
+      interpreter.evalString('(my-when nil (setq x 99))');
+      expect(Cons.toString(interpreter.evalString('x'))).toBe('0');
+    });
+
+    it('expands macros used inside a defun body', () => {
+      expect(evalStr('(progn (defmacro dbl (x) `(* 2 ,x)) (defun f (n) (dbl n)) (f 21))')).toBe(
+        '42',
+      );
+    });
+
+    it('cooperates with gensym to avoid variable capture', () => {
+      expect(
+        evalStr(
+          '(progn (defmacro sq (e) (let ((g (gensym))) `(let ((,g ,e)) (* ,g ,g)))) (let ((tmp 7)) (sq tmp)))',
+        ),
+      ).toBe('49');
+    });
+  });
+
+  describe('macroexpand', () => {
+    it('macroexpand-1 expands a macro call exactly once without evaluating it', () => {
+      expect(
+        evalStr(
+          "(progn (defmacro my-when (c . body) `(if ,c (progn ,@body) nil)) (macroexpand-1 '(my-when t 1 2)))",
+        ),
+      ).toBe('(if t (progn 1 2) nil)');
+    });
+
+    it('macroexpand-1 returns a non-macro form unchanged', () => {
+      expect(evalStr("(macroexpand-1 '(+ 1 2))")).toBe('(+ 1 2)');
+    });
+
+    it('macroexpand repeatedly expands the top-level form', () => {
+      expect(
+        evalStr(
+          "(progn (defmacro inc (x) `(+ ,x 1)) (defmacro inc2 (x) `(inc (inc ,x))) (macroexpand '(inc2 5)))",
+        ),
+      ).toBe('(+ (inc 5) 1)');
+    });
+  });
 });

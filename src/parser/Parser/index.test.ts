@@ -134,6 +134,53 @@ describe('Parser', () => {
     });
   });
 
+  describe('quasiquote syntax', () => {
+    it('parses `x as (quasiquote x)', () => {
+      const result = Parser.parse('(`x)');
+      const form = (result as Cons).car as Cons;
+      expect(form.car).toBe(InterpretedSymbol.of('quasiquote'));
+      expect((form.cdr as Cons).car).toBe(InterpretedSymbol.of('x'));
+    });
+
+    it('parses ,x as (unquote x)', () => {
+      const result = Parser.parse('(,x)');
+      const form = (result as Cons).car as Cons;
+      expect(form.car).toBe(InterpretedSymbol.of('unquote'));
+      expect((form.cdr as Cons).car).toBe(InterpretedSymbol.of('x'));
+    });
+
+    it('parses ,@x as (unquote-splicing x)', () => {
+      const result = Parser.parse('(,@x)');
+      const form = (result as Cons).car as Cons;
+      expect(form.car).toBe(InterpretedSymbol.of('unquote-splicing'));
+      expect((form.cdr as Cons).car).toBe(InterpretedSymbol.of('x'));
+    });
+
+    it('parses a backquoted list with unquote and splicing', () => {
+      const result = Parser.parse('(`(a ,b ,@c))');
+      expect(Cons.toString((result as Cons).car)).toBe(
+        '(quasiquote (a (unquote b) (unquote-splicing c)))',
+      );
+    });
+
+    it('parses a dotted unquote tail', () => {
+      const result = Parser.parse('(`(a . ,b))');
+      const form = (result as Cons).car as Cons;
+      const template = (form.cdr as Cons).car as Cons;
+      expect(template.car).toBe(InterpretedSymbol.of('a'));
+      const tail = template.cdr as Cons;
+      expect(tail.car).toBe(InterpretedSymbol.of('unquote'));
+      expect((tail.cdr as Cons).car).toBe(InterpretedSymbol.of('b'));
+    });
+
+    it('nests quasiquotes', () => {
+      const result = Parser.parse('(`(a `(b ,c)))');
+      expect(Cons.toString((result as Cons).car)).toBe(
+        '(quasiquote (a (quasiquote (b (unquote c)))))',
+      );
+    });
+  });
+
   describe('nextChar', () => {
     it('advances one character and returns a value', () => {
       const p = new Parser('abc');

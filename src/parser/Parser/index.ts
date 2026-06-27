@@ -310,6 +310,35 @@ export class Parser extends Object {
   }
 
   /**
+   * Recognizes a backquote (`` ` ``), wraps the following form into `(quasiquote form)`, and returns the token number; invoked from NextState.
+   * @return 0
+   */
+  quasiquote(): number {
+    const anObject = new Cons(this.nextToken(), Cons.nil);
+    this.token = new Cons(InterpretedSymbol.of('quasiquote'), anObject);
+
+    return 0;
+  }
+
+  /**
+   * Recognizes a comma and wraps the following form into `(unquote form)`, or
+   * `(unquote-splicing form)` when the comma is immediately followed by `@`
+   * (i.e. `,@`); invoked from NextState.
+   * @return 0
+   */
+  unquote(): number {
+    let aSymbol = InterpretedSymbol.of('unquote');
+    if (this.peekChar() === '@') {
+      this.nextChar();
+      aSymbol = InterpretedSymbol.of('unquote-splicing');
+    }
+    const anObject = new Cons(this.nextToken(), Cons.nil);
+    this.token = new Cons(aSymbol, anObject);
+
+    return 0;
+  }
+
+  /**
    * Returns the token number for a quote or for a 0-origin String-type (pseudo-Character); invoked from NextState.
    * @return the next state number
    */
@@ -460,7 +489,7 @@ export class Parser extends Object {
     aTable.set(String(41), this.nextState(-1, null));
     aTable.set(String(42), this.nextState(8, 'symbolToken'));
     aTable.set(String(43), this.nextState(7, 'sign'));
-    aTable.set(String(44), this.nextState(8, 'symbolToken'));
+    aTable.set(String(44), this.nextState(0, 'unquote'));
     aTable.set(String(45), this.nextState(7, 'sign'));
     aTable.set(String(46), this.nextState(-1, null));
     aTable.set(String(47), this.nextState(8, 'symbolToken'));
@@ -474,7 +503,7 @@ export class Parser extends Object {
     aTable.set(String(93), this.nextState(-1, null));
     aTable.set(String(94), this.nextState(8, 'symbolToken'));
     aTable.set(String(95), this.nextState(8, 'symbolToken'));
-    aTable.set(String(96), this.nextState(0, 'quote'));
+    aTable.set(String(96), this.nextState(0, 'quasiquote'));
     for (const index of IntStream.rangeClosed(97, 122))
       aTable.set(String(index), this.nextState(8, 'symbolToken'));
     aTable.set(String(123), this.nextState(-1, 'parseList'));

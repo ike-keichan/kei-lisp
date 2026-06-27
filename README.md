@@ -11,6 +11,7 @@ an interactive REPL, or embed it in your application as a library.
 ## Features
 
 - Common Lisp-inspired syntax (`setq`, `defun`, `let`, `cond`, ...)
+- Macros: `defmacro` with backquote/unquote (`` ` ``, `,`, `,@`) and `macroexpand`
 - CLI tool **and** embeddable library
 - ESM and CommonJS dual output with TypeScript types
 - Zero runtime dependencies
