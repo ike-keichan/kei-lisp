@@ -4,7 +4,7 @@
  * and run cleanup. Important when embedding kei-lisp as a library.
  *
  * Run with:
- *   pnpm build && pnpm exec tsx examples/exit-handling.ts
+ *   pnpm build && node --experimental-strip-types examples/exit-handling.ts
  */
 import { ExitError, LispInterpreter } from 'kei-lisp';
 
