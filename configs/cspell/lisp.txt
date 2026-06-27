@@ -17,6 +17,7 @@ memq
 
 # 特殊形式・構文
 defun
+defmacro
 setq
 progn
 cond
@@ -24,6 +25,12 @@ lambda
 dolist
 gensym
 quasiquote
+quasiquoted
+quasiquotes
+backquote
+backquoted
+backquotes
+macroexpand
 
 # 述語
 characterp

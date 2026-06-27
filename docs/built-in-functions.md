@@ -12,6 +12,7 @@ Entries are organized into the following categories:
 - [Strings](#strings) — `string-upcase`, `string-downcase`, `string-trim`, `substring`, `concatenate`
 - [Variables and bindings](#variables-and-bindings) — `setq`, `set-allq`, `bind`, `gensym`
 - [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`
+- [Macros](#macros) — `defmacro`, backquote (`` ` ``, `,`, `,@`), `macroexpand`, `macroexpand-1`
 - [Control flow](#control-flow) — `if`, `cond`, `when`, `unless`, `do`, `do*`, `dolist`
 - [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`
 - [System](#system) — `exit`, `gc`, `time`, `trace`, `notrace`
@@ -317,6 +318,29 @@ tasu
 >> (tasu 1 2)
 3
 ```
+
+### defmacro
+
+**(defmacro N L X1 X2 ... Xn)**
+Macro defining special form with N as the macro name, L as the argument list, and
+X1, X2 ... and Xn as the body. Unlike `defun`, a macro receives its arguments
+**unevaluated**; the body is evaluated to produce a new form, which is then
+evaluated in the caller's environment. Combine with the backquote syntax
+(`` ` ``, `,`, `,@`) to build the expansion, and with [`gensym`](#gensym) to
+introduce fresh names that avoid variable capture.
+
+```
+>> (defmacro my-when (test . body) `(if ,test (progn ,@body) nil))
+my-when
+>> (my-when t 1 2 3)
+3
+>> (my-when nil (setq x 99))
+nil
+```
+
+See also [`macroexpand`](#macroexpand) / [`macroexpand-1`](#macroexpand-1) for
+inspecting expansions, and [Backquote](#backquote-quasiquote) for the template
+syntax.
 
 ### divide
 
@@ -855,6 +879,39 @@ nil
 nil
 ```
 
+### macroexpand
+
+**(macroexpand X)**
+Function to expand the form X repeatedly while its operator names a macro,
+returning the fully expanded top-level form **without evaluating it**. X is
+evaluated first, so quote the form you want to expand. Expansion is applied only
+to the top-level form (not recursively into sub-forms), matching Common Lisp.
+
+```
+>> (defmacro inc (x) `(+ ,x 1))
+inc
+>> (defmacro inc2 (x) `(inc (inc ,x)))
+inc2
+>> (macroexpand '(inc2 5))
+(+ (inc 5) 1)
+```
+
+### macroexpand-1
+
+**(macroexpand-1 X)**
+Function to expand the form X exactly once when its operator names a macro,
+returning the result **without evaluating it**. X is evaluated first, so quote
+the form you want to expand. A non-macro form is returned unchanged.
+
+```
+>> (defmacro my-when (test . body) `(if ,test (progn ,@body) nil))
+my-when
+>> (macroexpand-1 '(my-when t 1 2))
+(if t (progn 1 2) nil)
+>> (macroexpand-1 '(+ 1 2))
+(+ 1 2)
+```
+
 ### mapcar
 
 **(mapcar X L)**
@@ -1285,6 +1342,31 @@ a
 >> (quote 1)
 1
 ```
+
+### backquote (quasiquote)
+
+**`` `X `` / `,Y` / `,@Z`**
+Backquote (`` ` ``) is a quasiquote: like `quote` it returns the template X
+unevaluated, except that any `,Y` (unquote) inside the template is replaced by
+the value of Y, and any `,@Z` (unquote-splicing) splices the elements of the
+list Z into the surrounding list. Nested backquotes raise the level, so an inner
+`,` only takes effect at the matching depth. This is the primary tool for
+building the expansion returned by a [`defmacro`](#defmacro) body.
+
+```
+>> (setq x 5)
+5
+>> `(a ,x c)
+(a 5 c)
+>> `(a ,@(list 1 2 3) z)
+(a 1 2 3 z)
+>> `(sum ,(+ 1 2 3))
+(sum 6)
+>> `(a . ,x)
+(a . 5)
+```
+
+Using `,` or `,@` outside of a backquote signals an error.
 
 ### random
 
