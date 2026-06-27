@@ -1,5 +1,6 @@
 # kei-lisp
 
+[![CI](https://github.com/ike-keichan/kei-lisp/actions/workflows/ci.yml/badge.svg)](https://github.com/ike-keichan/kei-lisp/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/kei-lisp.svg)](https://www.npmjs.com/package/kei-lisp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
@@ -166,8 +167,8 @@ Runnable TypeScript examples live in [`examples/`](./examples/):
 
 ```sh
 pnpm build  # build the package once
-pnpm exec tsx examples/basic-eval.ts
-pnpm exec tsx examples/exit-handling.ts
+node --experimental-strip-types examples/basic-eval.ts
+node --experimental-strip-types examples/exit-handling.ts
 ```
 
 ## Reference
