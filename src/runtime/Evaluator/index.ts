@@ -1127,7 +1127,9 @@ export class Evaluator extends Object {
   }
 
   /**
-   * Appends the elements of a spliced value (`,@`) onto the accumulator.
+   * Appends the elements of a spliced value (`,@`) onto the accumulator. The
+   * value must be a proper list (or nil); an atom or an improper (dotted) list
+   * is rejected rather than silently dropping the dotted tail.
    * @param parts the accumulator of list elements
    * @param value the value produced by an `unquote-splicing` operand
    */
@@ -1138,8 +1140,13 @@ export class Evaluator extends Object {
     if (Cons.isNotCons(value)) {
       throw new EvalError(cannotApply('unquote-splicing', value));
     }
-    for (const each of (value as Cons).loop()) {
-      parts.push(each);
+    let current: LispValue = value;
+    while (Cons.isCons(current)) {
+      parts.push(current.car);
+      current = current.cdr;
+    }
+    if (Cons.isNotNil(current)) {
+      throw new EvalError(cannotApply('unquote-splicing', value));
     }
 
     return null;

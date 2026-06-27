@@ -321,6 +321,10 @@ describe('Evaluator', () => {
     it('signals an error when splicing a non-list', () => {
       expect(() => evalStr('`(a ,@5)')).toThrow();
     });
+
+    it('signals an error when splicing an improper (dotted) list', () => {
+      expect(() => evalStr('`(a ,@(cons 1 2) b)')).toThrow();
+    });
   });
 
   describe('defmacro', () => {
