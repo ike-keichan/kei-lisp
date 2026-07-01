@@ -36,6 +36,8 @@ export const typescriptConfigs = [
       // NOTE: Lisp の linked list 走査で `let aCons = this; while (...) { aCons = aCons.cdr }` パターンが必然的に発生するため無効化
       // this のエイリアスを禁止
       '@typescript-eslint/no-this-alias': OFF,
+      // 型定義は interface ではなく type エイリアスを使う方針
+      '@typescript-eslint/consistent-type-definitions': [ERROR, 'type'],
     },
   },
   {
