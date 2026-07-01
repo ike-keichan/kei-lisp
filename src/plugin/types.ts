@@ -8,7 +8,7 @@ import type { LispValue } from '../types/index.js';
  * Context passed to a plugin's `apply` call. Holds the live interpreter state
  * needed to perform recursive evaluation or to read / write the environment.
  */
-export interface PluginContext {
+export type PluginContext = {
   /**
    * The current variable binding environment.
    */
@@ -28,7 +28,7 @@ export interface PluginContext {
    * @return the evaluation result
    */
   eval(form: LispValue): LispValue;
-}
+};
 
 /**
  * A kei-lisp plugin contributes additional Lisp-callable functions to the
@@ -40,7 +40,7 @@ export interface PluginContext {
  * Arguments are pre-evaluated by the interpreter before being passed to
  * `apply`, matching the calling convention of built-in functions.
  */
-export interface KeiLispPlugin {
+export type KeiLispPlugin = {
   /**
    * Plugin identifier, used for diagnostics and collision messages.
    */
@@ -59,4 +59,4 @@ export interface KeiLispPlugin {
    * @return the result value
    */
   apply(symbol: InterpretedSymbol, args: Cons, ctx: PluginContext): LispValue;
-}
+};
