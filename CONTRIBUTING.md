@@ -130,7 +130,7 @@ feature/* ──┘                          ↑
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
 | `main`                | Latest released state. Always tag-ready                                                                                               | Permanent              |
 | `vX.Y` (release line) | Integrates multiple features for the next minor or major release. Retained after release as a snapshot of that minor's released state | Permanent (long-lived) |
-| `feature/*`           | A single logical change. Targets the active `vX.Y` for minor/major; targets `main` directly for patch releases                       | Until merged           |
+| `feature/*`           | A single logical change. Targets the active `vX.Y` for minor/major; targets `main` directly for patch releases                        | Until merged           |
 | `hotfix/*`            | Emergency fix targeting `main` directly                                                                                               | Until merged           |
 
 All major / minor lines (`v1.0`, `v2.0`, `v2.1`, `v2.2`, ...) are kept
@@ -142,10 +142,10 @@ requires either extending the workflow trigger or publishing manually.
 
 ### Branch creation responsibilities
 
-| Branch type           | Created by          | When                                                                                                    |
-| --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `vX.Y` (release line) | **Maintainer only** | When planning a minor or major release that bundles 2+ features                                         |
-| `hotfix/*`            | **Maintainer only** | When an emergency fix needs to be released immediately                                                  |
+| Branch type           | Created by          | When                                                                                                   |
+| --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
+| `vX.Y` (release line) | **Maintainer only** | When planning a minor or major release that bundles 2+ features                                        |
+| `hotfix/*`            | **Maintainer only** | When an emergency fix needs to be released immediately                                                 |
 | `feature/*`           | Anyone              | Branching from the **active release line** (`vX.Y`) for minor/major, or from `main` for patch releases |
 
 If you are unsure which base branch to target, ask in the PR description
