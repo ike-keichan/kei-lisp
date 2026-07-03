@@ -1024,6 +1024,81 @@ describe('Applier', () => {
     });
   });
 
+  describe('getf', () => {
+    it('returns the value stored under the key', () => {
+      expect(evalStr("(getf '(a 1 b 2) 'b)")).toBe('2');
+    });
+
+    it('returns nil when the key is absent', () => {
+      expect(evalStr("(getf '(a 1) 'b)")).toBe('nil');
+    });
+
+    it('returns the default when the key is absent', () => {
+      expect(evalStr("(getf '(a 1) 'b 9)")).toBe('9');
+    });
+
+    it('returns the default for an empty property list', () => {
+      expect(evalStr("(getf nil 'a 9)")).toBe('9');
+    });
+  });
+
+  describe('position', () => {
+    it('returns the zero-based index of the first match', () => {
+      expect(evalStr("(position 'c '(a b c))")).toBe('2');
+    });
+
+    it('returns the index of the first of several matches', () => {
+      expect(evalStr("(position 'b '(a b b))")).toBe('1');
+    });
+
+    it('returns nil when the item is absent', () => {
+      expect(evalStr("(position 'z '(a b c))")).toBe('nil');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr("(position 'a nil)")).toBe('nil');
+    });
+  });
+
+  describe('remove', () => {
+    it('removes every element matching the item', () => {
+      expect(evalStr("(remove 2 '(1 2 3 2))")).toBe('(1 3)');
+    });
+
+    it('returns an equal list when the item is absent', () => {
+      expect(evalStr("(remove 9 '(1 2 3))")).toBe('(1 2 3)');
+    });
+
+    it('does not mutate the original list', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq x (list 1 2 3))');
+      interpreter.evalString('(remove 2 x)');
+      expect(Cons.toString(interpreter.evalString('x'))).toBe('(1 2 3)');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr('(remove 1 nil)')).toBe('nil');
+    });
+  });
+
+  describe('remove-if', () => {
+    it('removes every element satisfying the predicate', () => {
+      expect(evalStr("(remove-if (lambda (v) (evenp v)) '(1 2 3 4))")).toBe('(1 3)');
+    });
+
+    it('returns an equal list when no element satisfies the predicate', () => {
+      expect(evalStr("(remove-if (lambda (v) (evenp v)) '(1 3 5))")).toBe('(1 3 5)');
+    });
+
+    it('accepts a named function as the predicate', () => {
+      expect(evalStr("(progn (defun big (v) (> v 2)) (remove-if 'big '(1 2 3 4)))")).toBe('(1 2)');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr('(remove-if (lambda (v) t) nil)')).toBe('nil');
+    });
+  });
+
   describe('push / pop', () => {
     it('push prepends an element to the list stored in the variable', () => {
       const interpreter = new LispInterpreter();

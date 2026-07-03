@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`case` special form** — dispatches on an evaluated key against
+  unevaluated clause keys (single key or key list), with `t` / `otherwise`
+  default clauses. (#38)
+- **Generalized places (`setf` family)** — new `setf`, `incf`, and `decf`
+  special forms. Supported places: symbols, `(car x)`, `(cdr x)`,
+  `(nth n x)`, `(elt x n)`, `(getf plist key)`, and `defstruct` field
+  accessors. (#38)
+- **`defstruct` special form** — defines a structure type represented as a
+  tagged list, generating a positional constructor `make-<name>`, a
+  predicate `<name>-p`, and per-field accessors that double as `setf`
+  places. (#38)
+- **`destructuring-bind` special form** — binds nested / dotted patterns
+  against a value and evaluates the body in the new scope. (#38)
+- **`with-output-to-string` special form** — captures `princ` / `print` /
+  `terpri` / `format` output and returns it as a string; output capture is
+  managed by `StreamManager` (new `pushCapture` / `popCapture` /
+  `writeOutput`). (#38)
+- **`getf`, `position`, `remove`, `remove-if` functions** — property-list
+  lookup and CL-style sequence helpers (`remove` removes an item; the
+  predicate variant is `remove-if`). (#38)
+
+### Changed
+
+- **`push` / `pop` now accept generalized places** (CL semantics), e.g.
+  `(push 7 (cdr x))`, instead of being restricted to symbols. (#38)
+- `princ` / `print` / `terpri` / `format` write through
+  `StreamManager.writeOutput` so their output can be captured by
+  `with-output-to-string`; behavior is unchanged outside a capture. (#38)
+
 ## [2.3.0] - 2026-06-27
 
 ### Added

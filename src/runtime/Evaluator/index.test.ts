@@ -363,6 +363,206 @@ describe('Evaluator', () => {
     });
   });
 
+  describe('case', () => {
+    it('runs the clause whose single key matches', () => {
+      expect(evalStr("(case 1 (1 'one) (2 'two))")).toBe('one');
+    });
+
+    it('runs the clause whose key list contains the key', () => {
+      expect(evalStr("(case 3 (1 'one) ((2 3) 'two-or-three))")).toBe('two-or-three');
+    });
+
+    it('matches symbol keys without evaluating them', () => {
+      expect(evalStr("(case 'foo ((bar foo) 42))")).toBe('42');
+    });
+
+    it('runs the otherwise clause when no key matches', () => {
+      expect(evalStr("(case 9 (1 'one) (otherwise 'other))")).toBe('other');
+    });
+
+    it('runs the t clause when no key matches', () => {
+      expect(evalStr("(case 9 (1 'one) (t 'fallback))")).toBe('fallback');
+    });
+
+    it('returns nil when no clause matches', () => {
+      expect(evalStr("(case 9 (1 'one))")).toBe('nil');
+    });
+
+    it('returns the value of the last body form of the matching clause', () => {
+      expect(evalStr('(case 1 (1 10 20 30))')).toBe('30');
+    });
+
+    it('returns nil for a matching clause with an empty body', () => {
+      expect(evalStr('(case 1 (1))')).toBe('nil');
+    });
+  });
+
+  describe('setf', () => {
+    it('assigns to a variable like setq', () => {
+      expect(evalStr('(progn (setf x 42) x)')).toBe('42');
+    });
+
+    it('assigns to a car place', () => {
+      expect(evalStr('(progn (setq x (list 1 2)) (setf (car x) 9) x)')).toBe('(9 2)');
+    });
+
+    it('assigns to a cdr place', () => {
+      expect(evalStr('(progn (setq x (list 1 2)) (setf (cdr x) (list 8)) x)')).toBe('(1 8)');
+    });
+
+    it('assigns to a nth place using the 1-based index of nth', () => {
+      expect(evalStr('(progn (setq x (list 1 2 3)) (setf (nth 2 x) 9) x)')).toBe('(1 9 3)');
+    });
+
+    it('assigns to an elt place using a zero-based index', () => {
+      expect(evalStr('(progn (setq x (list 1 2 3)) (setf (elt x 0) 9) x)')).toBe('(9 2 3)');
+    });
+
+    it('updates an existing property through a getf place', () => {
+      expect(evalStr("(progn (setq pl (list 'a 1)) (setf (getf pl 'a) 9) (getf pl 'a))")).toBe('9');
+    });
+
+    it('appends a new property through a getf place', () => {
+      expect(evalStr("(progn (setq pl (list 'a 1)) (setf (getf pl 'b) 2) pl)")).toBe('(a 1 b 2)');
+    });
+
+    it('rebinds the symbol when the getf place holds an empty property list', () => {
+      expect(evalStr("(progn (setq pl nil) (setf (getf pl 'a) 1) pl)")).toBe('(a 1)');
+    });
+
+    it('assigns multiple places and returns the last value', () => {
+      expect(evalStr('(progn (setq x (list 1 2)) (setf (car x) 8 (nth 2 x) 9))')).toBe('9');
+    });
+
+    it('throws EvalError for an unsupported place', () => {
+      expect(() => evalStr('(setf (+ 1 2) 3)')).toThrow('Can not apply "setf"');
+    });
+  });
+
+  describe('incf / decf', () => {
+    it('incf increments a variable by 1 by default', () => {
+      expect(evalStr('(progn (setq n 10) (incf n))')).toBe('11');
+    });
+
+    it('incf increments by the given delta', () => {
+      expect(evalStr('(progn (setq n 10) (incf n 5))')).toBe('15');
+    });
+
+    it('decf decrements a variable by 1 by default', () => {
+      expect(evalStr('(progn (setq n 10) (decf n))')).toBe('9');
+    });
+
+    it('decf decrements by the given delta', () => {
+      expect(evalStr('(progn (setq n 10) (decf n 3))')).toBe('7');
+    });
+
+    it('incf works on a car place', () => {
+      expect(evalStr('(progn (setq x (list 1 2)) (incf (car x)) x)')).toBe('(2 2)');
+    });
+
+    it('throws EvalError when the place value is not a number', () => {
+      expect(() => evalStr("(progn (setq n 'a) (incf n))")).toThrow('Can not apply "incf"');
+    });
+  });
+
+  describe('push / pop on places', () => {
+    it('push prepends onto a cdr place', () => {
+      expect(evalStr('(progn (setq x (list 1 2)) (push 7 (cdr x)) x)')).toBe('(1 7 2)');
+    });
+
+    it('pop removes from a car place holding a list', () => {
+      expect(evalStr('(progn (setq x (list (list 1 2) 3)) (pop (car x)) x)')).toBe('((2) 3)');
+    });
+
+    it('pop returns nil when the place value is not a Cons', () => {
+      expect(evalStr('(progn (setq n 5) (pop n))')).toBe('nil');
+    });
+  });
+
+  describe('destructuring-bind', () => {
+    it('binds a flat pattern', () => {
+      expect(evalStr("(destructuring-bind (a b) '(1 2) (list b a))")).toBe('(2 1)');
+    });
+
+    it('binds a nested pattern', () => {
+      expect(evalStr("(destructuring-bind (a (b c)) '(1 (2 3)) (list a b c))")).toBe('(1 2 3)');
+    });
+
+    it('binds a dotted rest pattern', () => {
+      expect(evalStr("(destructuring-bind (a . rest) '(1 2 3) rest)")).toBe('(2 3)');
+    });
+
+    it('throws EvalError when the value has too few elements', () => {
+      expect(() => evalStr("(destructuring-bind (a b) '(1) b)")).toThrow('sizes do not match');
+    });
+
+    it('throws EvalError when the value has too many elements', () => {
+      expect(() => evalStr("(destructuring-bind (a) '(1 2) a)")).toThrow('sizes do not match');
+    });
+  });
+
+  describe('defstruct', () => {
+    it('returns the struct name symbol', () => {
+      expect(evalStr('(defstruct point x y)')).toBe('point');
+    });
+
+    it('generates a positional constructor', () => {
+      expect(evalStr('(progn (defstruct point x y) (make-point 3 4))')).toBe('(point 3 4)');
+    });
+
+    it('generates one accessor per field', () => {
+      expect(evalStr('(progn (defstruct point x y) (setq p (make-point 3 4)) (point-y p))')).toBe(
+        '4',
+      );
+    });
+
+    it('generates a predicate that accepts instances', () => {
+      expect(evalStr('(progn (defstruct point x y) (point-p (make-point 3 4)))')).toBe('t');
+    });
+
+    it('generates a predicate that rejects other values', () => {
+      expect(evalStr('(progn (defstruct point x y) (point-p 5))')).toBe('nil');
+    });
+
+    it('registers accessors as setf places', () => {
+      expect(
+        evalStr(
+          '(progn (defstruct point x y) (setq p (make-point 3 4)) (setf (point-x p) 30) (point-x p))',
+        ),
+      ).toBe('30');
+    });
+  });
+
+  describe('with-output-to-string', () => {
+    it('captures princ output as a string', () => {
+      expect(evalStr("(with-output-to-string () (princ 1) (princ 'a))")).toBe('1a');
+    });
+
+    it('captures print output including the trailing newline', () => {
+      expect(evalStr('(with-output-to-string () (print 1))')).toBe('1\n');
+    });
+
+    it('captures terpri output', () => {
+      expect(evalStr('(with-output-to-string () (terpri))')).toBe('\n');
+    });
+
+    it('captures format output', () => {
+      expect(evalStr('(with-output-to-string () (format "~a!" 7))')).toBe('7!');
+    });
+
+    it('returns an empty string for an empty body', () => {
+      expect(evalStr('(with-output-to-string ())')).toBe('');
+    });
+
+    it('supports nested captures', () => {
+      expect(
+        evalStr(
+          '(with-output-to-string () (princ 1) (princ (with-output-to-string () (princ 2))))',
+        ),
+      ).toBe('12');
+    });
+  });
+
   describe('macroexpand', () => {
     it('macroexpand-1 expands a macro call exactly once without evaluating it', () => {
       expect(
