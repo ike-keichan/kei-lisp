@@ -1,8 +1,10 @@
 import { Cons } from '../../value/Cons/index.js';
+import { EvalError } from '../../errors/EvalError/index.js';
 import { Evaluator } from '../../runtime/Evaluator/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import { StreamManager } from '../../runtime/StreamManager/index.js';
 import { Table } from '../../runtime/Table/index.js';
+import { ThrowSignal } from '../../runtime/ThrowSignal/index.js';
 import type { KeiLispPlugin } from '../../plugin/types.js';
 import type { LispValue } from '../../types/index.js';
 
@@ -57,7 +59,15 @@ export class LispInterpreter extends Object {
    * @return the evaluation result
    */
   eval(aCons: LispValue): LispValue {
-    return Evaluator.eval(aCons, this.root, this.streamManager, 1, this.plugins);
+    try {
+      return Evaluator.eval(aCons, this.root, this.streamManager, 1, this.plugins);
+    } catch (error) {
+      // A `throw` with no dynamically enclosing `catch` is an error (CL semantics).
+      if (error instanceof ThrowSignal) {
+        throw new EvalError(error.message);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -129,6 +139,7 @@ export class LispInterpreter extends Object {
       'bind',
       'car',
       'case',
+      'catch',
       'cdr',
       'characterp',
       'cond',
@@ -154,6 +165,7 @@ export class LispInterpreter extends Object {
       'elt',
       'eq',
       'equal',
+      'error',
       'eval',
       'evenp',
       'every',
@@ -165,6 +177,7 @@ export class LispInterpreter extends Object {
       'gc',
       'gensym',
       'getf',
+      'handler-case',
       'if',
       'incf',
       'integerp',
@@ -230,6 +243,7 @@ export class LispInterpreter extends Object {
       'symbolp',
       'tan',
       'terpri',
+      'throw',
       'time',
       'trace',
       'truncate',

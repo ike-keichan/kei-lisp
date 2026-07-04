@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`catch` / `throw` special forms** — dynamic non-local exit with `eq`
+  tag matching (CL semantics). An uncaught `throw` signals an `EvalError`
+  at the interpreter boundary. (#39)
+- **`error` function and `handler-case` special form** — `error` formats
+  its message with the `format` directives and signals an evaluation
+  error; `handler-case` intercepts it with `error` / `parse-error` /
+  `eval-error` clauses (the common subset of CL `handler-case`, Scheme
+  `guard`, and Clojure `try`/`catch`). The clause variable is bound to the
+  error message string. (#39)
+- **Tail call optimization (TCO)** — the last form of a lambda body is
+  evaluated in tail position and user-lambda tail calls (including through
+  `if`, `cond`, `case`, `when`, `unless`, `progn`, `let`, `let*`, and
+  macro expansions) are applied iteratively, so deep tail recursion runs
+  in constant stack space. Note: tail-optimized frames do not emit
+  trace/spy output. (#39)
+
 - **`case` special form** — dispatches on an evaluated key against
   unevaluated clause keys (single key or key list), with `t` / `otherwise`
   default clauses. (#38)

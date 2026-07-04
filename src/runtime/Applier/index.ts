@@ -10,6 +10,7 @@ import {
 } from '../../constants/index.js';
 import type { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
+import { TailCall } from '../TailCall/index.js';
 import type { KeiLispPlugin } from '../../plugin/types.js';
 import type { LispValue } from '../../types/index.js';
 
@@ -198,11 +199,12 @@ export class Applier extends Object {
   }
 
   /**
-   * Binds the given parameter symbols to the corresponding argument values in this environment.
+   * Binds the given parameter symbols to the corresponding argument values in the given environment.
    * @param parameter the parameter list (a Cons of symbols, possibly dotted)
    * @param args the argument list to bind to the parameters
+   * @param environment the environment receiving the bindings (defaults to this Applier's environment)
    */
-  binding(parameter: LispValue, args: LispValue): null {
+  binding(parameter: LispValue, args: LispValue, environment: Table = this.environment): null {
     if (Cons.isNil(parameter)) {
       return null;
     }
@@ -211,7 +213,7 @@ export class Applier extends Object {
 
     while (Cons.isNotNil(aCons)) {
       try {
-        this.environment.set(aCons.car, theCons.car);
+        environment.set(aCons.car, theCons.car);
       } catch {
         throw new EvalError(SIZES_DO_NOT_MATCH);
         return null;
@@ -226,7 +228,7 @@ export class Applier extends Object {
 
     if (Cons.isNotList(aCons.cdr) && Cons.isNotNil(aCons.cdr)) {
       try {
-        this.environment.set(aCons.cdr, theCons.cdr);
+        environment.set(aCons.cdr, theCons.cdr);
       } catch {
         throw new EvalError(SIZES_DO_NOT_MATCH);
         return null;
@@ -384,31 +386,46 @@ export class Applier extends Object {
   }
 
   /**
-   * Delegates evaluation of a lambda body to the Evaluator after binding its parameters.
+   * Delegates evaluation of a lambda body to the Evaluator after binding its
+   * parameters. The last body form is evaluated in tail position; when it
+   * resolves to another user-lambda call, the call is applied here
+   * iteratively instead of recursing (tail call optimization).
    * @param procedure the lambda Cons to apply
    * @param args the argument list to bind to the lambda's parameters
    * @return the result of evaluating the lambda body
    */
   entrustEvaluator(procedure: LispValue, args: LispValue): LispValue {
-    let anObject: LispValue = Cons.nil;
-    let aCons = (procedure as Cons).cdr as Cons;
-    this.binding(aCons.car, args);
-    aCons = aCons.cdr as Cons;
+    let lambda = procedure as Cons;
+    let currentArgs = args;
+    let environment = this.environment;
 
-    for (const each of aCons.loop()) {
-      if (each instanceof Table) {
-        break;
+    for (;;) {
+      const aCons = lambda.cdr as Cons;
+      this.binding(aCons.car, currentArgs, environment);
+
+      const forms: LispValue[] = [];
+      for (const each of (aCons.cdr as Cons).loop()) {
+        if (each instanceof Table) {
+          break;
+        }
+        forms.push(each);
       }
-      anObject = Evaluator.eval(
-        each,
-        this.environment,
-        this.streamManager,
-        this.depth,
-        this.plugins,
-      );
-    }
+      for (let index = 0; index < forms.length - 1; index++) {
+        Evaluator.eval(forms[index], environment, this.streamManager, this.depth, this.plugins);
+      }
+      if (forms.length === 0) {
+        return Cons.nil;
+      }
 
-    return anObject;
+      const evaluator = new Evaluator(environment, this.streamManager, this.depth, this.plugins);
+      const result = evaluator.evalTail(forms.at(-1) ?? Cons.nil);
+      if (!(result instanceof TailCall)) {
+        return result;
+      }
+      lambda = result.procedure;
+      currentArgs = result.args;
+      environment = lambda.last().car as Table;
+    }
   }
 
   // NOTE: Implements Common Lisp's eq as JS strict identity (===). Symbols are eq because
@@ -1213,6 +1230,21 @@ export class Applier extends Object {
   }
 
   /**
+   * Implementation of the Lisp `error` function. Formats the message with the
+   * remaining arguments (using the `format` directives) and signals it as an
+   * evaluation error, which `handler-case` can intercept.
+   * @param args the argument Cons containing the message format string and its arguments
+   */
+  error_(args: Cons): never {
+    if (!Cons.isString(args.car)) {
+      throw new EvalError(cannotApply('error', args.car));
+    }
+    const message = this.format_AUX(args.car, args.cdr);
+
+    throw new EvalError(String(message));
+  }
+
+  /**
    * Implementation of the Lisp `every` function. Returns t when the predicate holds for every element of the list.
    * @param args the argument Cons containing the predicate and the list
    * @return t when the predicate holds for every element, nil otherwise
@@ -1939,6 +1971,7 @@ export class Applier extends Object {
         ['doublep', 'number_'],
         ['eq', 'eq_'],
         ['equal', 'equal_'],
+        ['error', 'error_'],
         ['evenp', 'even_'],
         ['every', 'every'],
         ['exp', 'exp'],

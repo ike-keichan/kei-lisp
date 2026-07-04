@@ -12,6 +12,8 @@ an interactive REPL, or embed it in your application as a library.
 
 - Common Lisp-inspired syntax (`setq`, `defun`, `let`, `cond`, ...)
 - Macros: `defmacro` with backquote/unquote (`` ` ``, `,`, `,@`) and `macroexpand`
+- Control flow: `catch` / `throw`, `error` / `handler-case`, and tail call
+  optimization (deep tail recursion runs in constant stack space)
 - CLI tool **and** embeddable library
 - ESM and CommonJS dual output with TypeScript types
 - Zero runtime dependencies

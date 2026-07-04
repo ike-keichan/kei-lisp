@@ -563,6 +563,126 @@ describe('Evaluator', () => {
     });
   });
 
+  describe('catch / throw', () => {
+    it('returns the body value when nothing is thrown', () => {
+      expect(evalStr("(catch 'tag 1 2 3)")).toBe('3');
+    });
+
+    it('returns the thrown value for a matching tag', () => {
+      expect(evalStr("(catch 'tag 1 (throw 'tag 42) 3)")).toBe('42');
+    });
+
+    it('unwinds through nested function calls', () => {
+      expect(evalStr("(defun inner () (throw 'done 7)) (catch 'done (inner) 'not-reached)")).toBe(
+        '7',
+      );
+    });
+
+    it('passes a throw with a different tag to the outer catch', () => {
+      expect(evalStr("(catch 'outer (catch 'inner (throw 'outer 1) 2) 3)")).toBe('1');
+    });
+
+    it('throws EvalError when no catch matches the tag', () => {
+      expect(() => evalStr("(throw 'nowhere 1)")).toThrow('no catch for tag nowhere');
+    });
+  });
+
+  describe('handler-case', () => {
+    it('returns the protected form value when no error is signaled', () => {
+      expect(evalStr('(handler-case (+ 1 2) (error (e) 99))')).toBe('3');
+    });
+
+    it('runs the error clause when the protected form signals', () => {
+      expect(evalStr('(handler-case (error "boom") (error (e) 99))')).toBe('99');
+    });
+
+    it('binds the clause variable to the error message', () => {
+      expect(evalStr('(handler-case (error "boom ~a" 1) (error (e) e))')).toBe('boom 1');
+    });
+
+    it('matches an eval-error clause for evaluation failures', () => {
+      expect(evalStr('(handler-case (undefined-fn) (eval-error (e) 1))')).toBe('1');
+    });
+
+    it('skips non-matching clauses and uses the first matching one', () => {
+      expect(evalStr('(handler-case (error "x") (parse-error (e) 1) (error (e) 2))')).toBe('2');
+    });
+
+    it('rethrows when no clause matches', () => {
+      expect(() => evalStr('(handler-case (error "x") (parse-error (e) 1))')).toThrow('x');
+    });
+
+    it('does not intercept a throw to an outer catch', () => {
+      expect(evalStr("(catch 'tag (handler-case (throw 'tag 5) (error (e) 99)))")).toBe('5');
+    });
+
+    it('supports a clause without a variable list body', () => {
+      expect(evalStr('(handler-case (error "x") (error () \'handled))')).toBe('handled');
+    });
+  });
+
+  describe('error', () => {
+    it('signals an EvalError with the given message', () => {
+      expect(() => evalStr('(error "custom failure")')).toThrow('custom failure');
+    });
+
+    it('formats the message with format directives', () => {
+      expect(() => evalStr('(error "bad value: ~a" 42)')).toThrow('bad value: 42');
+    });
+  });
+
+  describe('tail call optimization', () => {
+    it('runs deep self-recursion in tail position without stack overflow', () => {
+      expect(
+        evalStr("(defun loop-n (n) (if (= n 0) 'done (loop-n (- n 1)))) (loop-n 100000)"),
+      ).toBe('done');
+    });
+
+    it('runs deep mutual recursion in tail position without stack overflow', () => {
+      expect(
+        evalStr(
+          '(defun my-even (n) (if (= n 0) t (my-odd (- n 1)))) (defun my-odd (n) (if (= n 0) nil (my-even (- n 1)))) (my-even 100000)',
+        ),
+      ).toBe('t');
+    });
+
+    it('optimizes tail calls inside cond', () => {
+      expect(
+        evalStr("(defun loop-c (n) (cond ((= n 0) 'done) (t (loop-c (- n 1))))) (loop-c 100000)"),
+      ).toBe('done');
+    });
+
+    it('optimizes tail calls inside progn and let', () => {
+      expect(
+        evalStr(
+          "(defun loop-l (n) (if (= n 0) 'done (progn 1 (let ((m (- n 1))) (loop-l m))))) (loop-l 100000)",
+        ),
+      ).toBe('done');
+    });
+
+    it('optimizes tail calls inside when and case', () => {
+      expect(
+        evalStr(
+          "(defun loop-w (n) (case n (0 'done) (t (when t (loop-w (- n 1)))))) (loop-w 100000)",
+        ),
+      ).toBe('done');
+    });
+
+    it('accumulates through an argument without growing the stack', () => {
+      expect(
+        evalStr(
+          '(defun sum-acc (n acc) (if (= n 0) acc (sum-acc (- n 1) (+ acc n)))) (sum-acc 100000 0)',
+        ),
+      ).toBe('5000050000');
+    });
+
+    it('still returns correct values for non-tail recursion', () => {
+      expect(evalStr('(defun fact (n) (if (= n 0) 1 (* n (fact (- n 1))))) (fact 10)')).toBe(
+        '3628800',
+      );
+    });
+  });
+
   describe('macroexpand', () => {
     it('macroexpand-1 expands a macro call exactly once without evaluating it', () => {
       expect(

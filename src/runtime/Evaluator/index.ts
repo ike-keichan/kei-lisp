@@ -6,9 +6,13 @@ import { Cons } from '../../value/Cons/index.js';
 import { EvalError } from '../../errors/EvalError/index.js';
 import { ExitError } from '../../errors/ExitError/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
+import { KeiLispError } from '../../errors/KeiLispError/index.js';
+import { ParseError } from '../../errors/ParseError/index.js';
 import { cannotApply, noBinding, notSymbol, SIZES_DO_NOT_MATCH } from '../../constants/index.js';
 import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
+import { TailCall } from '../TailCall/index.js';
+import { ThrowSignal } from '../ThrowSignal/index.js';
 import type { KeiLispPlugin, PluginContext } from '../../plugin/types.js';
 import type { LispValue } from '../../types/index.js';
 
@@ -279,6 +283,345 @@ export class Evaluator extends Object {
     let current: LispValue = body;
     while (Cons.isCons(current)) {
       anObject = this.evalSub(current.car);
+      current = current.cdr;
+    }
+
+    return anObject;
+  }
+
+  /**
+   * Evaluates a form in tail position. Tail-transparent special forms
+   * (`if`, `cond`, `case`, `when`, `unless`, `progn`, `let`, `let*`) are
+   * unwound iteratively, macros are expanded in place, and a call to a user
+   * lambda returns a `TailCall` sentinel instead of recursing — the Applier's
+   * lambda-application loop then applies it iteratively (TCO).
+   * @param form the form to evaluate in tail position
+   * @return the evaluation result, or a TailCall sentinel
+   */
+  evalTail(form: LispValue): LispValue | TailCall {
+    let current: LispValue = form;
+    let evaluator: Evaluator = this;
+
+    for (;;) {
+      if (Cons.isNotCons(current) || Cons.isNotSymbol((current as Cons).car)) {
+        return evaluator.eval(current);
+      }
+      const formCons = current as Cons;
+      const operator = formCons.car as InterpretedSymbol;
+
+      if (Evaluator.buildInFunctions.has(operator)) {
+        const step = evaluator.tailSelect(formCons);
+        if (step == null) {
+          return evaluator.eval(current);
+        }
+        if (step.kind === 'value') {
+          return step.value;
+        }
+        current = step.form;
+        if (step.table !== evaluator.environment) {
+          evaluator = new Evaluator(step.table, this.streamManager, this.depth, this.plugins);
+        }
+        continue;
+      }
+
+      const macroLambda = evaluator.lookupMacro(operator);
+      if (macroLambda != null) {
+        current = evaluator.expandMacro1(formCons, macroLambda);
+        continue;
+      }
+
+      if (evaluator.plugins.some((plugin) => plugin.has(operator))) {
+        return evaluator.eval(current);
+      }
+
+      const bound = evaluator.environment.get(operator);
+      if (Evaluator.isUserLambda(bound)) {
+        return new TailCall(bound as Cons, evaluator.evalArgs(formCons.cdr));
+      }
+
+      return evaluator.eval(current);
+    }
+  }
+
+  /**
+   * Selects the tail form of a tail-transparent special form, evaluating any
+   * non-tail parts (tests, bindings, leading body forms) along the way.
+   * @param formCons the special-form call
+   * @return a finished value, the next form (with its table) to evaluate in
+   *         tail position, or null when the operator is not tail-transparent
+   */
+  tailSelect(
+    formCons: Cons,
+  ): { kind: 'value'; value: LispValue } | { kind: 'form'; form: LispValue; table: Table } | null {
+    const operator = (formCons.car as InterpretedSymbol).name;
+    const args = formCons.cdr as Cons;
+    switch (operator) {
+      case 'if': {
+        const bool = this.evalSub(args.car);
+        return this.tailForm(Cons.isNil(bool) ? args.nth(3) : args.nth(2));
+      }
+      case 'progn': {
+        return this.tailBody(args, Cons.nil);
+      }
+      case 'when':
+      case 'unless': {
+        const bool = this.evalSub(args.car);
+        const taken = operator === 'when' ? Cons.isNotNil(bool) : Cons.isNil(bool);
+        if (!taken) {
+          return { kind: 'value', value: Cons.nil };
+        }
+        return this.tailBody(args.cdr, Cons.nil);
+      }
+      case 'cond': {
+        return this.tailCond(args);
+      }
+      case 'case': {
+        const key = this.evalSub(args.car);
+        let clauses: LispValue = args.cdr;
+        while (Cons.isCons(clauses)) {
+          const clause = clauses.car;
+          if (Cons.isNotCons(clause)) {
+            throw new EvalError(cannotApply('case', clause));
+          }
+          if (this.caseMatches(key, (clause as Cons).car)) {
+            return this.tailBody((clause as Cons).cdr, Cons.nil);
+          }
+          clauses = clauses.cdr;
+        }
+        return { kind: 'value', value: Cons.nil };
+      }
+      case 'let':
+      case 'let*': {
+        const aTable = new Table(this.environment);
+        if (operator === 'let') {
+          this.bindingParallel(args.car as Cons, aTable);
+        } else {
+          this.binding(args.car as Cons, aTable);
+        }
+        const inner = new Evaluator(aTable, this.streamManager, this.depth, this.plugins);
+        return inner.tailBody(args.cdr, Cons.nil);
+      }
+      default: {
+        return null;
+      }
+    }
+  }
+
+  /**
+   * Wraps a form as a tail-position step in the current environment.
+   * @param form the form to evaluate next
+   * @return a tail step record
+   */
+  tailForm(form: LispValue): { kind: 'form'; form: LispValue; table: Table } {
+    return { kind: 'form', form, table: this.environment };
+  }
+
+  /**
+   * Evaluates all but the last form of a body and returns the last one as the
+   * tail step; an empty body finishes with the given default value.
+   * @param body the body list
+   * @param empty the value to return for an empty body
+   * @return a tail step record or a finished value
+   */
+  tailBody(
+    body: LispValue,
+    empty: LispValue,
+  ): { kind: 'value'; value: LispValue } | { kind: 'form'; form: LispValue; table: Table } {
+    if (Cons.isNotCons(body)) {
+      return { kind: 'value', value: empty };
+    }
+    let current: Cons = body as Cons;
+    while (Cons.isCons(current.cdr)) {
+      this.evalSub(current.car);
+      current = current.cdr;
+    }
+
+    return this.tailForm(current.car);
+  }
+
+  /**
+   * Walks `cond` clauses in tail position: evaluates each test and returns the
+   * matching clause's last body form as the tail step (or the test value for
+   * an empty consequent, matching `cond`'s behavior).
+   * @param clauses the clause list
+   * @return a tail step record or a finished value
+   */
+  tailCond(
+    clauses: LispValue,
+  ): { kind: 'value'; value: LispValue } | { kind: 'form'; form: LispValue; table: Table } {
+    let current: LispValue = clauses;
+    while (Cons.isCons(current)) {
+      const clause = current.car as Cons;
+      const bool = this.evalSub(clause.car);
+      if (Cons.isNotNil(bool)) {
+        return this.tailBody(clause.cdr, bool);
+      }
+      current = current.cdr;
+    }
+
+    return { kind: 'value', value: Cons.nil };
+  }
+
+  /**
+   * Evaluates a call-form argument list (stopping at the closure Table
+   * sentinel) and returns the evaluated argument list.
+   * @param list the unevaluated argument list
+   * @return the evaluated argument list
+   */
+  evalArgs(list: LispValue): LispValue {
+    const head = new Cons(Cons.nil, Cons.nil);
+    if (Cons.isCons(list)) {
+      for (const each of list.loop()) {
+        if (each instanceof Table) {
+          break;
+        }
+        head.add(this.evalSub(each));
+      }
+    }
+
+    return head.cdr;
+  }
+
+  /**
+   * Returns whether the given value is a user lambda closure (a lambda Cons
+   * with a captured environment) rather than a macro or plain data.
+   * @param value the environment binding to inspect
+   * @return a boolean
+   */
+  static isUserLambda(value: LispValue): boolean {
+    return (
+      Cons.isCons(value) &&
+      value.car === InterpretedSymbol.of('lambda') &&
+      value.last().car instanceof Table
+    );
+  }
+
+  /**
+   * Implementation of the Lisp `catch` special form. Evaluates the tag form,
+   * then the body; a `throw` to an `eq` tag during the body unwinds to here
+   * and its value becomes the result.
+   * @param aCons the argument Cons containing the tag form and the body
+   * @return the value of the last body form, or the thrown value
+   */
+  catch_(aCons: Cons): LispValue {
+    const tag = this.evalSub(aCons.car);
+    try {
+      return this.evalBody(aCons.cdr);
+    } catch (error) {
+      if (error instanceof ThrowSignal && error.tag === tag) {
+        return error.value;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Implementation of the Lisp `throw` special form. Evaluates the tag and
+   * value forms and unwinds to the nearest dynamically enclosing `catch`
+   * whose tag is `eq` to the thrown tag.
+   * @param aCons the argument Cons containing the tag form and the value form
+   */
+  throw_(aCons: Cons): never {
+    const tag = this.evalSub(aCons.car);
+    const value = this.evalSub(aCons.nth(2));
+
+    throw new ThrowSignal(tag, value);
+  }
+
+  /**
+   * Implementation of the Lisp `handler-case` special form (the common subset
+   * of CL `handler-case` / Scheme `guard` / Clojure `try`-`catch`). Evaluates
+   * the protected form; when it signals an error, runs the body of the first
+   * clause whose type matches — `error` matches any interpreter error,
+   * `parse-error` / `eval-error` match the specific families. The clause
+   * variable (when given) is bound to the error message string. `throw`
+   * signals and `exit` are not errors and pass through untouched.
+   * @param aCons the argument Cons containing the protected form and the clauses
+   * @return the value of the protected form, or of the matching clause body
+   */
+  handlerCase(aCons: Cons): LispValue {
+    try {
+      return this.evalSub(aCons.car);
+    } catch (error) {
+      if (!(error instanceof KeiLispError) || error instanceof ExitError) {
+        throw error;
+      }
+      const clause = this.findHandlerClause(aCons.cdr, error);
+      if (clause == null) {
+        throw error;
+      }
+      return this.runHandlerClause(clause, error);
+    }
+  }
+
+  /**
+   * Returns the first `handler-case` clause matching the given error, or null.
+   * @param clauses the clause list of a handler-case form
+   * @param error the signaled error
+   * @return the matching clause Cons, or null
+   */
+  findHandlerClause(clauses: LispValue, error: KeiLispError): Cons | null {
+    let current: LispValue = clauses;
+    while (Cons.isCons(current)) {
+      const clause = current.car;
+      if (Cons.isNotCons(clause)) {
+        throw new EvalError(cannotApply('handler-case', clause));
+      }
+      const clauseCons = clause as Cons;
+      if (this.handlerClauseMatches(clauseCons.car, error)) {
+        return clauseCons;
+      }
+      current = current.cdr;
+    }
+
+    return null;
+  }
+
+  /**
+   * Returns whether a `handler-case` clause type symbol matches the error.
+   * @param type the clause type designator
+   * @param error the signaled error
+   * @return a boolean
+   */
+  handlerClauseMatches(type: LispValue, error: KeiLispError): boolean {
+    if (Cons.isNotSymbol(type)) {
+      return false;
+    }
+    switch ((type as InterpretedSymbol).name) {
+      case 'error': {
+        return true;
+      }
+      case 'parse-error': {
+        return error instanceof ParseError;
+      }
+      case 'eval-error': {
+        return error instanceof EvalError;
+      }
+      default: {
+        return false;
+      }
+    }
+  }
+
+  /**
+   * Runs the body of a matched `handler-case` clause, binding its optional
+   * variable to the error message string.
+   * @param clause the matched clause Cons: (type (var?) body...)
+   * @param error the signaled error
+   * @return the value of the last body form
+   */
+  runHandlerClause(clause: Cons, error: KeiLispError): LispValue {
+    const varList = clause.nth(2);
+    const aTable = new Table(this.environment);
+    if (Cons.isCons(varList) && Cons.isSymbol(varList.car)) {
+      aTable.set(varList.car, error.message);
+    }
+    const body = (clause.cdr as Cons).cdr;
+
+    let anObject: LispValue = Cons.nil;
+    let current: LispValue = body;
+    while (Cons.isCons(current)) {
+      anObject = Evaluator.eval(current.car, aTable, this.streamManager, this.depth, this.plugins);
       current = current.cdr;
     }
 
@@ -1714,6 +2057,7 @@ export class Evaluator extends Object {
         ['apply', 'apply_lisp'],
         ['bind', 'bind'],
         ['case', 'case_'],
+        ['catch', 'catch_'],
         ['cond', 'cond'],
         ['decf', 'decf'],
         ['defmacro', 'defmacro'],
@@ -1726,6 +2070,7 @@ export class Evaluator extends Object {
         ['eval', 'eval_lisp'],
         ['exit', 'exit'],
         ['gc', 'gc'],
+        ['handler-case', 'handlerCase'],
         ['if', 'if_'],
         ['incf', 'incf'],
         ['lambda', 'lambda'],
@@ -1750,6 +2095,7 @@ export class Evaluator extends Object {
         ['set-allq', 'set_allq'],
         ['with-output-to-string', 'withOutputToString'],
         ['terpri', 'terpri'],
+        ['throw', 'throw_'],
         ['time', 'time'],
         ['trace', 'trace'],
         ['unless', 'unless'],
