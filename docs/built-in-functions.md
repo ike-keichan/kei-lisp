@@ -9,13 +9,14 @@ Entries are organized into the following categories:
 - [Logic](#logic) — `and`, `or`, `not`
 - [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `rationalp`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
 - [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `mapcan`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`, `reduce`, `every`, `some`, `find`, `position`, `remove`, `remove-if`, `sort`, `getf`
+- [Data structures](#data-structures) — `make-hash-table`, `gethash`, `remhash`, `hash-table-count`, `hash-table-p`, `vector`, `make-array`, `aref`, `svref`, `vectorp`
 - [Strings](#strings) — `string-upcase`, `string-downcase`, `string-trim`, `substring`, `concatenate`
 - [Variables and bindings](#variables-and-bindings) — `setq`, `setf`, `incf`, `decf`, `set-allq`, `bind`, `gensym`, `destructuring-bind`
 - [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`, `defstruct`
 - [Macros](#macros) — `defmacro`, backquote (`` ` ``, `,`, `,@`), `macroexpand`, `macroexpand-1`
 - [Control flow](#control-flow) — `if`, `cond`, `case`, `when`, `unless`, `do`, `do*`, `dolist`, `catch`, `throw`
 - [Error handling](#error-handling) — `error`, `handler-case`
-- [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`, `with-output-to-string`
+- [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`, `with-output-to-string`, `read-from-string`, `load`
 - [System](#system) — `exit`, `gc`, `time`, `trace`, `notrace`
 
 > The original alphabetical reference of each function follows below.
@@ -93,6 +94,24 @@ Functions to answer the combined list of L1 and L2.
 ```
 >> (append '(a b c) '(d e f))
 (a b c d e f)
+```
+
+### aref
+
+**(aref V N)**
+Function that returns the element of vector V at the zero-based index N.
+`svref` is an alias. Usable as a [setf](#setf) place. Signals an error for
+an out-of-range index.
+
+```
+>> (setq v (vector 10 20 30))
+#(10 20 30)
+>> (aref v 1)
+20
+>> (setf (aref v 0) 99)
+99
+>> v
+#(99 20 30)
 ```
 
 ### apply
@@ -801,6 +820,55 @@ omitted) if the key is absent. Usable as a [setf](#setf) place.
 (a 1 b 2 c 3)
 ```
 
+### gethash
+
+**(gethash KEY H)** / **(gethash KEY H DEFAULT)**
+Function that looks up KEY in the hash table H and returns the stored value,
+or DEFAULT (nil when omitted). Keys are compared by identity (`eq`); symbols,
+keywords, integers, and strings all work as keys. Usable as a [setf](#setf)
+place.
+
+**(kei-lisp specific behavior)** CL's `gethash` returns a second value
+indicating presence; kei-lisp returns only the value (use a unique default
+to distinguish a stored nil).
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash :name h) "kei")
+kei
+>> (gethash :name h)
+kei
+>> (gethash :missing h 99)
+99
+```
+
+### hash-table-count
+
+**(hash-table-count H)**
+Function that returns the number of entries in the hash table H.
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash 'a h) 1)
+1
+>> (hash-table-count h)
+1
+```
+
+### hash-table-p
+
+**(hash-table-p X)**
+Function to answer whether X is a hash table.
+
+```
+>> (hash-table-p (make-hash-table))
+t
+>> (hash-table-p '(a 1))
+nil
+```
+
 ### handler-case
 
 **(handler-case FORM (TYPE (VAR) X1 ... Xn) ...)**
@@ -983,6 +1051,50 @@ nil
 nil
 >> (listp "abc")
 nil
+```
+
+### load
+
+**(load PATH)**
+Function that reads the file at PATH, parses it, and evaluates every
+top-level form in the global environment. Returns t. Definitions
+(`defun`, `defmacro`, `setq`, ...) made by the file are available
+afterwards.
+
+```
+>> (load "lib.lisp")
+t
+>> (function-defined-in-lib 1)
+...
+```
+
+### make-array
+
+**(make-array N)** / **(make-array N INIT)**
+Function that returns a fresh one-dimensional vector of N elements, each
+initialized to INIT (nil when omitted).
+
+**(kei-lisp specific behavior)** CL's `make-array` takes dimensions and
+keyword arguments (`:initial-element`); kei-lisp supports one dimension
+with a positional initial element.
+
+```
+>> (make-array 3)
+#(nil nil nil)
+>> (make-array 3 0)
+#(0 0 0)
+```
+
+### make-hash-table
+
+**(make-hash-table)**
+Function that returns a fresh, empty hash table. Entries are read with
+[gethash](#gethash), written with `(setf (gethash key h) value)`, and
+removed with [remhash](#remhash).
+
+```
+>> (make-hash-table)
+#<hash-table :count 0>
 ```
 
 ### macroexpand
@@ -1583,6 +1695,37 @@ predicate PRED removed. The original list is not modified.
 (2 4)
 ```
 
+### read-from-string
+
+**(read-from-string S)**
+Function that parses the string S and returns the first expression it
+contains, without evaluating it (code as data). Combine with `eval` to
+run it.
+
+```
+>> (read-from-string "(+ 1 2)")
+(+ 1 2)
+>> (eval (read-from-string "(+ 1 2)"))
+3
+```
+
+### remhash
+
+**(remhash KEY H)**
+Function that removes KEY from the hash table H. Returns t when the key
+was present, nil otherwise.
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash 'a h) 1)
+1
+>> (remhash 'a h)
+t
+>> (remhash 'a h)
+nil
+```
+
 ### reverse
 
 **(reverse L)**
@@ -1885,6 +2028,11 @@ t
 t
 ```
 
+### svref
+
+**(svref V N)**
+Alias of [aref](#aref) (simple-vector access).
+
 ### symbolp
 
 **(symbolp X)**
@@ -2007,6 +2155,32 @@ nil
 nil
 >> (unless (= 1 2) (+ 3 4))
 7
+```
+
+### vector
+
+**(vector X1 X2 ... Xn)**
+Function that returns a fresh vector of the given elements. Vectors print
+as `#(1 2 3)` (CL syntax; there is no reader literal yet) and provide
+O(1) indexed access via [aref](#aref).
+
+```
+>> (vector 1 2 3)
+#(1 2 3)
+>> (length (vector 1 2 3))
+3
+```
+
+### vectorp
+
+**(vectorp X)**
+Function to answer whether X is a vector.
+
+```
+>> (vectorp (vector 1))
+t
+>> (vectorp '(1))
+nil
 ```
 
 ### when

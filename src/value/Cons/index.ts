@@ -1,9 +1,11 @@
+import { HashTable } from '../HashTable/index.js';
 import { InterpretedSymbol } from '../InterpretedSymbol/index.js';
 import { Loop } from '../Loop/index.js';
 import { Numeric } from '../Numeric/index.js';
 import { Parser } from '../../parser/Parser/index.js';
 import { Rational } from '../Rational/index.js';
 import { Table } from '../../runtime/Table/index.js';
+import { Vector } from '../Vector/index.js';
 import type { LispValue } from '../../types/index.js';
 
 /**
@@ -80,6 +82,12 @@ export class Cons extends Object {
     }
     if (Cons.isTable(value)) {
       return value;
+    }
+    if (Cons.isVector(value)) {
+      return value.clone();
+    }
+    if (Cons.isHashTable(value)) {
+      return value.clone();
     }
     return value;
   }
@@ -220,6 +228,20 @@ export class Cons extends Object {
    */
   static isTable(anObject: LispValue): anObject is Table {
     return anObject instanceof Table;
+  }
+
+  /**
+   * Returns whether the given argument is a hash table.
+   */
+  static isHashTable(anObject: LispValue): anObject is HashTable {
+    return anObject instanceof HashTable;
+  }
+
+  /**
+   * Returns whether the given argument is a vector.
+   */
+  static isVector(anObject: LispValue): anObject is Vector {
+    return anObject instanceof Vector;
   }
 
   /**

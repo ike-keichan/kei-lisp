@@ -797,6 +797,20 @@ export class Evaluator extends Object {
       case 'elt': {
         const list = this.evalSub(place.nth(2));
         const index = this.evalSub(place.nth(3));
+        if (Cons.isVector(list)) {
+          const position = Numeric.toIndex(index);
+          if (position == null) {
+            throw new EvalError(cannotApply('elt', index));
+          }
+          try {
+            return list.set(position, value);
+          } catch (error) {
+            if (error instanceof RangeError) {
+              throw new EvalError(error.message);
+            }
+            throw error;
+          }
+        }
         this.nthCell(list, Cons.isNumber(index) ? Numeric.add(index, 1n) : index, 'elt').setCar(
           value,
         );
@@ -804,6 +818,30 @@ export class Evaluator extends Object {
       }
       case 'getf': {
         return this.writeGetfPlace(place, value);
+      }
+      case 'gethash': {
+        const key = this.evalSub(place.nth(2));
+        const table = this.evalSub(place.nth(3));
+        if (!Cons.isHashTable(table)) {
+          throw new EvalError(cannotApply('setf', table));
+        }
+        return table.set(key, value);
+      }
+      case 'aref':
+      case 'svref': {
+        const target = this.evalSub(place.nth(2));
+        const index = Numeric.toIndex(this.evalSub(place.nth(3)));
+        if (!Cons.isVector(target) || index == null) {
+          throw new EvalError(cannotApply('setf', place));
+        }
+        try {
+          return target.set(index, value);
+        } catch (error) {
+          if (error instanceof RangeError) {
+            throw new EvalError(error.message);
+          }
+          throw error;
+        }
       }
       default: {
         const position = this.rootTable().structAccessors.get(operator);
@@ -1484,6 +1522,10 @@ export class Evaluator extends Object {
    * @return the value bound to the symbol
    */
   evaluateSymbol(aSymbol: InterpretedSymbol): LispValue {
+    // Keyword symbols (:foo) evaluate to themselves (CL / Clojure semantics).
+    if (aSymbol.name.startsWith(':')) {
+      return aSymbol;
+    }
     if (!this.environment.has(aSymbol)) {
       throw new EvalError(noBinding(aSymbol));
     }
