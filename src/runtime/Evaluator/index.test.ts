@@ -242,18 +242,18 @@ describe('Evaluator', () => {
       const interpreter = new LispInterpreter();
       const pair = interpreter.evalString("(assoc 'heap-used (gc))") as Cons;
       expect(pair.car).toBe(InterpretedSymbol.of('heap-used'));
-      expect(typeof pair.cdr).toBe('number');
-      expect(pair.cdr as number).toBeGreaterThan(0);
+      expect(typeof pair.cdr).toBe('bigint');
+      expect(pair.cdr as bigint).toBeGreaterThan(0n);
     });
 
     it('exposes heap-total and rss as positive numbers', () => {
       const interpreter = new LispInterpreter();
       const heapTotal = interpreter.evalString("(cdr (assoc 'heap-total (gc)))");
       const rss = interpreter.evalString("(cdr (assoc 'rss (gc)))");
-      expect(typeof heapTotal).toBe('number');
-      expect(heapTotal as number).toBeGreaterThan(0);
-      expect(typeof rss).toBe('number');
-      expect(rss as number).toBeGreaterThan(0);
+      expect(typeof heapTotal).toBe('bigint');
+      expect(heapTotal as bigint).toBeGreaterThan(0n);
+      expect(typeof rss).toBe('bigint');
+      expect(rss as bigint).toBeGreaterThan(0n);
     });
   });
 

@@ -14,6 +14,8 @@ an interactive REPL, or embed it in your application as a library.
 - Macros: `defmacro` with backquote/unquote (`` ` ``, `,`, `,@`) and `macroexpand`
 - Control flow: `catch` / `throw`, `error` / `handler-case`, and tail call
   optimization (deep tail recursion runs in constant stack space)
+- Numeric tower: arbitrary-precision integers (bignum), exact rationals
+  (`(/ 1 2)` → `1/2`), and floats with CL-style contagion
 - CLI tool **and** embeddable library
 - ESM and CommonJS dual output with TypeScript types
 - Zero runtime dependencies

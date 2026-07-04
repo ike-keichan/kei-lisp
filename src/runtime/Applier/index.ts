@@ -2,6 +2,7 @@ import { Cons } from '../../value/Cons/index.js';
 import { EvalError } from '../../errors/EvalError/index.js';
 import { Evaluator } from '../Evaluator/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
+import { Numeric } from '../../value/Numeric/index.js';
 import {
   cannotApply,
   noProcedure,
@@ -12,6 +13,7 @@ import type { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 import { TailCall } from '../TailCall/index.js';
 import type { KeiLispPlugin } from '../../plugin/types.js';
+import type { NumericValue } from '../../value/Numeric/index.js';
 import type { LispValue } from '../../types/index.js';
 
 const SELECT_PRINT_FUNCTION_NOT_DEFINED = 'selectPrintFunction is not defined';
@@ -80,7 +82,7 @@ export class Applier extends Object {
    */
   abs(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.abs(args.car);
+      return Numeric.abs(args.car);
     }
     throw new EvalError(cannotApply('abs', args.car));
 
@@ -107,14 +109,14 @@ export class Applier extends Object {
    * @param args the remaining numbers to add
    * @return the sum of init and all remaining numbers
    */
-  add_Number(init: number, args: LispValue): LispValue {
-    let result = init;
+  add_Number(init: NumericValue, args: LispValue): LispValue {
+    let result: NumericValue = init;
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result + each;
+        result = Numeric.add(result, each);
       } else {
         throw new EvalError(cannotApply('add', each));
         return Cons.nil;
@@ -341,7 +343,7 @@ export class Applier extends Object {
    */
   cos(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.cos(args.car);
+      return Math.cos(Numeric.toFloat(args.car));
     }
     // Following the original: calls the undefined `selectPrintFunction`, so it throws ReferenceError.
     throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
@@ -354,7 +356,14 @@ export class Applier extends Object {
    */
   divide(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return this.divide_Number(args.car, args.cdr);
+      try {
+        return this.divide_Number(args.car, args.cdr);
+      } catch (error) {
+        if (error instanceof RangeError) {
+          throw new EvalError(error.message);
+        }
+        throw error;
+      }
     }
     throw new EvalError(cannotApply('divide', args.car));
 
@@ -367,14 +376,14 @@ export class Applier extends Object {
    * @param args the remaining numbers to divide by
    * @return the quotient of init divided by all remaining numbers
    */
-  divide_Number(init: number, args: LispValue): LispValue {
-    let result = init;
+  divide_Number(init: NumericValue, args: LispValue): LispValue {
+    let result: NumericValue = init;
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result / each;
+        result = Numeric.divide(result, each);
       } else {
         throw new EvalError(cannotApply('divide', each));
         return Cons.nil;
@@ -459,6 +468,9 @@ export class Applier extends Object {
     if (this.eq_(args) === InterpretedSymbol.of('t')) {
       return InterpretedSymbol.of('t');
     }
+    if (Cons.isNumber(first) && Cons.isNumber(second)) {
+      return Numeric.equals(first, second) ? InterpretedSymbol.of('t') : Cons.nil;
+    }
     if (Cons.isCons(first) && Cons.isCons(second)) {
       if (first.equals(second)) {
         return InterpretedSymbol.of('t');
@@ -478,7 +490,7 @@ export class Applier extends Object {
    */
   exp(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.exp(args.car);
+      return Math.exp(Numeric.toFloat(args.car));
     }
     // Following the original: calls the undefined `selectPrintFunction`, so it throws ReferenceError.
     throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
@@ -675,7 +687,7 @@ export class Applier extends Object {
    * @return t if a float, nil otherwise
    */
   float_(args: Cons): LispValue {
-    if (Cons.isNumber(args.car) && -3.4e38 <= args.car && args.car <= 3.4e38) {
+    if (Cons.isFloat(args.car)) {
       return InterpretedSymbol.of('t');
     }
     return Cons.nil;
@@ -725,15 +737,15 @@ export class Applier extends Object {
    * @param args the remaining numbers to compare against
    * @return t when strictly decreasing, nil otherwise
    */
-  greaterThan_Number(init: number, args: LispValue): LispValue {
-    let leftValue: number = init;
+  greaterThan_Number(init: NumericValue, args: LispValue): LispValue {
+    let leftValue: NumericValue = init;
     let aCons: LispValue = args;
     let aBoolean: boolean;
 
     while (Cons.isNotNil(aCons)) {
       const rightValue = (aCons as Cons).car;
       if (Cons.isNumber(rightValue)) {
-        aBoolean = leftValue > rightValue;
+        aBoolean = Numeric.compare(leftValue, rightValue) > 0;
       } else {
         throw new EvalError(cannotApply('>', rightValue));
         return Cons.nil;
@@ -768,15 +780,15 @@ export class Applier extends Object {
    * @param args the remaining numbers to compare against
    * @return t when non-increasing, nil otherwise
    */
-  greaterThanOrEqual_Number(init: number, args: LispValue): LispValue {
-    let leftValue: number = init;
+  greaterThanOrEqual_Number(init: NumericValue, args: LispValue): LispValue {
+    let leftValue: NumericValue = init;
     let aCons: LispValue = args;
     let aBoolean: boolean;
 
     while (Cons.isNotNil(aCons)) {
       const rightValue = (aCons as Cons).car;
       if (Cons.isNumber(rightValue)) {
-        aBoolean = leftValue >= rightValue;
+        aBoolean = Numeric.compare(leftValue, rightValue) >= 0;
       } else {
         throw new EvalError(cannotApply('>=', rightValue));
         return Cons.nil;
@@ -819,7 +831,7 @@ export class Applier extends Object {
    * @return t if an integer, nil otherwise
    */
   integer_(args: Cons): LispValue {
-    if (Cons.isNumber(args.car) && Number.isInteger(args.car)) {
+    if (Cons.isInteger(args.car)) {
       return InterpretedSymbol.of('t');
     }
     return Cons.nil;
@@ -831,7 +843,7 @@ export class Applier extends Object {
    * @return t if even, nil otherwise
    */
   even_(args: Cons): LispValue {
-    if (Cons.isNumber(args.car) && Number.isInteger(args.car) && args.car % 2 === 0) {
+    if (Cons.isInteger(args.car) && args.car % 2n === 0n) {
       return InterpretedSymbol.of('t');
     }
     return Cons.nil;
@@ -843,7 +855,7 @@ export class Applier extends Object {
    * @return t if odd, nil otherwise
    */
   odd_(args: Cons): LispValue {
-    if (Cons.isNumber(args.car) && Number.isInteger(args.car) && args.car % 2 !== 0) {
+    if (Cons.isInteger(args.car) && args.car % 2n !== 0n) {
       return InterpretedSymbol.of('t');
     }
     return Cons.nil;
@@ -855,7 +867,7 @@ export class Applier extends Object {
    * @return t if zero, nil otherwise
    */
   zero_(args: Cons): LispValue {
-    if (Cons.isNumber(args.car) && args.car === 0) {
+    if (Cons.isNumber(args.car) && Numeric.compare(args.car, 0n) === 0) {
       return InterpretedSymbol.of('t');
     }
     return Cons.nil;
@@ -867,7 +879,7 @@ export class Applier extends Object {
    * @return t if positive, nil otherwise
    */
   plus_(args: Cons): LispValue {
-    if (Cons.isNumber(args.car) && args.car > 0) {
+    if (Cons.isNumber(args.car) && Numeric.compare(args.car, 0n) > 0) {
       return InterpretedSymbol.of('t');
     }
     return Cons.nil;
@@ -879,7 +891,7 @@ export class Applier extends Object {
    * @return t if negative, nil otherwise
    */
   minus_(args: Cons): LispValue {
-    if (Cons.isNumber(args.car) && args.car < 0) {
+    if (Cons.isNumber(args.car) && Numeric.compare(args.car, 0n) < 0) {
       return InterpretedSymbol.of('t');
     }
     return Cons.nil;
@@ -892,7 +904,7 @@ export class Applier extends Object {
    */
   oneplus(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return args.car + 1;
+      return Numeric.add(args.car, 1n);
     }
     throw new EvalError(cannotApply('1+', args.car));
   }
@@ -904,7 +916,7 @@ export class Applier extends Object {
    */
   oneminus(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return args.car - 1;
+      return Numeric.subtract(args.car, 1n);
     }
     throw new EvalError(cannotApply('1-', args.car));
   }
@@ -918,7 +930,7 @@ export class Applier extends Object {
     const base = args.car;
     const exponent = args.nth(2);
     if (Cons.isNumber(base) && Cons.isNumber(exponent)) {
-      return Math.pow(base, exponent);
+      return Numeric.expt(base, exponent);
     }
     throw new EvalError(cannotApply('expt', base));
   }
@@ -930,7 +942,7 @@ export class Applier extends Object {
    */
   truncate(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.trunc(args.car);
+      return Numeric.truncate(args.car);
     }
     throw new EvalError(cannotApply('truncate', args.car));
   }
@@ -942,7 +954,7 @@ export class Applier extends Object {
    */
   floor(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.floor(args.car);
+      return Numeric.floor(args.car);
     }
     throw new EvalError(cannotApply('floor', args.car));
   }
@@ -954,7 +966,7 @@ export class Applier extends Object {
    */
   ceiling(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.ceil(args.car);
+      return Numeric.ceiling(args.car);
     }
     throw new EvalError(cannotApply('ceiling', args.car));
   }
@@ -965,7 +977,7 @@ export class Applier extends Object {
    * @return the smallest number
    */
   min(args: Cons): LispValue {
-    const values: number[] = [];
+    const values: NumericValue[] = [];
     for (const each of args.loop()) {
       if (!Cons.isNumber(each)) {
         throw new EvalError(cannotApply('min', each));
@@ -975,7 +987,13 @@ export class Applier extends Object {
     if (values.length === 0) {
       throw new EvalError('min requires at least one argument');
     }
-    return Math.min(...values);
+    let result = values[0];
+    for (const value of values) {
+      if (Numeric.compare(value, result) < 0) {
+        result = value;
+      }
+    }
+    return result;
   }
 
   /**
@@ -984,7 +1002,7 @@ export class Applier extends Object {
    * @return the largest number
    */
   max(args: Cons): LispValue {
-    const values: number[] = [];
+    const values: NumericValue[] = [];
     for (const each of args.loop()) {
       if (!Cons.isNumber(each)) {
         throw new EvalError(cannotApply('max', each));
@@ -994,7 +1012,13 @@ export class Applier extends Object {
     if (values.length === 0) {
       throw new EvalError('max requires at least one argument');
     }
-    return Math.max(...values);
+    let result = values[0];
+    for (const value of values) {
+      if (Numeric.compare(value, result) > 0) {
+        result = value;
+      }
+    }
+    return result;
   }
 
   /**
@@ -1005,10 +1029,10 @@ export class Applier extends Object {
   length(args: Cons): LispValue {
     const target = args.car;
     if (Cons.isString(target)) {
-      return toCodePoints(target).length;
+      return BigInt(toCodePoints(target).length);
     }
     if (Cons.isCons(target)) {
-      return target.length();
+      return BigInt(target.length());
     }
     if (Cons.isNil(target)) {
       return 0;
@@ -1059,22 +1083,23 @@ export class Applier extends Object {
    */
   substring(args: Cons): LispValue {
     const target = args.car;
-    const start = args.nth(2);
+    const start = Numeric.toIndex(args.nth(2));
     const end = args.nth(3);
     if (!Cons.isString(target)) {
       throw new EvalError(cannotApply('substring', target));
     }
-    if (!Cons.isNumber(start)) {
-      throw new EvalError(cannotApply('substring', start));
+    if (start == null) {
+      throw new EvalError(cannotApply('substring', args.nth(2)));
     }
     const chars = toCodePoints(target);
     if (Cons.isNil(end)) {
       return chars.slice(start).join('');
     }
-    if (!Cons.isNumber(end)) {
+    const stop = Numeric.toIndex(end);
+    if (stop == null) {
       throw new EvalError(cannotApply('substring', end));
     }
-    return chars.slice(start, end).join('');
+    return chars.slice(start, stop).join('');
   }
 
   /**
@@ -1100,9 +1125,9 @@ export class Applier extends Object {
    */
   elt(args: Cons): LispValue {
     const target = args.car;
-    const index = args.nth(2);
-    if (!Cons.isNumber(index)) {
-      throw new EvalError(cannotApply('elt', index));
+    const index = Numeric.toIndex(args.nth(2));
+    if (index == null) {
+      throw new EvalError(cannotApply('elt', args.nth(2)));
     }
     if (Cons.isString(target)) {
       const chars = toCodePoints(target);
@@ -1127,24 +1152,25 @@ export class Applier extends Object {
    */
   subseq(args: Cons): LispValue {
     const target = args.car;
-    const start = args.nth(2);
+    const start = Numeric.toIndex(args.nth(2));
     const end = args.nth(3);
-    if (!Cons.isNumber(start)) {
-      throw new EvalError(cannotApply('subseq', start));
+    if (start == null) {
+      throw new EvalError(cannotApply('subseq', args.nth(2)));
     }
     if (Cons.isString(target)) {
       const chars = toCodePoints(target);
       if (Cons.isNil(end)) {
         return chars.slice(start).join('');
       }
-      if (!Cons.isNumber(end)) {
+      const stop = Numeric.toIndex(end);
+      if (stop == null) {
         throw new EvalError(cannotApply('subseq', end));
       }
-      return chars.slice(start, end).join('');
+      return chars.slice(start, stop).join('');
     }
     if (Cons.isCons(target)) {
-      const stop = Cons.isNil(end) ? target.length() : (end as number);
-      if (!Cons.isNumber(stop)) {
+      const stop = Cons.isNil(end) ? target.length() : Numeric.toIndex(end);
+      if (stop == null) {
         throw new EvalError(cannotApply('subseq', end));
       }
       let result: Cons = Cons.nil;
@@ -1167,12 +1193,12 @@ export class Applier extends Object {
     let n = 0;
     if (Cons.isString(target)) {
       if (!Cons.isString(item) || item.length !== 1) {
-        return 0;
+        return 0n;
       }
       for (const ch of target) {
         if (ch === item) n++;
       }
-      return n;
+      return BigInt(n);
     }
     if (Cons.isCons(target) || Cons.isNil(target)) {
       const list = Cons.isNil(target) ? Cons.nil : target;
@@ -1181,7 +1207,7 @@ export class Applier extends Object {
           if (each === item) n++;
         }
       }
-      return n;
+      return BigInt(n);
     }
     throw new EvalError(cannotApply('count', target));
   }
@@ -1369,7 +1395,7 @@ export class Applier extends Object {
     for (const each of list.loop()) {
       // Use eq_ (identity) for matching, mirroring CL's default :test #'eql semantics.
       if (this.eq_(new Cons(item, new Cons(each, Cons.nil))) === InterpretedSymbol.of('t')) {
-        return index;
+        return BigInt(index);
       }
       index++;
     }
@@ -1555,15 +1581,15 @@ export class Applier extends Object {
    * @param args the remaining numbers to compare against
    * @return t when strictly increasing, nil otherwise
    */
-  lessThan_Number(init: number, args: LispValue): LispValue {
-    let leftValue: number = init;
+  lessThan_Number(init: NumericValue, args: LispValue): LispValue {
+    let leftValue: NumericValue = init;
     let aCons: LispValue = args;
     let aBoolean: boolean;
 
     while (Cons.isNotNil(aCons)) {
       const rightValue = (aCons as Cons).car;
       if (Cons.isNumber(rightValue)) {
-        aBoolean = leftValue < rightValue;
+        aBoolean = Numeric.compare(leftValue, rightValue) < 0;
       } else {
         throw new EvalError(cannotApply('<', rightValue));
         return Cons.nil;
@@ -1598,15 +1624,15 @@ export class Applier extends Object {
    * @param args the remaining numbers to compare against
    * @return t when non-decreasing, nil otherwise
    */
-  lessThanOrEqual_Number(init: number, args: LispValue): LispValue {
-    let leftValue: number = init;
+  lessThanOrEqual_Number(init: NumericValue, args: LispValue): LispValue {
+    let leftValue: NumericValue = init;
     let aCons: LispValue = args;
     let aBoolean: boolean;
 
     while (Cons.isNotNil(aCons)) {
       const rightValue = (aCons as Cons).car;
       if (Cons.isNumber(rightValue)) {
-        aBoolean = leftValue <= rightValue;
+        aBoolean = Numeric.compare(leftValue, rightValue) <= 0;
       } else {
         throw new EvalError(cannotApply('<=', rightValue));
         return Cons.nil;
@@ -1746,7 +1772,14 @@ export class Applier extends Object {
    */
   mod(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return this.mod_Number(args.car, args.cdr);
+      try {
+        return this.mod_Number(args.car, args.cdr);
+      } catch (error) {
+        if (error instanceof RangeError) {
+          throw new EvalError(error.message);
+        }
+        throw error;
+      }
     }
     throw new EvalError(cannotApply('mod', args.car));
 
@@ -1759,14 +1792,14 @@ export class Applier extends Object {
    * @param args the remaining numbers to mod by
    * @return the remainder after taking modulo with each of the remaining numbers
    */
-  mod_Number(init: number, args: LispValue): LispValue {
-    let result = init;
+  mod_Number(init: NumericValue, args: LispValue): LispValue {
+    let result: NumericValue = init;
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result % each;
+        result = Numeric.mod(result, each);
       } else {
         throw new EvalError(cannotApply('mod', each));
         return Cons.nil;
@@ -1797,14 +1830,14 @@ export class Applier extends Object {
    * @param args the remaining numbers to multiply
    * @return the product of init and all remaining numbers
    */
-  multiply_Number(init: number, args: LispValue): LispValue {
-    let result = init;
+  multiply_Number(init: NumericValue, args: LispValue): LispValue {
+    let result: NumericValue = init;
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result * each;
+        result = Numeric.multiply(result, each);
       } else {
         throw new EvalError(cannotApply('multiply', each));
         return Cons.nil;
@@ -1853,10 +1886,10 @@ export class Applier extends Object {
    * @return the element at the given index
    */
   nth(args: Cons): LispValue {
-    if (!Number.isInteger(args.car)) {
+    const index = Numeric.toIndex(args.car);
+    if (index == null) {
       return Cons.nil;
     }
-    const index = args.car as number;
     const aCons = args.nth(2) as Cons;
 
     return aCons.nth(index);
@@ -1874,12 +1907,9 @@ export class Applier extends Object {
     return Cons.nil;
   }
 
-  // NOTE: Lisp's numberp and doublep are originally distinct predicates, but because JS has only
-  //       one numeric type (double), we share a single implementation. In Applier.setup() both
-  //       Lisp function names numberp / doublep map to this method. Split into separate methods if
-  //       a future revision introduces additional numeric types such as BigInt.
   /**
-   * Implementation of the Lisp `numberp` / `doublep` predicate. Returns t if the argument is a number.
+   * Implementation of the Lisp `numberp` predicate. Returns t if the argument
+   * is a number of any representation (integer, rational, or float).
    * @param args the argument Cons containing the value to test
    * @return t if a number, nil otherwise
    */
@@ -1899,6 +1929,20 @@ export class Applier extends Object {
   }
 
   /**
+   * Implementation of the Lisp `rationalp` predicate. Returns t if the
+   * argument is an exact rational number: an integer or a ratio (CL
+   * semantics; floats are not rational).
+   * @param args the argument Cons containing the value to test
+   * @return t if rational, nil otherwise
+   */
+  rational_(args: Cons): LispValue {
+    if (Cons.isInteger(args.car) || Cons.isRational(args.car)) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
+  /**
    * Implementation of the Lisp `random` function. Returns a pseudo-random number in [0, 1).
    * @return a random number in [0, 1)
    */
@@ -1913,7 +1957,7 @@ export class Applier extends Object {
    */
   round(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.round(args.car);
+      return Numeric.round(args.car);
     }
     // Following the original: calls the undefined `selectPrintFunction`, so it throws ReferenceError.
     throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
@@ -1968,7 +2012,6 @@ export class Applier extends Object {
         ['floatp', 'float_'],
         ['floor', 'floor'],
         ['divide', 'divide'],
-        ['doublep', 'number_'],
         ['eq', 'eq_'],
         ['equal', 'equal_'],
         ['error', 'error_'],
@@ -2008,6 +2051,7 @@ export class Applier extends Object {
         ['plusp', 'plus_'],
         ['position', 'position'],
         ['random', 'random'],
+        ['rationalp', 'rational_'],
         ['reduce', 'reduce'],
         ['remove', 'remove'],
         ['remove-if', 'removeIf'],
@@ -2056,7 +2100,7 @@ export class Applier extends Object {
    */
   sin(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.sin(args.car);
+      return Math.sin(Numeric.toFloat(args.car));
     }
     // Following the original: calls the undefined `selectPrintFunction`, so it throws ReferenceError.
     throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
@@ -2083,7 +2127,7 @@ export class Applier extends Object {
    */
   sqrt(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.sqrt(args.car);
+      return Math.sqrt(Numeric.toFloat(args.car));
     }
     // Following the original: calls the undefined `selectPrintFunction`, so it throws ReferenceError.
     throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);
@@ -2121,14 +2165,14 @@ export class Applier extends Object {
    * @param args the remaining numbers to subtract
    * @return init with all remaining numbers subtracted
    */
-  subtract_Number(init: number, args: LispValue): LispValue {
-    let result = init;
+  subtract_Number(init: NumericValue, args: LispValue): LispValue {
+    let result: NumericValue = init;
     let aCons: LispValue = args;
 
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result - each;
+        result = Numeric.subtract(result, each);
       } else {
         throw new EvalError(cannotApply('subtract', each));
         return Cons.nil;
@@ -2158,7 +2202,7 @@ export class Applier extends Object {
    */
   tan(args: Cons): LispValue {
     if (Cons.isNumber(args.car)) {
-      return Math.tan(args.car);
+      return Math.tan(Numeric.toFloat(args.car));
     }
     // Following the original: calls the undefined `selectPrintFunction`, so it throws ReferenceError.
     throw new ReferenceError(SELECT_PRINT_FUNCTION_NOT_DEFINED);

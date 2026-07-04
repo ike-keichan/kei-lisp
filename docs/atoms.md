@@ -34,6 +34,18 @@ nil
 
 ## Number
 
+kei-lisp has a **numeric tower**:
+
+- **Integer** — arbitrary precision (bignum). A literal without a decimal
+  point or exponent, e.g. `123`, `-42`, `99999999999999999999`.
+- **Rational** — an exact ratio of integers, printed as `1/2`. There is no
+  reader literal; rationals are produced by exact division, e.g. `(/ 1 2)`.
+- **Float** — a double-precision floating-point number. A literal with a
+  decimal point or exponent, e.g. `123.456`, `1.0`, `1e3`.
+
+Arithmetic on exact values (integers, rationals) stays exact; as soon as a
+float is involved the result is a float (float contagion).
+
 The interpreter accepts integers, negative numbers, decimal fractions, and
 scientific notation:
 

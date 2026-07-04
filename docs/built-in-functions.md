@@ -7,7 +7,7 @@ Entries are organized into the following categories:
 - [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `expt`, `sqrt`, `sin`, `cos`, `tan`, `round`, `truncate`, `floor`, `ceiling`, `min`, `max`, `1+`, `1-`, `random`, `pi`, `napier`
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
-- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
+- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `rationalp`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
 - [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `mapcan`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`, `reduce`, `every`, `some`, `find`, `position`, `remove`, `remove-if`, `sort`, `getf`
 - [Strings](#strings) — `string-upcase`, `string-downcase`, `string-trim`, `substring`, `concatenate`
 - [Variables and bindings](#variables-and-bindings) — `setq`, `setf`, `incf`, `decf`, `set-allq`, `bind`, `gensym`, `destructuring-bind`
@@ -22,8 +22,12 @@ Entries are organized into the following categories:
 
 > **Legend**: Entries marked **(kei-lisp specific)** are either not part of
 > the Common Lisp standard or behave differently from CL. They are kept for
-> historical reasons or because of platform constraints (e.g. JS has only
-> one numeric type).
+> historical reasons or because of platform constraints.
+>
+> **Numbers**: kei-lisp has a numeric tower — integers (arbitrary
+> precision), exact rationals (created by `/`, printed as `1/2`), and
+> double-precision floats. Exact operands stay exact; as soon as a float
+> is involved the result is a float (float contagion).
 
 ## Comments
 
@@ -485,44 +489,6 @@ c
 t
 ```
 
-### doublep
-
-**(kei-lisp specific)** Not present in Common Lisp; in kei-lisp it is the
-same as `numberp` (JS has only one numeric type, so "double" and "number"
-collapse to the same check).
-
-**(doublep X)**
-Function to answer whether X is a Double.
-
-```
->> (doublep 12)
-t
->> (doublep 12.3)
-t
->> (doublep -12)
-t
->> (doublep -12.3)
-t
->> (doublep 3.4E-38)
-t
->> (doublep 3.4E+38)
-t
->> (doublep 1.7E+308)
-t
->> (doublep 1.7E-308)
-t
->> (doublep '(1 2 3))
-nil
->> (doublep '())
-nil
->> (doublep 'a)
-nil
->> (doublep "a")
-nil
->> (doublep "abc")
-nil
-```
-
 ### error
 
 **(error MESSAGE X1 ... Xn)**
@@ -686,7 +652,8 @@ Function that returns the base B raised to the exponent E.
 
 **(floor X)**
 Function that returns the largest integer less than or equal to X (rounded
-toward negative infinity).
+toward negative infinity). The result is an integer (CL semantics); works
+on integers, rationals, and floats.
 
 ```
 >> (floor 3.7)
@@ -727,40 +694,22 @@ nil
 
 ### floatp
 
-**(kei-lisp specific behavior)** In Common Lisp `floatp` is a type-tag
-predicate (integer vs float). In kei-lisp, because JS has only one numeric
-type (double), `floatp` is interpreted as a **range check**: it returns
-`t` when X is representable in IEEE 32-bit (single-precision) float range.
-
 **(floatp X)**
-Function to answer whether X is a Float.
+Function to answer whether X is a float (a double-precision floating-point
+number). Integers are a distinct type and answer nil (CL type-tag
+semantics). A literal is a float when it contains a decimal point or an
+exponent.
 
 ```
->> (floatp 12)
-t
 >> (floatp 12.3)
 t
->> (floatp -12)
+>> (floatp 1.0)
 t
->> (floatp -12.3)
-t
->> (floatp 3.4E-38)
-t
->> (floatp 3.4E+38)
-t
->> (floatp 1.7E-308)
+>> (floatp 12)
 nil
->> (floatp 1.7E+308)
-nil
->> (floatp '(1 2 3))
-nil
->> (floatp '())
-nil
->> (floatp 'a)
+>> (floatp (/ 1 2))
 nil
 >> (floatp "a")
-nil
->> (floatp "abc")
 nil
 ```
 
@@ -914,34 +863,18 @@ Special form that increments the number stored in a generalized place (see
 ### integerp
 
 **(integerp X)**
-Function to answer whether X is an Integer.
+Function to answer whether X is an integer. Integers have arbitrary
+precision (bignum). An integral **float** such as `1.0` is not an integer
+(CL type-tag semantics).
 
 ```
 >> (integerp 12)
 t
->> (integerp 12.3)
-nil
->> (integerp -12)
+>> (integerp 99999999999999999999)
 t
->> (integerp -12.3)
+>> (integerp 1.0)
 nil
->> (integerp 3.4E-38)
-nil
->> (integerp 3.4E+38)
-t
->> (integerp 1.7E-308)
-nil
->> (integerp 1.7E+308)
-t
->> (integerp '(1 2 3))
-nil
->> (integerp '())
-nil
->> (integerp 'a)
-nil
->> (integerp "a")
-nil
->> (integerp "abc")
+>> (integerp (/ 1 2))
 nil
 ```
 
@@ -1582,6 +1515,21 @@ Function to answer a random number greater than or equal to 0 and less than or e
 0.9867023484200941
 ```
 
+### rationalp
+
+**(rationalp X)**
+Function to answer whether X is an exact rational number: an integer or a
+ratio. Floats are not rational (CL semantics).
+
+```
+>> (rationalp 1)
+t
+>> (rationalp (/ 1 2))
+t
+>> (rationalp 0.5)
+nil
+```
+
 ### reduce
 
 **(reduce FN LIST [INIT])**
@@ -2185,13 +2133,20 @@ Same as the function "[multiply](#multiply)".
 
 **(/ X1 X2 ... Xn)**
 Function to answer the quotient of X1 divided by X2 ... and Xn.<br>
-Same as the function "[divide](#divide)".
+Same as the function "[divide](#divide)". Division of integers is **exact**:
+when it does not divide evenly the result is a rational (CL semantics).
+Involving a float makes the result a float. Exact division by zero signals
+an error.
 
 ```
 >> (/ 10 5)
 2
+>> (/ 1 2)
+1/2
 >> (/ 12 5 4)
-0.6
+3/5
+>> (/ 1.0 2)
+0.5
 ```
 
 ### //

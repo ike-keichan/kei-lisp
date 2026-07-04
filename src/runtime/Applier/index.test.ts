@@ -670,20 +670,20 @@ describe('Applier', () => {
   });
 
   describe('floatp', () => {
-    it('returns t for a number within IEEE 32-bit range', () => {
+    it('returns t for a float literal', () => {
       expect(evalStr('(floatp 3.14)')).toBe('t');
     });
 
-    it('returns t for an integer within IEEE 32-bit range (range check, not type-tag)', () => {
-      expect(evalStr('(floatp 42)')).toBe('t');
+    it('returns t for an integral float literal', () => {
+      expect(evalStr('(floatp 1.0)')).toBe('t');
+    });
+
+    it('returns nil for an integer (type tag, CL semantics)', () => {
+      expect(evalStr('(floatp 42)')).toBe('nil');
     });
 
     it('returns nil for a non-number', () => {
       expect(evalStr('(floatp "foo")')).toBe('nil');
-    });
-
-    it('returns nil for a value beyond the IEEE 32-bit range', () => {
-      expect(evalStr('(floatp 1e40)')).toBe('nil');
     });
   });
 
@@ -1024,6 +1024,124 @@ describe('Applier', () => {
     });
   });
 
+  describe('numeric tower', () => {
+    describe('bignum', () => {
+      it('keeps integer arithmetic exact beyond the double-precision range', () => {
+        expect(evalStr('(* 99999999999999999999 2)')).toBe('199999999999999999998');
+      });
+
+      it('computes large powers exactly', () => {
+        expect(evalStr('(expt 2 100)')).toBe('1267650600228229401496703205376');
+      });
+
+      it('adds large integers exactly', () => {
+        expect(evalStr('(+ 9007199254740993 1)')).toBe('9007199254740994');
+      });
+    });
+
+    describe('rational', () => {
+      it('returns an exact ratio for inexact integer division', () => {
+        expect(evalStr('(/ 1 2)')).toBe('1/2');
+      });
+
+      it('returns an integer when the division is exact', () => {
+        expect(evalStr('(/ 100 4)')).toBe('25');
+      });
+
+      it('reduces ratios to lowest terms', () => {
+        expect(evalStr('(/ 4 6)')).toBe('2/3');
+      });
+
+      it('normalizes the sign into the numerator', () => {
+        expect(evalStr('(/ 1 -2)')).toBe('-1/2');
+      });
+
+      it('adds ratios exactly back to an integer', () => {
+        expect(evalStr('(+ (/ 1 2) (/ 1 2))')).toBe('1');
+      });
+
+      it('keeps exact arithmetic through mixed operations', () => {
+        expect(evalStr('(+ (/ 1 3) (/ 1 6))')).toBe('1/2');
+      });
+
+      it('applies float contagion when a float is involved', () => {
+        expect(evalStr('(floatp (+ (/ 1 2) 0.5))')).toBe('t');
+      });
+
+      it('signals an error for exact division by zero', () => {
+        expect(() => evalStr('(/ 1 0)')).toThrow('division by zero');
+      });
+    });
+
+    describe('type predicates', () => {
+      it('integerp accepts integers', () => {
+        expect(evalStr('(integerp 42)')).toBe('t');
+      });
+
+      it('integerp rejects integral floats (CL semantics)', () => {
+        expect(evalStr('(integerp 1.0)')).toBe('nil');
+      });
+
+      it('floatp rejects integers (CL semantics)', () => {
+        expect(evalStr('(floatp 42)')).toBe('nil');
+      });
+
+      it('rationalp accepts integers and ratios but rejects floats', () => {
+        expect(evalStr('(list (rationalp 1) (rationalp (/ 1 2)) (rationalp 0.5))')).toBe(
+          '(t t nil)',
+        );
+      });
+
+      it('numberp accepts every numeric representation', () => {
+        expect(evalStr('(list (numberp 1) (numberp (/ 1 2)) (numberp 0.5))')).toBe('(t t t)');
+      });
+
+      it('doublep is removed', () => {
+        expect(() => evalStr('(doublep 1)')).toThrow();
+      });
+    });
+
+    describe('numeric comparison', () => {
+      it('= compares across representations', () => {
+        expect(evalStr('(list (= 1 1.0) (= (/ 1 2) 0.5) (= (/ 2 4) (/ 1 2)))')).toBe('(t t t)');
+      });
+
+      it('eq distinguishes integer and float of the same value', () => {
+        expect(evalStr('(eq 1 1.0)')).toBe('nil');
+      });
+
+      it('orders mixed integers and ratios', () => {
+        expect(evalStr('(< (/ 1 3) (/ 1 2) 1)')).toBe('t');
+      });
+    });
+
+    describe('integer-valued functions', () => {
+      it('floor of a float returns an integer', () => {
+        expect(evalStr('(integerp (floor 1.5))')).toBe('t');
+      });
+
+      it('floor of a ratio rounds toward negative infinity', () => {
+        expect(evalStr('(floor (/ -3 2))')).toBe('-2');
+      });
+
+      it('ceiling of a ratio rounds toward positive infinity', () => {
+        expect(evalStr('(ceiling (/ 3 2))')).toBe('2');
+      });
+
+      it('truncate of a ratio rounds toward zero', () => {
+        expect(evalStr('(truncate (/ -3 2))')).toBe('-1');
+      });
+
+      it('length returns an integer', () => {
+        expect(evalStr('(integerp (length (list 1 2 3)))')).toBe('t');
+      });
+
+      it('1+ preserves exactness', () => {
+        expect(evalStr('(1+ (/ 1 2))')).toBe('3/2');
+      });
+    });
+  });
+
   describe('getf', () => {
     it('returns the value stored under the key', () => {
       expect(evalStr("(getf '(a 1 b 2) 'b)")).toBe('2');
@@ -1111,7 +1229,7 @@ describe('Applier', () => {
       const interpreter = new LispInterpreter();
       interpreter.evalString('(setq stack (list 1 2 3))');
       const popped = interpreter.evalString('(pop stack)');
-      expect(popped).toBe(1);
+      expect(popped).toBe(1n);
     });
   });
 

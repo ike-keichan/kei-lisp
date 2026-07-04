@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Numeric tower (bignum / rational / float)** — integers are now
+  arbitrary precision (BigInt-backed bignum), and a new exact rational
+  type is produced by integer division that does not divide evenly
+  (`(/ 1 2)` → `1/2`, printed as `n/d`). Exact operands stay exact; any
+  float makes the result a float (CL-style contagion). New `rationalp`
+  predicate; `Rational` / `Numeric` are exported for library users. (#40)
 - **`catch` / `throw` special forms** — dynamic non-local exit with `eq`
   tag matching (CL semantics). An uncaught `throw` signals an `EvalError`
   at the interpreter boundary. (#39)
@@ -24,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   macro expansions) are applied iteratively, so deep tail recursion runs
   in constant stack space. Note: tail-optimized frames do not emit
   trace/spy output. (#39)
-
 - **`case` special form** — dispatches on an evaluated key against
   unevaluated clause keys (single key or key list), with `t` / `otherwise`
   default clauses. (#38)
@@ -48,11 +53,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING: integers and floats are distinct types.** Integer literals
+  evaluate to `bigint` (library API included); literals with a decimal
+  point or exponent are floats. `integerp` is now a type-tag check
+  (`(integerp 1.0)` → nil), `floatp` matches floats only (the previous
+  IEEE 32-bit range check is gone), and `=` compares numerically across
+  representations while `eq` distinguishes them. (#40)
+- **BREAKING: exact division.** `(/ 1 2)` now yields the rational `1/2`
+  instead of `0.5`; exact division by zero signals an error. `floor` /
+  `ceiling` / `round` / `truncate` return integers; `length` / `count` /
+  `position` / `gc` counters return integers. (#40)
 - **`push` / `pop` now accept generalized places** (CL semantics), e.g.
   `(push 7 (cdr x))`, instead of being restricted to symbols. (#38)
 - `princ` / `print` / `terpri` / `format` write through
   `StreamManager.writeOutput` so their output can be captured by
   `with-output-to-string`; behavior is unchanged outside a capture. (#38)
+
+### Removed
+
+- **BREAKING: `doublep`** — a kei-lisp-specific predicate with no
+  counterpart in CL / Scheme / Clojure; use `floatp` (type check) or
+  `numberp` instead. (#40)
 
 ## [2.3.0] - 2026-06-27
 

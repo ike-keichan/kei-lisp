@@ -432,7 +432,7 @@ export class Parser extends Object {
   }
 
   /**
-   * Converts the token into a Number-type (integer: pseudo-Integer); invoked from NextState.
+   * Converts the token into an integer (bigint, arbitrary precision); invoked from NextState.
    * @return null
    */
   tokenToInteger(): null {
@@ -440,7 +440,7 @@ export class Parser extends Object {
     if (aCharacter === '+') {
       this.tokenString = this.tokenString.slice(1);
     }
-    this.token = Number(this.tokenString);
+    this.token = BigInt(this.tokenString);
     return null;
   }
 
