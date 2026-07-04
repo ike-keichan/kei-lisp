@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Test coverage reporting** — new `pnpm test:coverage` script with v8
+  coverage configured in `vitest.config.js` (text / html / lcov); CI now
+  runs the suite with coverage. `@vitest/coverage-v8` is declared
+  explicitly in devDependencies. (#41)
+- **Community health files** — `SECURITY.md`, `CODE_OF_CONDUCT.md`, and
+  `.github/ISSUE_TEMPLATE/` (bug report / feature request / question),
+  ported from kei-lisp-plugin-graphics. (#41)
+- **Entry point tests** — the CLI argument handling was extracted into a
+  testable `CliApp` class (`--version` / `--help` / unknown-argument /
+  REPL fallback covered), and the library's public exports are asserted
+  by a new `src/index.test.ts`. (#41)
 - **Numeric tower (bignum / rational / float)** — integers are now
   arbitrary precision (BigInt-backed bignum), and a new exact rational
   type is produced by integer division that does not divide evenly
@@ -68,6 +79,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `princ` / `print` / `terpri` / `format` write through
   `StreamManager.writeOutput` so their output can be captured by
   `with-output-to-string`; behavior is unchanged outside a capture. (#38)
+- ESLint / cspell now ignore the actual typedoc output directory
+  (`docs/typedoc/`) and the coverage output instead of the unused `out/`
+  path, aligning the configuration with kei-lisp-plugin-graphics. (#41)
 
 ### Removed
 
