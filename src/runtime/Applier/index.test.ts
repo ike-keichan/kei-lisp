@@ -1142,6 +1142,126 @@ describe('Applier', () => {
     });
   });
 
+  describe('hash tables', () => {
+    it('make-hash-table returns an empty hash table', () => {
+      expect(evalStr('(hash-table-count (make-hash-table))')).toBe('0');
+    });
+
+    it('hash-table-p recognizes hash tables', () => {
+      expect(evalStr('(list (hash-table-p (make-hash-table)) (hash-table-p 1))')).toBe('(t nil)');
+    });
+
+    it('gethash returns nil for a missing key', () => {
+      expect(evalStr("(gethash 'a (make-hash-table))")).toBe('nil');
+    });
+
+    it('gethash returns the default for a missing key', () => {
+      expect(evalStr("(gethash 'a (make-hash-table) 99)")).toBe('99');
+    });
+
+    it('setf gethash stores a value', () => {
+      expect(
+        evalStr("(progn (setq h (make-hash-table)) (setf (gethash 'a h) 1) (gethash 'a h))"),
+      ).toBe('1');
+    });
+
+    it('keywords work as hash keys', () => {
+      expect(
+        evalStr(
+          '(progn (setq h (make-hash-table)) (setf (gethash :name h) "kei") (gethash :name h))',
+        ),
+      ).toBe('kei');
+    });
+
+    it('remhash removes a key and reports whether it was present', () => {
+      expect(
+        evalStr(
+          "(progn (setq h (make-hash-table)) (setf (gethash 'a h) 1) (list (remhash 'a h) (remhash 'a h) (gethash 'a h)))",
+        ),
+      ).toBe('(t nil nil)');
+    });
+
+    it('hash-table-count reflects insertions', () => {
+      expect(
+        evalStr(
+          "(progn (setq h (make-hash-table)) (setf (gethash 'a h) 1) (setf (gethash 'b h) 2) (hash-table-count h))",
+        ),
+      ).toBe('2');
+    });
+
+    it('prints with the entry count', () => {
+      expect(evalStr('(make-hash-table)')).toBe('#<hash-table :count 0>');
+    });
+  });
+
+  describe('vectors', () => {
+    it('vector builds a vector of its arguments', () => {
+      expect(evalStr('(vector 1 2 3)')).toBe('#(1 2 3)');
+    });
+
+    it('make-array builds a vector filled with nil by default', () => {
+      expect(evalStr('(make-array 3)')).toBe('#(nil nil nil)');
+    });
+
+    it('make-array accepts an initial element', () => {
+      expect(evalStr('(make-array 3 0)')).toBe('#(0 0 0)');
+    });
+
+    it('aref reads a zero-based index', () => {
+      expect(evalStr('(aref (vector 10 20 30) 1)')).toBe('20');
+    });
+
+    it('svref is an alias of aref', () => {
+      expect(evalStr('(svref (vector 10 20 30) 2)')).toBe('30');
+    });
+
+    it('setf aref replaces an element', () => {
+      expect(evalStr('(progn (setq v (vector 1 2 3)) (setf (aref v 0) 99) v)')).toBe('#(99 2 3)');
+    });
+
+    it('setf elt works on vectors', () => {
+      expect(evalStr('(progn (setq v (vector 1 2 3)) (setf (elt v 2) 9) v)')).toBe('#(1 2 9)');
+    });
+
+    it('length works on vectors', () => {
+      expect(evalStr('(length (vector 1 2 3 4))')).toBe('4');
+    });
+
+    it('elt reads vectors', () => {
+      expect(evalStr('(elt (vector 5 6) 0)')).toBe('5');
+    });
+
+    it('vectorp recognizes vectors', () => {
+      expect(evalStr("(list (vectorp (vector 1)) (vectorp '(1)))")).toBe('(t nil)');
+    });
+
+    it('aref signals an error for an out-of-range index', () => {
+      expect(() => evalStr('(aref (vector 1) 5)')).toThrow('out of range');
+    });
+  });
+
+  describe('read-from-string', () => {
+    it('parses a form without evaluating it', () => {
+      expect(evalStr('(read-from-string "(+ 1 2)")')).toBe('(+ 1 2)');
+    });
+
+    it('returns the first of several forms', () => {
+      expect(evalStr('(read-from-string "1 2 3")')).toBe('1');
+    });
+
+    it('returns nil for empty input', () => {
+      expect(evalStr('(read-from-string "")')).toBe('nil');
+    });
+
+    it('supports code as data via eval', () => {
+      expect(evalStr('(eval (read-from-string "(+ 1 2)"))')).toBe('3');
+    });
+
+    it('throws EvalError for a non-string argument', () => {
+      expect(() => evalStr('(read-from-string 1)')).toThrow('Can not apply');
+    });
+  });
+
   describe('getf', () => {
     it('returns the value stored under the key', () => {
       expect(evalStr("(getf '(a 1 b 2) 'b)")).toBe('2');

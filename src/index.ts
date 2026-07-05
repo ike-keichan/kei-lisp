@@ -1,9 +1,11 @@
 export { LispInterpreter } from './interpreter/LispInterpreter/index.js';
 export { Repl } from './interpreter/Repl/index.js';
 export { Cons } from './value/Cons/index.js';
+export { HashTable } from './value/HashTable/index.js';
 export { InterpretedSymbol } from './value/InterpretedSymbol/index.js';
 export { Numeric } from './value/Numeric/index.js';
 export { Rational } from './value/Rational/index.js';
+export { Vector } from './value/Vector/index.js';
 export { Evaluator } from './runtime/Evaluator/index.js';
 export { StreamManager } from './runtime/StreamManager/index.js';
 export { Table } from './runtime/Table/index.js';

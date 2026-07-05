@@ -76,3 +76,9 @@ rationalp
 bignum
 bignums
 dotimes
+gethash
+remhash
+sethash
+svref
+aref
+vectorp

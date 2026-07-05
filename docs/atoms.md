@@ -32,6 +32,19 @@ I could find no variable binding for abc123
 nil
 ```
 
+### Keyword
+
+A symbol whose name starts with `:` is a **keyword**. Keywords evaluate to
+themselves and never need quoting; they are handy as hash-table keys and
+markers (matches Common Lisp and Clojure keywords).
+
+```lisp
+>> :foo
+:foo
+>> (eq :a :a)
+t
+```
+
 ## Number
 
 kei-lisp has a **numeric tower**:

@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Hash tables** — `make-hash-table` / `gethash` / `remhash` /
+  `hash-table-count` / `hash-table-p`, with `(setf (gethash key h) value)`
+  as a place. Keys compare by identity (`eq`). (#44)
+- **Vectors** — `vector` / `make-array` / `aref` / `svref` / `vectorp`,
+  printed as `#(1 2 3)`; `aref` / `elt` are `setf` places and `length` /
+  `elt` accept vectors. `make-array` takes a positional initial element
+  until keyword arguments arrive. (#44)
+- **Keyword symbols** — symbols starting with `:` evaluate to themselves
+  (CL / Clojure semantics) and work as hash-table keys and `case` keys.
+  (#44)
+- **Runtime reader and file loading** — `read-from-string` parses a
+  string into a form (code as data), and `load` reads, parses, and
+  evaluates a `.lisp` file in the global environment. (#44)
 - **Test coverage reporting** — new `pnpm test:coverage` script with v8
   coverage configured in `vitest.config.js` (text / html / lcov); CI now
   runs the suite with coverage. `@vitest/coverage-v8` is declared

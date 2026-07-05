@@ -16,6 +16,9 @@ an interactive REPL, or embed it in your application as a library.
   optimization (deep tail recursion runs in constant stack space)
 - Numeric tower: arbitrary-precision integers (bignum), exact rationals
   (`(/ 1 2)` → `1/2`), and floats with CL-style contagion
+- Data structures: hash tables (`make-hash-table` / `gethash`) and vectors
+  (`vector` / `aref`), plus keyword symbols (`:foo`)
+- Runtime reader and file loading: `read-from-string` and `load`
 - CLI tool **and** embeddable library
 - ESM and CommonJS dual output with TypeScript types
 - Zero runtime dependencies

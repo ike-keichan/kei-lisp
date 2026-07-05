@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { Cons } from '../../value/Cons/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
@@ -680,6 +684,52 @@ describe('Evaluator', () => {
       expect(evalStr('(defun fact (n) (if (= n 0) 1 (* n (fact (- n 1))))) (fact 10)')).toBe(
         '3628800',
       );
+    });
+  });
+
+  describe('keyword symbols', () => {
+    it('evaluates a keyword to itself', () => {
+      expect(evalStr(':foo')).toBe(':foo');
+    });
+
+    it('keywords are eq to themselves', () => {
+      expect(evalStr('(eq :a :a)')).toBe('t');
+    });
+
+    it('distinct keywords are not eq', () => {
+      expect(evalStr('(eq :a :b)')).toBe('nil');
+    });
+
+    it('keywords can be used in case clauses', () => {
+      expect(evalStr('(case :b ((:a) 1) ((:b) 2))')).toBe('2');
+    });
+  });
+
+  describe('load', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'kei-lisp-load-'));
+
+    afterAll(() => {
+      rmSync(directory, { recursive: true, force: true });
+    });
+
+    it('evaluates every top-level form of the file and returns t', () => {
+      const file = path.join(directory, 'lib.lisp');
+      writeFileSync(file, '(defun triple (n) (* n 3))\n(setq loaded-marker 42)\n');
+      const interpreter = new LispInterpreter();
+      const result = interpreter.evalString(`(load "${file}")`);
+      expect(Cons.toString(result)).toBe('t');
+    });
+
+    it('makes definitions from the file callable afterwards', () => {
+      const file = path.join(directory, 'lib2.lisp');
+      writeFileSync(file, '(defun quadruple (n) (* n 4))\n');
+      const interpreter = new LispInterpreter();
+      interpreter.evalString(`(load "${file}")`);
+      expect(Cons.toString(interpreter.evalString('(quadruple 5)'))).toBe('20');
+    });
+
+    it('throws EvalError when the file does not exist', () => {
+      expect(() => evalStr('(load "/nonexistent/path.lisp")')).toThrow('cannot read file');
     });
   });
 

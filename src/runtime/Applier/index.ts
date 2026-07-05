@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+
 import { Cons } from '../../value/Cons/index.js';
 import { EvalError } from '../../errors/EvalError/index.js';
 import { Evaluator } from '../Evaluator/index.js';
+import { HashTable } from '../../value/HashTable/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import { Numeric } from '../../value/Numeric/index.js';
 import {
@@ -12,6 +15,7 @@ import {
 import type { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 import { TailCall } from '../TailCall/index.js';
+import { Vector } from '../../value/Vector/index.js';
 import type { KeiLispPlugin } from '../../plugin/types.js';
 import type { NumericValue } from '../../value/Numeric/index.js';
 import type { LispValue } from '../../types/index.js';
@@ -1031,6 +1035,9 @@ export class Applier extends Object {
     if (Cons.isString(target)) {
       return BigInt(toCodePoints(target).length);
     }
+    if (Cons.isVector(target)) {
+      return BigInt(target.length());
+    }
     if (Cons.isCons(target)) {
       return BigInt(target.length());
     }
@@ -1128,6 +1135,16 @@ export class Applier extends Object {
     const index = Numeric.toIndex(args.nth(2));
     if (index == null) {
       throw new EvalError(cannotApply('elt', args.nth(2)));
+    }
+    if (Cons.isVector(target)) {
+      try {
+        return target.get(index);
+      } catch (error) {
+        if (error instanceof RangeError) {
+          throw new EvalError(error.message);
+        }
+        throw error;
+      }
     }
     if (Cons.isString(target)) {
       const chars = toCodePoints(target);
@@ -1350,6 +1367,196 @@ export class Applier extends Object {
       }
     }
     return Cons.nil;
+  }
+
+  /**
+   * Implementation of the Lisp `make-hash-table` function. Returns a fresh,
+   * empty hash table keyed by identity (`eq`).
+   * @return a new HashTable
+   */
+  makeHashTable(): LispValue {
+    return new HashTable();
+  }
+
+  /**
+   * Implementation of the Lisp `gethash` function. Looks up a key in a hash
+   * table and returns the stored value or the default (nil).
+   * @param args the argument Cons containing the key, the hash table, and an optional default
+   * @return the stored value, or the default
+   */
+  gethash(args: Cons): LispValue {
+    const key = args.car;
+    const table = args.nth(2);
+    const fallback = args.length() >= 3 ? args.nth(3) : Cons.nil;
+    if (!Cons.isHashTable(table)) {
+      throw new EvalError(cannotApply('gethash', table));
+    }
+    const value = table.get(key);
+
+    return value == null ? fallback : value;
+  }
+
+  /**
+   * Implementation of the Lisp `remhash` function. Removes a key from a hash
+   * table; returns t when the key was present, nil otherwise.
+   * @param args the argument Cons containing the key and the hash table
+   * @return t when the key was removed, nil otherwise
+   */
+  remhash(args: Cons): LispValue {
+    const key = args.car;
+    const table = args.nth(2);
+    if (!Cons.isHashTable(table)) {
+      throw new EvalError(cannotApply('remhash', table));
+    }
+
+    return table.remove(key) ? InterpretedSymbol.of('t') : Cons.nil;
+  }
+
+  /**
+   * Implementation of the Lisp `hash-table-count` function. Returns the
+   * number of entries in a hash table.
+   * @param args the argument Cons containing the hash table
+   * @return the entry count
+   */
+  hashTableCount(args: Cons): LispValue {
+    if (!Cons.isHashTable(args.car)) {
+      throw new EvalError(cannotApply('hash-table-count', args.car));
+    }
+
+    return BigInt(args.car.count());
+  }
+
+  /**
+   * Implementation of the Lisp `hash-table-p` predicate. Returns t if the
+   * argument is a hash table.
+   * @param args the argument Cons containing the value to test
+   * @return t if a hash table, nil otherwise
+   */
+  hashTable_(args: Cons): LispValue {
+    if (Cons.isHashTable(args.car)) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
+  /**
+   * Implementation of the Lisp `vector` function. Returns a fresh vector of
+   * the given elements.
+   * @param args the argument Cons containing the elements
+   * @return a new Vector
+   */
+  vector(args: LispValue): LispValue {
+    const items: LispValue[] = [];
+    if (Cons.isCons(args)) {
+      for (const each of args.loop()) {
+        items.push(each);
+      }
+    }
+
+    return new Vector(items);
+  }
+
+  /**
+   * Implementation of the Lisp `make-array` function. Returns a fresh
+   * one-dimensional vector of the given size, filled with the optional
+   * initial element (nil when omitted).
+   * @param args the argument Cons containing the size and an optional initial element
+   * @return a new Vector
+   */
+  makeArray(args: Cons): LispValue {
+    const size = Numeric.toIndex(args.car);
+    if (size == null || size < 0) {
+      throw new EvalError(cannotApply('make-array', args.car));
+    }
+    const initial = args.length() >= 2 ? args.nth(2) : Cons.nil;
+
+    return new Vector(Array.from({ length: size }, () => initial));
+  }
+
+  /**
+   * Implementation of the Lisp `aref` / `svref` function. Returns the element
+   * of a vector at the given zero-based index.
+   * @param args the argument Cons containing the vector and the index
+   * @return the element at the index
+   */
+  aref(args: Cons): LispValue {
+    const target = args.car;
+    const index = Numeric.toIndex(args.nth(2));
+    if (!Cons.isVector(target)) {
+      throw new EvalError(cannotApply('aref', target));
+    }
+    if (index == null) {
+      throw new EvalError(cannotApply('aref', args.nth(2)));
+    }
+    try {
+      return target.get(index);
+    } catch (error) {
+      if (error instanceof RangeError) {
+        throw new EvalError(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Implementation of the Lisp `vectorp` predicate. Returns t if the argument
+   * is a vector.
+   * @param args the argument Cons containing the value to test
+   * @return t if a vector, nil otherwise
+   */
+  vector_(args: Cons): LispValue {
+    if (Cons.isVector(args.car)) {
+      return InterpretedSymbol.of('t');
+    }
+    return Cons.nil;
+  }
+
+  /**
+   * Implementation of the Lisp `read-from-string` function. Parses the given
+   * string and returns the first expression it contains (code as data).
+   * @param args the argument Cons containing the source string
+   * @return the first parsed expression, or nil for empty input
+   */
+  readFromString(args: Cons): LispValue {
+    if (!Cons.isString(args.car)) {
+      throw new EvalError(cannotApply('read-from-string', args.car));
+    }
+    const forms = Cons.parse('(' + args.car + '\n);');
+    if (Cons.isNotCons(forms)) {
+      return Cons.nil;
+    }
+
+    return (forms as Cons).car;
+  }
+
+  /**
+   * Implementation of the Lisp `load` function. Reads the given file, parses
+   * it, and evaluates every top-level form in the global (root) environment.
+   * @param args the argument Cons containing the file path
+   * @return t after the whole file has been evaluated
+   */
+  load(args: Cons): LispValue {
+    if (!Cons.isString(args.car)) {
+      throw new EvalError(cannotApply('load', args.car));
+    }
+    let source: string;
+    try {
+      source = readFileSync(args.car, 'utf8');
+    } catch {
+      throw new EvalError(`load: cannot read file "${args.car}"`);
+    }
+    let root: Table = this.environment;
+    while (root.source != null) {
+      root = root.source;
+    }
+    const forms = Cons.parse('(' + source + '\n);');
+    if (Cons.isCons(forms)) {
+      for (const each of forms.loop()) {
+        Evaluator.eval(each, root, this.streamManager, this.depth, this.plugins);
+      }
+    }
+
+    return InterpretedSymbol.of('t');
   }
 
   /**
@@ -1999,6 +2206,7 @@ export class Applier extends Object {
       const entries: Array<[string, string]> = [
         ['abs', 'abs'],
         ['add', 'add'],
+        ['aref', 'aref'],
         ['assoc', 'assoc'],
         ['atom', 'atom_'],
         ['car', 'car'],
@@ -2022,7 +2230,10 @@ export class Applier extends Object {
         ['find', 'find'],
         ['format', 'format'],
         ['gensym', 'gensym'],
+        ['gethash', 'gethash'],
         ['getf', 'getf'],
+        ['hash-table-count', 'hashTableCount'],
+        ['hash-table-p', 'hashTable_'],
         ['integerp', 'integer_'],
         ['concatenate', 'concatenate'],
         ['count', 'count'],
@@ -2030,6 +2241,9 @@ export class Applier extends Object {
         ['last', 'last'],
         ['length', 'length'],
         ['list', 'list'],
+        ['load', 'load'],
+        ['make-array', 'makeArray'],
+        ['make-hash-table', 'makeHashTable'],
         ['listp', 'list_'],
         ['mapcan', 'mapcan'],
         ['mapcar', 'mapcar'],
@@ -2052,6 +2266,8 @@ export class Applier extends Object {
         ['position', 'position'],
         ['random', 'random'],
         ['rationalp', 'rational_'],
+        ['read-from-string', 'readFromString'],
+        ['remhash', 'remhash'],
         ['reduce', 'reduce'],
         ['remove', 'remove'],
         ['remove-if', 'removeIf'],
@@ -2060,6 +2276,7 @@ export class Applier extends Object {
         ['some', 'some'],
         ['sort', 'sort'],
         ['sqrt', 'sqrt'],
+        ['svref', 'aref'],
         ['string-downcase', 'stringDowncase'],
         ['string-trim', 'stringTrim'],
         ['string-upcase', 'stringUpcase'],
@@ -2070,6 +2287,8 @@ export class Applier extends Object {
         ['symbolp', 'symbol_'],
         ['tan', 'tan'],
         ['truncate', 'truncate'],
+        ['vector', 'vector'],
+        ['vectorp', 'vector_'],
         ['zerop', 'zero_'],
         ['1+', 'oneplus'],
         ['1-', 'oneminus'],
