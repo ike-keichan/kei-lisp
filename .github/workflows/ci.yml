@@ -78,3 +78,38 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+
+  actionlint:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker://rhysd/actionlint:1.7.10
+        with:
+          args: -color
+
+  docs:
+    name: TypeDoc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm doc --treatWarningsAsErrors
+
+  knip:
+    name: Unused code / deps (knip)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec knip

@@ -225,6 +225,7 @@ reference with signatures and examples.
 ## Reference
 
 - [kei-lisp-web](https://ike-keichan.github.io/kei-lisp-web/) — interactive kei-lisp playground
+- [API docs (TypeDoc)](https://ike-keichan.github.io/kei-lisp/) — generated API documentation
 - [API Reference](./docs/api.md) — TypeScript / JavaScript library API
 - [Atoms](./docs/atoms.md) — numbers (integer / rational / float), symbols, keywords, strings, nil
 - [Cons](./docs/cons.md) — pairs and lists
