@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Updated vulnerable development-only transitive dependencies flagged by
+  Dependabot (no runtime dependencies are affected): `vite` 7.3.1 → 7.3.5
+  (high / medium), `esbuild` 0.27.7 → 0.28.1 (low, via pnpm override
+  because vite still allows `^0.27`), `markdown-it` 14.1.1 → 14.3.0
+  (medium), and `shell-quote` 1.8.3 → 1.9.0 (critical).
+
 ### Added
 
 - **Hash tables** — `make-hash-table` / `gethash` / `remhash` /
