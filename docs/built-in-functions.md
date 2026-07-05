@@ -13,7 +13,8 @@ Entries are organized into the following categories:
 - [Variables and bindings](#variables-and-bindings) — `setq`, `setf`, `incf`, `decf`, `set-allq`, `bind`, `gensym`, `destructuring-bind`
 - [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`, `defstruct`
 - [Macros](#macros) — `defmacro`, backquote (`` ` ``, `,`, `,@`), `macroexpand`, `macroexpand-1`
-- [Control flow](#control-flow) — `if`, `cond`, `case`, `when`, `unless`, `do`, `do*`, `dolist`
+- [Control flow](#control-flow) — `if`, `cond`, `case`, `when`, `unless`, `do`, `do*`, `dolist`, `catch`, `throw`
+- [Error handling](#error-handling) — `error`, `handler-case`
 - [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`, `with-output-to-string`
 - [System](#system) — `exit`, `gc`, `time`, `trace`, `notrace`
 
@@ -193,6 +194,24 @@ two-or-three
 42
 >> (case 9 (1 'one))
 nil
+```
+
+### catch
+
+**(catch TAG X1 ... Xn)**
+Special form for dynamic non-local exit. Evaluates TAG, then the body; when
+a [throw](#throw) with an `eq` tag fires during the body (even deep inside
+function calls), control unwinds here and the thrown value becomes the
+result. Otherwise returns the last body value (matches Common Lisp
+`catch`; note this is **not** exception handling — see
+[handler-case](#handler-case) for errors, and note Clojure's `try`/`catch`
+has different semantics).
+
+```
+>> (catch 'tag 1 2 3)
+3
+>> (catch 'done (dolist (x '(1 2 3)) (when (= x 2) (throw 'done x))))
+2
 ```
 
 ### cdr
@@ -502,6 +521,22 @@ nil
 nil
 >> (doublep "abc")
 nil
+```
+
+### error
+
+**(error MESSAGE X1 ... Xn)**
+Function that formats MESSAGE with the given arguments (using the
+[format](#format) directives) and signals it as an evaluation error. The
+error can be intercepted with [handler-case](#handler-case); otherwise it
+propagates to the caller (the REPL prints it; the library throws
+`EvalError`).
+
+```
+>> (error "bad value: ~a" 42)
+Error: bad value: 42
+>> (handler-case (error "boom") (error (e) e))
+boom
 ```
 
 ### eval
@@ -815,6 +850,30 @@ omitted) if the key is absent. Usable as a [setf](#setf) place.
 3
 >> pl
 (a 1 b 2 c 3)
+```
+
+### handler-case
+
+**(handler-case FORM (TYPE (VAR) X1 ... Xn) ...)**
+Special form for error handling — the common subset of Common Lisp
+`handler-case`, Scheme `guard`, and Clojure `try`/`catch`. Evaluates FORM;
+when it signals an error, runs the body of the first clause whose TYPE
+matches: `error` matches any interpreter error, `parse-error` /
+`eval-error` match the specific families. VAR (optional) is bound to the
+error message string. `throw` and `exit` are control flow, not errors, and
+pass through untouched.
+
+**(kei-lisp specific behavior)** CL's condition system (`signal`,
+`restart-case`, condition classes) is not implemented; conditions are
+represented by their message string.
+
+```
+>> (handler-case (+ 1 2) (error (e) 99))
+3
+>> (handler-case (error "boom") (error (e) e))
+boom
+>> (handler-case (undefined-fn 1) (eval-error (e) 'recovered))
+recovered
 ```
 
 ### if
@@ -1920,6 +1979,19 @@ Function to output new line;
 >> (terpri)
 
 t
+```
+
+### throw
+
+**(throw TAG X)**
+Special form that evaluates TAG and X, then unwinds to the nearest
+dynamically enclosing [catch](#catch) whose tag is `eq` to TAG; X becomes
+the value of that `catch`. A `throw` with no matching `catch` signals an
+evaluation error.
+
+```
+>> (catch 'tag (throw 'tag 42) 'not-reached)
+42
 ```
 
 ### time
