@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CI / tooling aligned with kei-lisp-plugin-graphics** — CodeQL analysis
+  workflow (required by the main-branch ruleset), `actionlint` / TypeDoc
+  (`--treatWarningsAsErrors`) / `knip` CI jobs, `check:knip` and
+  `check:package` (publint + arethetypeswrong) scripts, coverage
+  thresholds in `vitest.config.js`, a GitHub Pages workflow publishing
+  the TypeDoc API docs, release notes extracted from the CHANGELOG in
+  the release workflow, and `.editorconfig`. (#56)
 - **Hash tables** — `make-hash-table` / `gethash` / `remhash` /
   `hash-table-count` / `hash-table-p`, with `(setf (gethash key h) value)`
   as a place. Keys compare by identity (`eq`). (#44)
@@ -106,6 +113,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Unused internal diagnostic template `argumentNotSymbol` (dead since
+  `push` / `pop` moved to generalized places; flagged by knip). (#56)
 - **BREAKING: `doublep`** — a kei-lisp-specific predicate with no
   counterpart in CL / Scheme / Clojure; use `floatp` (type check) or
   `numberp` instead. (#40)
