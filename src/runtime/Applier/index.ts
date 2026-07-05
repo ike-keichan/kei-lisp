@@ -478,7 +478,7 @@ export class Applier extends Object {
     }
     const aCons = args.cdr;
     const format = this.format_AUX(args.car, aCons);
-    process.stdout.write(String(format));
+    this.streamManager.writeOutput(String(format));
 
     return Cons.nil;
   }
@@ -1295,6 +1295,119 @@ export class Applier extends Object {
   }
 
   /**
+   * Implementation of the Lisp `getf` function. Looks up a value in a property
+   * list (a flat list of alternating keys and values).
+   * @param args the argument Cons containing the property list, the key, and an optional default
+   * @return the value following the key, or the default (nil) if the key is absent
+   */
+  getf(args: Cons): LispValue {
+    const plist = args.car;
+    const key = args.nth(2);
+    const fallback = args.length() >= 3 ? args.nth(3) : Cons.nil;
+
+    if (Cons.isNil(plist)) return fallback;
+    if (!Cons.isCons(plist)) {
+      throw new EvalError(cannotApply('getf', plist));
+    }
+    let current: LispValue = plist;
+    while (Cons.isCons(current) && Cons.isCons(current.cdr)) {
+      if (current.car === key) {
+        return current.cdr.car;
+      }
+      current = current.cdr.cdr;
+    }
+    return fallback;
+  }
+
+  /**
+   * Implementation of the Lisp `position` function. Returns the zero-based
+   * index of the first element matching the given item.
+   * @param args the argument Cons containing the item and the list
+   * @return the zero-based index of the first match, or nil if none found
+   */
+  position(args: Cons): LispValue {
+    const item = args.car;
+    const list = args.nth(2);
+
+    if (Cons.isNil(list)) return Cons.nil;
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('position', list));
+    }
+    let index = 0;
+    for (const each of list.loop()) {
+      // Use eq_ (identity) for matching, mirroring CL's default :test #'eql semantics.
+      if (this.eq_(new Cons(item, new Cons(each, Cons.nil))) === InterpretedSymbol.of('t')) {
+        return index;
+      }
+      index++;
+    }
+    return Cons.nil;
+  }
+
+  /**
+   * Implementation of the Lisp `remove` function. Returns a fresh list with
+   * every element matching the given item removed. Note: this follows CL
+   * (remove an item); the predicate-based variant is `remove-if`.
+   * @param args the argument Cons containing the item and the list
+   * @return a fresh list without the matching elements
+   */
+  remove(args: Cons): LispValue {
+    const item = args.car;
+    const list = args.nth(2);
+
+    if (Cons.isNil(list)) return Cons.nil;
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('remove', list));
+    }
+    const kept: LispValue[] = [];
+    for (const each of list.loop()) {
+      // Use eq_ (identity) for matching, mirroring CL's default :test #'eql semantics.
+      if (this.eq_(new Cons(item, new Cons(each, Cons.nil))) !== InterpretedSymbol.of('t')) {
+        kept.push(each);
+      }
+    }
+    let result: LispValue = Cons.nil;
+    for (let index = kept.length - 1; index >= 0; index--) {
+      result = new Cons(kept[index], result);
+    }
+    return result;
+  }
+
+  /**
+   * Implementation of the Lisp `remove-if` function. Returns a fresh list with
+   * every element satisfying the predicate removed.
+   * @param args the argument Cons containing the predicate and the list
+   * @return a fresh list without the elements satisfying the predicate
+   */
+  removeIf(args: Cons): LispValue {
+    const procedure = args.car;
+    const list = args.nth(2);
+
+    if (Cons.isNil(list)) return Cons.nil;
+    if (!Cons.isCons(list)) {
+      throw new EvalError(cannotApply('remove-if', list));
+    }
+    const kept: LispValue[] = [];
+    for (const each of list.loop()) {
+      const result = Applier.apply(
+        procedure,
+        new Cons(each, Cons.nil),
+        this.environment,
+        this.streamManager,
+        this.depth,
+      );
+      if (Cons.isNil(result)) {
+        kept.push(each);
+      }
+    }
+    let result: LispValue = Cons.nil;
+    for (let index = kept.length - 1; index >= 0; index--) {
+      result = new Cons(kept[index], result);
+    }
+    return result;
+  }
+
+  /**
    * Implementation of the Lisp `mapcan` function. Applies the procedure to each element and concatenates the resulting lists.
    * @param args the argument Cons containing the procedure and the list
    * @return the concatenation of the per-element results
@@ -1833,6 +1946,7 @@ export class Applier extends Object {
         ['find', 'find'],
         ['format', 'format'],
         ['gensym', 'gensym'],
+        ['getf', 'getf'],
         ['integerp', 'integer_'],
         ['concatenate', 'concatenate'],
         ['count', 'count'],
@@ -1859,8 +1973,11 @@ export class Applier extends Object {
         ['oddp', 'odd_'],
         ['pi', 'pi'],
         ['plusp', 'plus_'],
+        ['position', 'position'],
         ['random', 'random'],
         ['reduce', 'reduce'],
+        ['remove', 'remove'],
+        ['remove-if', 'removeIf'],
         ['round', 'round'],
         ['sin', 'sin'],
         ['some', 'some'],

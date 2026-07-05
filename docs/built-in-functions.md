@@ -8,13 +8,13 @@ Entries are organized into the following categories:
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
 - [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
-- [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `mapcan`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`, `reduce`, `every`, `some`, `find`, `sort`
+- [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `mapcan`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`, `reduce`, `every`, `some`, `find`, `position`, `remove`, `remove-if`, `sort`, `getf`
 - [Strings](#strings) — `string-upcase`, `string-downcase`, `string-trim`, `substring`, `concatenate`
-- [Variables and bindings](#variables-and-bindings) — `setq`, `set-allq`, `bind`, `gensym`
-- [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`
+- [Variables and bindings](#variables-and-bindings) — `setq`, `setf`, `incf`, `decf`, `set-allq`, `bind`, `gensym`, `destructuring-bind`
+- [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`, `defstruct`
 - [Macros](#macros) — `defmacro`, backquote (`` ` ``, `,`, `,@`), `macroexpand`, `macroexpand-1`
-- [Control flow](#control-flow) — `if`, `cond`, `when`, `unless`, `do`, `do*`, `dolist`
-- [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`
+- [Control flow](#control-flow) — `if`, `cond`, `case`, `when`, `unless`, `do`, `do*`, `dolist`
+- [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`, `with-output-to-string`
 - [System](#system) — `exit`, `gc`, `time`, `trace`, `notrace`
 
 > The original alphabetical reference of each function follows below.
@@ -177,6 +177,24 @@ a
 1
 ```
 
+### case
+
+**(case KEY (KEYS X1 ... Xn) ... (otherwise Y1 ... Yn))**
+Special form that evaluates KEY and runs the body of the first clause whose
+keys match it. A clause head may be a single key or a list of keys; keys are
+**not** evaluated and are compared by identity (`eq`). A head of `t` or
+`otherwise` always matches. Returns nil when no clause matches (matches
+Common Lisp `case`; Scheme and Clojure have the same construct).
+
+```
+>> (case 2 (1 'one) ((2 3) 'two-or-three) (otherwise 'other))
+two-or-three
+>> (case 'foo ((bar foo) 42))
+42
+>> (case 9 (1 'one))
+nil
+```
+
 ### cdr
 
 **(cdr L)**
@@ -307,6 +325,21 @@ ITEM does not occur.
 0
 ```
 
+### decf
+
+**(decf PLACE)** / **(decf PLACE DELTA)**
+Special form that decrements the number stored in a generalized place (see
+[setf](#setf)) by DELTA (default 1) and returns the new value.
+
+```
+>> (setq n 10)
+10
+>> (decf n)
+9
+>> (decf n 4)
+5
+```
+
 ### defun
 
 **(defun N L X1 X2 ... Xn)**
@@ -341,6 +374,48 @@ nil
 See also [`macroexpand`](#macroexpand) / [`macroexpand-1`](#macroexpand-1) for
 inspecting expansions, and [Backquote](#backquote-quasiquote) for the template
 syntax.
+
+### defstruct
+
+**(defstruct NAME FIELD1 ... FIELDn)**
+Special form that defines a structure type and generates a positional
+constructor `make-NAME`, a predicate `NAME-p`, and one accessor
+`NAME-FIELD` per field. Accessors are usable as [setf](#setf) places.
+Instances are represented as tagged lists `(NAME V1 ... Vn)`.
+
+**(kei-lisp specific behavior)** Common Lisp's `defstruct` constructor takes
+keyword arguments (`:field value`); kei-lisp's constructor is positional
+until keyword symbols are introduced. Records exist in every major dialect
+(CL `defstruct` / Scheme `define-record-type` / Clojure `defrecord`).
+
+```
+>> (defstruct point x y)
+point
+>> (setq p (make-point 3 4))
+(point 3 4)
+>> (point-x p)
+3
+>> (setf (point-y p) 40)
+40
+>> (point-p p)
+t
+```
+
+### destructuring-bind
+
+**(destructuring-bind PATTERN EXPR X1 ... Xn)**
+Special form that evaluates EXPR, binds the symbols of the (possibly nested
+or dotted) PATTERN to the corresponding parts of the value, and evaluates the
+body in the new scope. Signals an error when the shape does not match
+(matches Common Lisp `destructuring-bind`; Scheme and Clojure offer the same
+idea as `let-values` / destructuring `let`).
+
+```
+>> (destructuring-bind (a b) '(1 2) (list b a))
+(2 1)
+>> (destructuring-bind (a (b . rest)) '(1 (2 3 4)) rest)
+(3 4)
+```
 
 ### divide
 
@@ -722,6 +797,26 @@ id0
 id1
 ```
 
+### getf
+
+**(getf PLIST KEY)** / **(getf PLIST KEY DEFAULT)**
+Function that looks up KEY in a property list (a flat list of alternating
+keys and values) and returns the value that follows it, or DEFAULT (nil when
+omitted) if the key is absent. Usable as a [setf](#setf) place.
+
+```
+>> (setq pl '(a 1 b 2))
+(a 1 b 2)
+>> (getf pl 'b)
+2
+>> (getf pl 'c 99)
+99
+>> (setf (getf pl 'c) 3)
+3
+>> pl
+(a 1 b 2 c 3)
+```
+
 ### if
 
 **(if X Y Z)**
@@ -736,6 +831,25 @@ Functions to do Y when X is t and to do Z when X is nil.
 5
 >> (if (= 1 2) (+ 2 3) (* 2 3))
 6
+```
+
+### incf
+
+**(incf PLACE)** / **(incf PLACE DELTA)**
+Special form that increments the number stored in a generalized place (see
+[setf](#setf)) by DELTA (default 1) and returns the new value.
+
+```
+>> (setq n 10)
+10
+>> (incf n)
+11
+>> (setq x (list 1 2))
+(1 2)
+>> (incf (car x))
+2
+>> x
+(2 2)
 ```
 
 ### integerp
@@ -1258,10 +1372,29 @@ nil
 nil
 ```
 
+### position
+
+**(position ITEM LIST)**
+Function that returns the zero-based index of the first element of LIST that
+is `eq` to ITEM, or nil if not found.
+
+**(kei-lisp specific behavior)** Common Lisp's `position` accepts `:test` /
+`:key` / `:from-end` keyword arguments; kei-lisp's variant uses `eq`
+(identity) and only supports the positional 2-arg form.
+
+```
+>> (position 'c '(a b c))
+2
+>> (position 'z '(a b c))
+nil
+```
+
 ### pop
 
-**(pop L)**
-Function to pop to Symbol-bound list L.
+**(pop PLACE)**
+Special form that removes and returns the first element of the list stored
+in a generalized place (see [setf](#setf)): a symbol, `(car x)`, `(cdr x)`,
+and so on. Returns nil when the place value is not a Cons.
 
 ```
 >> (setq a '(1 2 3))
@@ -1317,8 +1450,14 @@ Function to output X with a newline.
 
 ### push
 
-**(push X L)**
-Function to push the value of X to Symbol-bound list L.
+**(push X PLACE)**
+Special form that prepends the value of X onto the list stored in a
+generalized place (see [setf](#setf)): a symbol, `(cdr x)`, and so on.
+Returns the new list.
+
+**(kei-lisp specific behavior)** `push` here is destructive on the place,
+matching Common Lisp; note that Clojure's `conj` / Scheme's SRFI-1 idioms
+are non-destructive.
 
 ```
 >> (setq a '())
@@ -1406,6 +1545,37 @@ the third positional argument).
 0
 ```
 
+### remove
+
+**(remove ITEM LIST)**
+Function that returns a fresh list with every element `eq` to ITEM removed.
+The original list is not modified.
+
+**(kei-lisp specific behavior)** This follows Common Lisp: `remove` removes
+an **item**. Clojure's and SRFI-1's `remove` take a **predicate** instead —
+that variant is [remove-if](#remove-if) here. CL's `:test` / `:key` /
+`:count` keyword arguments are not supported.
+
+```
+>> (remove 2 '(1 2 3 2))
+(1 3)
+>> (remove 9 '(1 2 3))
+(1 2 3)
+```
+
+### remove-if
+
+**(remove-if PRED LIST)**
+Function that returns a fresh list with every element satisfying the
+predicate PRED removed. The original list is not modified.
+
+```
+>> (remove-if (lambda (v) (evenp v)) '(1 2 3 4))
+(1 3)
+>> (remove-if 'oddp '(1 2 3 4))
+(2 4)
+```
+
 ### reverse
 
 **(reverse L)**
@@ -1456,6 +1626,31 @@ Function to bind X to the tail of list L.
 (1 2 3)
 >> (rplacd a 4)
 (1 . 4)
+```
+
+### setf
+
+**(setf PLACE1 X1 PLACE2 X2 ... PLACEn Xn)**
+Special form that assigns each value to the corresponding **generalized
+place**, like [setq](#setq) but accepting places. Supported places: a symbol,
+`(car x)`, `(cdr x)`, `(nth n x)` (1-based, like `nth`), `(elt x n)`
+(zero-based), `(getf plist key)`, and struct field accessors generated by
+[defstruct](#defstruct). Returns the last assigned value.
+
+**(kei-lisp specific behavior)** Common Lisp's `setf` is extensible via
+setf expanders; kei-lisp supports the fixed set of places above.
+
+```
+>> (setq x (list 1 2 3))
+(1 2 3)
+>> (setf (car x) 99)
+99
+>> x
+(99 2 3)
+>> (setf (nth 2 x) 88 (elt x 2) 77)
+77
+>> x
+(99 88 77)
 ```
 
 ### setq
@@ -1808,6 +2003,24 @@ nil
 7
 >> (when (= 1 2) (+ 3 4))
 nil
+```
+
+### with-output-to-string
+
+**(with-output-to-string () X1 ... Xn)**
+Special form that evaluates the body while capturing program output
+(`princ`, `print`, `terpri`, `format`) and returns the captured text as a
+string. Corresponds to CL `with-output-to-string` / Clojure `with-out-str`.
+
+**(kei-lisp specific behavior)** The stream variable list is accepted for
+CL compatibility but no stream object is bound (kei-lisp has no stream
+objects yet); write it as `()`.
+
+```
+>> (with-output-to-string () (princ 1) (princ 'a))
+1a
+>> (with-output-to-string () (format "~a-~a" 1 2))
+1-2
 ```
 
 ### zerop

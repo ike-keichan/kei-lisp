@@ -6,13 +6,7 @@ import { Cons } from '../../value/Cons/index.js';
 import { EvalError } from '../../errors/EvalError/index.js';
 import { ExitError } from '../../errors/ExitError/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
-import {
-  argumentNotSymbol,
-  cannotApply,
-  noBinding,
-  notSymbol,
-  SIZES_DO_NOT_MATCH,
-} from '../../constants/index.js';
+import { cannotApply, noBinding, notSymbol, SIZES_DO_NOT_MATCH } from '../../constants/index.js';
 import { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
 import type { KeiLispPlugin, PluginContext } from '../../plugin/types.js';
@@ -264,6 +258,438 @@ export class Evaluator extends Object {
       );
     }
     return anObject;
+  }
+
+  /**
+   * Evaluates a sub-form in this Evaluator's environment.
+   * @param form the form to evaluate
+   * @return the evaluation result
+   */
+  evalSub(form: LispValue): LispValue {
+    return Evaluator.eval(form, this.environment, this.streamManager, this.depth, this.plugins);
+  }
+
+  /**
+   * Evaluates each form of a (possibly empty) body list and returns the last value.
+   * @param body the body list (a Cons of forms, or nil)
+   * @return the value of the last form, or nil for an empty body
+   */
+  evalBody(body: LispValue): LispValue {
+    let anObject: LispValue = Cons.nil;
+    let current: LispValue = body;
+    while (Cons.isCons(current)) {
+      anObject = this.evalSub(current.car);
+      current = current.cdr;
+    }
+
+    return anObject;
+  }
+
+  /**
+   * Implementation of the Lisp `case` special form. Evaluates the key form and
+   * runs the body of the first clause whose (unevaluated) keys match the key;
+   * a clause head of `t` or `otherwise` always matches.
+   * @param aCons the argument Cons containing the key form and the clauses
+   * @return the value of the matching clause's last body form, or nil
+   */
+  case_(aCons: Cons): LispValue {
+    const key = this.evalSub(aCons.car);
+    let clauses: LispValue = aCons.cdr;
+    while (Cons.isCons(clauses)) {
+      const clause = clauses.car;
+      if (Cons.isNotCons(clause)) {
+        throw new EvalError(cannotApply('case', clause));
+      }
+      const clauseCons = clause as Cons;
+      if (this.caseMatches(key, clauseCons.car)) {
+        return this.evalBody(clauseCons.cdr);
+      }
+      clauses = clauses.cdr;
+    }
+
+    return Cons.nil;
+  }
+
+  /**
+   * Returns whether a `case` clause head matches the given key. A head of `t`
+   * or `otherwise` always matches; a list head matches when any of its
+   * (unevaluated) elements is identical to the key; an atom head matches when
+   * it is identical to the key. A nil head never matches (CL semantics).
+   * @param key the evaluated key value
+   * @param head the clause head (keys), unevaluated
+   * @return a boolean
+   */
+  caseMatches(key: LispValue, head: LispValue): boolean {
+    if (Cons.isSymbol(head) && (head.name === 't' || head.name === 'otherwise')) {
+      return true;
+    }
+    if (Cons.isCons(head)) {
+      for (const each of head.loop()) {
+        if (each === key) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (Cons.isNil(head)) {
+      return false;
+    }
+
+    return head === key;
+  }
+
+  /**
+   * Implementation of the Lisp `setf` special form. Assigns each value to the
+   * corresponding generalized place, like `setq` but accepting places.
+   * @param args the argument Cons containing alternating (place value) pairs
+   * @return the last assigned value
+   */
+  setf(args: Cons): LispValue {
+    let anObject: LispValue = Cons.nil;
+    let current: LispValue = args;
+    while (Cons.isCons(current)) {
+      const place = current.car;
+      if (Cons.isNotCons(current.cdr)) {
+        throw new EvalError(SIZES_DO_NOT_MATCH);
+      }
+      anObject = this.evalSub((current.cdr as Cons).car);
+      this.writePlace(place, anObject);
+      current = (current.cdr as Cons).cdr;
+    }
+
+    return anObject;
+  }
+
+  /**
+   * Implementation of the Lisp `incf` special form; increments a numeric place.
+   * @param aCons the argument Cons containing the place and an optional delta
+   * @return the new value of the place
+   */
+  incf(aCons: Cons): LispValue {
+    return this.incrementPlace(aCons, 1);
+  }
+
+  /**
+   * Implementation of the Lisp `decf` special form; decrements a numeric place.
+   * @param aCons the argument Cons containing the place and an optional delta
+   * @return the new value of the place
+   */
+  decf(aCons: Cons): LispValue {
+    return this.incrementPlace(aCons, -1);
+  }
+
+  /**
+   * Shared implementation of `incf` / `decf`: reads a numeric place, adds the
+   * (optional, default 1) delta with the given sign, and writes it back.
+   * @param aCons the argument Cons containing the place and an optional delta form
+   * @param sign +1 for incf, -1 for decf
+   * @return the new value of the place
+   */
+  incrementPlace(aCons: Cons, sign: number): LispValue {
+    const place = aCons.car;
+    let delta: LispValue = 1;
+    if (Cons.isNotNil(aCons.cdr)) {
+      delta = this.evalSub(aCons.nth(2));
+    }
+    if (!Cons.isNumber(delta)) {
+      throw new EvalError(cannotApply(sign === 1 ? 'incf' : 'decf', delta));
+    }
+    const current = this.evalSub(place);
+    if (!Cons.isNumber(current)) {
+      throw new EvalError(cannotApply(sign === 1 ? 'incf' : 'decf', current));
+    }
+    const value = current + sign * delta;
+    this.writePlace(place, value);
+
+    return value;
+  }
+
+  /**
+   * Writes a value into a generalized place (a setf-able location): a symbol,
+   * `(car x)`, `(cdr x)`, `(nth n x)`, `(elt x n)`, `(getf sym key)`, or a
+   * struct field accessor generated by `defstruct`.
+   * @param place the place form, unevaluated
+   * @param value the value to store
+   * @return the stored value
+   */
+  writePlace(place: LispValue, value: LispValue): LispValue {
+    if (Cons.isSymbol(place)) {
+      if (this.environment.setIfExist(place, value) == null) {
+        this.environment.set(place, value);
+      }
+      return value;
+    }
+    if (Cons.isNotCons(place) || Cons.isNotSymbol((place as Cons).car)) {
+      throw new EvalError(cannotApply('setf', place));
+    }
+
+    return this.writePlaceCons(place as Cons, value);
+  }
+
+  /**
+   * Writes a value into a compound place form; see `writePlace`.
+   * @param place the compound place form whose car is the place operator
+   * @param value the value to store
+   * @return the stored value
+   */
+  writePlaceCons(place: Cons, value: LispValue): LispValue {
+    const operator = place.car as InterpretedSymbol;
+    switch (operator.name) {
+      case 'car': {
+        this.placeTargetCons(place).setCar(value);
+        return value;
+      }
+      case 'cdr': {
+        this.placeTargetCons(place).setCdr(value);
+        return value;
+      }
+      case 'nth': {
+        // `nth` is 1-based in kei-lisp, matching the reader function.
+        const index = this.evalSub(place.nth(2));
+        const list = this.evalSub(place.nth(3));
+        this.nthCell(list, index, 'nth').setCar(value);
+        return value;
+      }
+      case 'elt': {
+        const list = this.evalSub(place.nth(2));
+        const index = this.evalSub(place.nth(3));
+        this.nthCell(list, Cons.isNumber(index) ? index + 1 : index, 'elt').setCar(value);
+        return value;
+      }
+      case 'getf': {
+        return this.writeGetfPlace(place, value);
+      }
+      default: {
+        const position = this.rootTable().structAccessors.get(operator);
+        if (position == null) {
+          throw new EvalError(cannotApply('setf', place));
+        }
+        const target = this.evalSub(place.nth(2));
+        this.nthCell(target, position, 'setf').setCar(value);
+        return value;
+      }
+    }
+  }
+
+  /**
+   * Evaluates the single target sub-form of a `(car x)` / `(cdr x)` place and
+   * requires it to be a Cons.
+   * @param place the place form
+   * @return the target Cons
+   */
+  placeTargetCons(place: Cons): Cons {
+    const target = this.evalSub(place.nth(2));
+    if (Cons.isNotCons(target)) {
+      throw new EvalError(cannotApply('setf', target));
+    }
+
+    return target as Cons;
+  }
+
+  /**
+   * Returns the cell holding the element at the given 1-based position of a list.
+   * @param list the list value
+   * @param position the 1-based position (as used by `nth`)
+   * @param operator the operator name used in error messages
+   * @return the Cons cell whose car is the addressed element
+   */
+  nthCell(list: LispValue, position: LispValue, operator: string): Cons {
+    if (!Cons.isNumber(position) || !Number.isInteger(position) || position < 1) {
+      throw new EvalError(cannotApply(operator, position));
+    }
+    let current: LispValue = list;
+    let count = 1;
+    while (Cons.isCons(current)) {
+      if (count >= position) {
+        return current;
+      }
+      count++;
+      current = current.cdr;
+    }
+
+    throw new EvalError(cannotApply(operator, list));
+  }
+
+  /**
+   * Implements `(setf (getf plist key) value)`. When the property list already
+   * contains the key its value cell is mutated; otherwise a new (key value)
+   * pair is appended. An empty property list is only supported when the plist
+   * form is a symbol, which is then rebound to the fresh list.
+   * @param place the (getf plist key) place form
+   * @param value the value to store
+   * @return the stored value
+   */
+  writeGetfPlace(place: Cons, value: LispValue): LispValue {
+    const plistForm = place.nth(2);
+    const key = this.evalSub(place.nth(3));
+    const plist = this.evalSub(plistForm);
+
+    if (Cons.isCons(plist)) {
+      let current: LispValue = plist;
+      while (Cons.isCons(current) && Cons.isCons(current.cdr)) {
+        if (current.car === key) {
+          current.cdr.setCar(value);
+          return value;
+        }
+        current = current.cdr.cdr;
+      }
+      plist.nconc(new Cons(key, new Cons(value, Cons.nil)));
+      return value;
+    }
+    if (Cons.isNil(plist) && Cons.isSymbol(plistForm)) {
+      this.writePlace(plistForm, new Cons(key, new Cons(value, Cons.nil)));
+      return value;
+    }
+
+    throw new EvalError(cannotApply('setf', place));
+  }
+
+  /**
+   * Returns the root table of this Evaluator's environment chain.
+   * @return the root Table
+   */
+  rootTable(): Table {
+    let aTable: Table = this.environment;
+    while (aTable.source != null) {
+      aTable = aTable.source;
+    }
+
+    return aTable;
+  }
+
+  /**
+   * Implementation of the Lisp `destructuring-bind` special form. Binds the
+   * symbols of a (possibly nested or dotted) pattern to the corresponding
+   * parts of the evaluated expression and evaluates the body.
+   * @param aCons the argument Cons containing the pattern, the expression, and the body
+   * @return the value of the last body form
+   */
+  destructuringBind(aCons: Cons): LispValue {
+    const pattern = aCons.car;
+    const value = this.evalSub(aCons.nth(2));
+    const aTable = new Table(this.environment);
+    this.destructure(pattern, value, aTable);
+    const body = (aCons.cdr as Cons).cdr;
+
+    let anObject: LispValue = Cons.nil;
+    let current: LispValue = body;
+    while (Cons.isCons(current)) {
+      anObject = Evaluator.eval(current.car, aTable, this.streamManager, this.depth, this.plugins);
+      current = current.cdr;
+    }
+
+    return anObject;
+  }
+
+  /**
+   * Recursively binds a destructuring pattern against a value into the given table.
+   * @param pattern the pattern (a symbol, nil, or a possibly dotted Cons of patterns)
+   * @param value the value to destructure
+   * @param aTable the table receiving the bindings
+   */
+  destructure(pattern: LispValue, value: LispValue, aTable: Table): null {
+    if (Cons.isNil(pattern)) {
+      if (Cons.isNotNil(value)) {
+        throw new EvalError(SIZES_DO_NOT_MATCH);
+      }
+      return null;
+    }
+    if (Cons.isSymbol(pattern)) {
+      aTable.set(pattern, value);
+      return null;
+    }
+    if (Cons.isNotCons(pattern)) {
+      throw new EvalError(cannotApply('destructuring-bind', pattern));
+    }
+    if (Cons.isNotCons(value)) {
+      throw new EvalError(SIZES_DO_NOT_MATCH);
+    }
+    this.destructure((pattern as Cons).car, (value as Cons).car, aTable);
+    this.destructure((pattern as Cons).cdr, (value as Cons).cdr, aTable);
+
+    return null;
+  }
+
+  /**
+   * Implementation of the Lisp `defstruct` special form. Defines a structure
+   * type represented as a tagged list `(name field1 field2 ...)` and generates
+   * a positional constructor `make-<name>`, a predicate `<name>-p`, and one
+   * accessor `<name>-<field>` per field. Accessors are registered as `setf`
+   * places. (Keyword-argument constructors arrive with the keyword type.)
+   * @param aCons the argument Cons containing the struct name and the field symbols
+   * @return the struct name symbol
+   */
+  defstruct(aCons: Cons): LispValue {
+    if (Cons.isNotSymbol(aCons.car)) {
+      throw new EvalError(notSymbol(aCons.car));
+    }
+    const name = aCons.car as InterpretedSymbol;
+    const fields: InterpretedSymbol[] = [];
+    let current: LispValue = aCons.cdr;
+    while (Cons.isCons(current)) {
+      if (Cons.isNotSymbol(current.car)) {
+        throw new EvalError(notSymbol(current.car));
+      }
+      fields.push(current.car as InterpretedSymbol);
+      current = current.cdr;
+    }
+
+    const params = fields.map((field) => field.name).join(' ');
+    this.defineDerivedLambda(
+      `make-${name.name}`,
+      `(lambda (${params}) (list (quote ${name.name}) ${params}))`,
+    );
+    this.defineDerivedLambda(
+      `${name.name}-p`,
+      `(lambda (anObject) (if (consp anObject) (if (eq (car anObject) (quote ${name.name})) t nil) nil))`,
+    );
+    for (const [index, field] of fields.entries()) {
+      const accessorName = `${name.name}-${field.name}`;
+      const position = String(index + 2);
+      this.defineDerivedLambda(accessorName, `(lambda (anObject) (nth ${position} anObject))`);
+      this.rootTable().structAccessors.set(InterpretedSymbol.of(accessorName), index + 2);
+    }
+
+    return name;
+  }
+
+  /**
+   * Parses a lambda source string, captures the current environment, and binds
+   * the resulting closure under the given name (used by `defstruct`).
+   * @param name the function name to bind
+   * @param source the lambda source string
+   */
+  defineDerivedLambda(name: string, source: string): null {
+    const lambda = Cons.parse(source) as Cons;
+    lambda.last().setCdr(new Cons(this.environment, Cons.nil));
+    this.environment.set(InterpretedSymbol.of(name), lambda);
+
+    return null;
+  }
+
+  /**
+   * Implementation of the Lisp `with-output-to-string` special form. Evaluates
+   * the body while capturing program output (`princ`, `print`, `terpri`,
+   * `format`) and returns the captured text as a string. The CL stream
+   * variable list is accepted for compatibility but no stream is bound
+   * (kei-lisp has no stream objects yet), so it must be empty or is ignored.
+   * @param aCons the argument Cons containing an optional stream variable list and the body
+   * @return the captured output string
+   */
+  withOutputToString(aCons: Cons): LispValue {
+    let body: LispValue = aCons;
+    if (Cons.isCons(aCons) && Cons.isList(aCons.car)) {
+      body = aCons.cdr;
+    }
+    this.streamManager.pushCapture();
+    try {
+      this.evalBody(body);
+    } catch (error) {
+      this.streamManager.popCapture();
+      throw error;
+    }
+
+    return this.streamManager.popCapture();
   }
 
   /**
@@ -905,27 +1331,19 @@ export class Evaluator extends Object {
   }
 
   /**
-   * Implementation of the Lisp `pop` special form.
-   * @param aCons the argument Cons whose car is the symbol bound to a list
-   * @return the popped element, or nil if the binding is not a Cons
+   * Implementation of the Lisp `pop` special form. Pops the first element off
+   * the list stored in a generalized place (CL semantics).
+   * @param aCons the argument Cons whose car is the place bound to a list
+   * @return the popped element, or nil if the place value is not a Cons
    */
   pop_(aCons: Cons): LispValue {
-    if (Cons.isNotSymbol(aCons.car)) {
-      throw new EvalError(argumentNotSymbol(1));
-    }
-    const aSymbol = aCons.car as InterpretedSymbol;
-    const anObject = Evaluator.eval(
-      aSymbol,
-      this.environment,
-      this.streamManager,
-      this.depth,
-      this.plugins,
-    );
+    const place = aCons.car;
+    const anObject = this.evalSub(place);
     if (Cons.isNotCons(anObject)) {
       return Cons.nil;
     }
     const consObject = anObject as Cons;
-    this.environment.setIfExist(aSymbol, consObject.cdr);
+    this.writePlace(place, consObject.cdr);
 
     return consObject.car;
   }
@@ -963,7 +1381,7 @@ export class Evaluator extends Object {
       this.depth,
       this.plugins,
     );
-    process.stdout.write(String(anObject));
+    this.streamManager.writeOutput(String(anObject));
 
     return anObject;
   }
@@ -981,33 +1399,22 @@ export class Evaluator extends Object {
       this.depth,
       this.plugins,
     );
-    process.stdout.write(String(anObject) + '\n');
+    this.streamManager.writeOutput(String(anObject) + '\n');
 
     return anObject;
   }
 
   /**
-   * Implementation of the Lisp `push` special form.
-   * @param aCons the argument Cons containing the value to push and the target symbol
-   * @return the new Cons stored in the symbol
+   * Implementation of the Lisp `push` special form. Prepends a value onto the
+   * list stored in a generalized place (CL semantics).
+   * @param aCons the argument Cons containing the value to push and the target place
+   * @return the new Cons stored in the place
    */
   push_(aCons: Cons): LispValue {
-    let anObject = Evaluator.eval(
-      aCons.car,
-      this.environment,
-      this.streamManager,
-      this.depth,
-      this.plugins,
-    );
-    if (Cons.isNotSymbol(aCons.nth(2))) {
-      throw new EvalError(argumentNotSymbol(2));
-    }
-    const aSymbol = aCons.nth(2) as InterpretedSymbol;
-    anObject = new Cons(
-      anObject,
-      Evaluator.eval(aSymbol, this.environment, this.streamManager, this.depth, this.plugins),
-    );
-    this.environment.setIfExist(aSymbol, anObject);
+    const value = this.evalSub(aCons.car);
+    const place = aCons.nth(2);
+    const anObject = new Cons(value, this.evalSub(place));
+    this.writePlace(place, anObject);
 
     return anObject;
   }
@@ -1306,9 +1713,13 @@ export class Evaluator extends Object {
         ['and', 'and'],
         ['apply', 'apply_lisp'],
         ['bind', 'bind'],
+        ['case', 'case_'],
         ['cond', 'cond'],
+        ['decf', 'decf'],
         ['defmacro', 'defmacro'],
+        ['defstruct', 'defstruct'],
         ['defun', 'defun'],
+        ['destructuring-bind', 'destructuringBind'],
         ['do', 'do_'],
         ['dolist', 'doList'],
         ['do*', 'doStar'],
@@ -1316,6 +1727,7 @@ export class Evaluator extends Object {
         ['exit', 'exit'],
         ['gc', 'gc'],
         ['if', 'if_'],
+        ['incf', 'incf'],
         ['lambda', 'lambda'],
         ['let', 'let'],
         ['let*', 'letStar'],
@@ -1333,8 +1745,10 @@ export class Evaluator extends Object {
         ['quote', 'quote'],
         ['rplaca', 'rplaca'],
         ['rplacd', 'rplacd'],
+        ['setf', 'setf'],
         ['setq', 'setq'],
         ['set-allq', 'set_allq'],
+        ['with-output-to-string', 'withOutputToString'],
         ['terpri', 'terpri'],
         ['time', 'time'],
         ['trace', 'trace'],
@@ -1402,7 +1816,7 @@ export class Evaluator extends Object {
    * @return the symbol t
    */
   terpri(): InterpretedSymbol {
-    process.stdout.write('\n');
+    this.streamManager.writeOutput('\n');
     return InterpretedSymbol.of('t');
   }
 
