@@ -32,7 +32,8 @@ Please include as much of the following as you can:
 ## What to Expect
 
 This is a hobby project maintained on a **best-effort basis** and is not
-recommended for production use. With that in mind:
+recommended for production use (see the note in [README.md](./README.md)).
+With that in mind:
 
 - Reports are acknowledged as soon as the maintainer can get to them.
 - Once a fix is released, the advisory will be published and you will be
