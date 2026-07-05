@@ -91,10 +91,11 @@ const { LispInterpreter, Cons } = require('kei-lisp');
 const interpreter = new LispInterpreter();
 
 // Evaluate source and return the last expression's result
-interpreter.evalString('(+ 1 2)'); // 3
+// (Lisp integers come back as bigint — see docs/api.md)
+interpreter.evalString('(+ 1 2)'); // 3n
 
 // Evaluate multiple expressions and return all results
-interpreter.evalAll('(setq x 10) (* x x)'); // [10, 100]
+interpreter.evalAll('(setq x 10) (* x x)'); // [10n, 100n]
 ```
 
 ### `Repl`
