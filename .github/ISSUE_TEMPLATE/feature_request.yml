@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest a new function or an improvement
+title: 'feat: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement!
+        A clear problem statement helps us evaluate the proposal.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that is currently hard or impossible?
+      placeholder: I want to write ... in kei-lisp, but ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: |
+        What would you like to see? For new functions or special forms, the
+        corresponding Common Lisp / Scheme / Clojure construct and a sketch of
+        the Lisp signature help.
+      placeholder: |
+        Add `dotimes` matching CL:
+        (dotimes (i 10) (print i))
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or alternative designs you have considered.
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+    validations:
+      required: false

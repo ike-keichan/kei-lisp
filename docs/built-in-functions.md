@@ -7,23 +7,28 @@ Entries are organized into the following categories:
 - [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `expt`, `sqrt`, `sin`, `cos`, `tan`, `round`, `truncate`, `floor`, `ceiling`, `min`, `max`, `1+`, `1-`, `random`, `pi`, `napier`
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
-- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
+- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `rationalp`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
 - [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `mapcan`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`, `reduce`, `every`, `some`, `find`, `position`, `remove`, `remove-if`, `sort`, `getf`
+- [Data structures](#data-structures) — `make-hash-table`, `gethash`, `remhash`, `hash-table-count`, `hash-table-p`, `vector`, `make-array`, `aref`, `svref`, `vectorp`
 - [Strings](#strings) — `string-upcase`, `string-downcase`, `string-trim`, `substring`, `concatenate`
 - [Variables and bindings](#variables-and-bindings) — `setq`, `setf`, `incf`, `decf`, `set-allq`, `bind`, `gensym`, `destructuring-bind`
 - [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`, `defstruct`
 - [Macros](#macros) — `defmacro`, backquote (`` ` ``, `,`, `,@`), `macroexpand`, `macroexpand-1`
 - [Control flow](#control-flow) — `if`, `cond`, `case`, `when`, `unless`, `do`, `do*`, `dolist`, `catch`, `throw`
 - [Error handling](#error-handling) — `error`, `handler-case`
-- [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`, `with-output-to-string`
+- [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`, `with-output-to-string`, `read-from-string`, `load`
 - [System](#system) — `exit`, `gc`, `time`, `trace`, `notrace`
 
 > The original alphabetical reference of each function follows below.
 
 > **Legend**: Entries marked **(kei-lisp specific)** are either not part of
 > the Common Lisp standard or behave differently from CL. They are kept for
-> historical reasons or because of platform constraints (e.g. JS has only
-> one numeric type).
+> historical reasons or because of platform constraints.
+>
+> **Numbers**: kei-lisp has a numeric tower — integers (arbitrary
+> precision), exact rationals (created by `/`, printed as `1/2`), and
+> double-precision floats. Exact operands stay exact; as soon as a float
+> is involved the result is a float (float contagion).
 
 ## Comments
 
@@ -89,6 +94,24 @@ Functions to answer the combined list of L1 and L2.
 ```
 >> (append '(a b c) '(d e f))
 (a b c d e f)
+```
+
+### aref
+
+**(aref V N)**
+Function that returns the element of vector V at the zero-based index N.
+`svref` is an alias. Usable as a [setf](#setf) place. Signals an error for
+an out-of-range index.
+
+```
+>> (setq v (vector 10 20 30))
+#(10 20 30)
+>> (aref v 1)
+20
+>> (setf (aref v 0) 99)
+99
+>> v
+#(99 20 30)
 ```
 
 ### apply
@@ -485,44 +508,6 @@ c
 t
 ```
 
-### doublep
-
-**(kei-lisp specific)** Not present in Common Lisp; in kei-lisp it is the
-same as `numberp` (JS has only one numeric type, so "double" and "number"
-collapse to the same check).
-
-**(doublep X)**
-Function to answer whether X is a Double.
-
-```
->> (doublep 12)
-t
->> (doublep 12.3)
-t
->> (doublep -12)
-t
->> (doublep -12.3)
-t
->> (doublep 3.4E-38)
-t
->> (doublep 3.4E+38)
-t
->> (doublep 1.7E+308)
-t
->> (doublep 1.7E-308)
-t
->> (doublep '(1 2 3))
-nil
->> (doublep '())
-nil
->> (doublep 'a)
-nil
->> (doublep "a")
-nil
->> (doublep "abc")
-nil
-```
-
 ### error
 
 **(error MESSAGE X1 ... Xn)**
@@ -686,7 +671,8 @@ Function that returns the base B raised to the exponent E.
 
 **(floor X)**
 Function that returns the largest integer less than or equal to X (rounded
-toward negative infinity).
+toward negative infinity). The result is an integer (CL semantics); works
+on integers, rationals, and floats.
 
 ```
 >> (floor 3.7)
@@ -727,40 +713,22 @@ nil
 
 ### floatp
 
-**(kei-lisp specific behavior)** In Common Lisp `floatp` is a type-tag
-predicate (integer vs float). In kei-lisp, because JS has only one numeric
-type (double), `floatp` is interpreted as a **range check**: it returns
-`t` when X is representable in IEEE 32-bit (single-precision) float range.
-
 **(floatp X)**
-Function to answer whether X is a Float.
+Function to answer whether X is a float (a double-precision floating-point
+number). Integers are a distinct type and answer nil (CL type-tag
+semantics). A literal is a float when it contains a decimal point or an
+exponent.
 
 ```
->> (floatp 12)
-t
 >> (floatp 12.3)
 t
->> (floatp -12)
+>> (floatp 1.0)
 t
->> (floatp -12.3)
-t
->> (floatp 3.4E-38)
-t
->> (floatp 3.4E+38)
-t
->> (floatp 1.7E-308)
+>> (floatp 12)
 nil
->> (floatp 1.7E+308)
-nil
->> (floatp '(1 2 3))
-nil
->> (floatp '())
-nil
->> (floatp 'a)
+>> (floatp (/ 1 2))
 nil
 >> (floatp "a")
-nil
->> (floatp "abc")
 nil
 ```
 
@@ -852,6 +820,55 @@ omitted) if the key is absent. Usable as a [setf](#setf) place.
 (a 1 b 2 c 3)
 ```
 
+### gethash
+
+**(gethash KEY H)** / **(gethash KEY H DEFAULT)**
+Function that looks up KEY in the hash table H and returns the stored value,
+or DEFAULT (nil when omitted). Keys are compared by identity (`eq`); symbols,
+keywords, integers, and strings all work as keys. Usable as a [setf](#setf)
+place.
+
+**(kei-lisp specific behavior)** CL's `gethash` returns a second value
+indicating presence; kei-lisp returns only the value (use a unique default
+to distinguish a stored nil).
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash :name h) "kei")
+kei
+>> (gethash :name h)
+kei
+>> (gethash :missing h 99)
+99
+```
+
+### hash-table-count
+
+**(hash-table-count H)**
+Function that returns the number of entries in the hash table H.
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash 'a h) 1)
+1
+>> (hash-table-count h)
+1
+```
+
+### hash-table-p
+
+**(hash-table-p X)**
+Function to answer whether X is a hash table.
+
+```
+>> (hash-table-p (make-hash-table))
+t
+>> (hash-table-p '(a 1))
+nil
+```
+
 ### handler-case
 
 **(handler-case FORM (TYPE (VAR) X1 ... Xn) ...)**
@@ -914,34 +931,18 @@ Special form that increments the number stored in a generalized place (see
 ### integerp
 
 **(integerp X)**
-Function to answer whether X is an Integer.
+Function to answer whether X is an integer. Integers have arbitrary
+precision (bignum). An integral **float** such as `1.0` is not an integer
+(CL type-tag semantics).
 
 ```
 >> (integerp 12)
 t
->> (integerp 12.3)
-nil
->> (integerp -12)
+>> (integerp 99999999999999999999)
 t
->> (integerp -12.3)
+>> (integerp 1.0)
 nil
->> (integerp 3.4E-38)
-nil
->> (integerp 3.4E+38)
-t
->> (integerp 1.7E-308)
-nil
->> (integerp 1.7E+308)
-t
->> (integerp '(1 2 3))
-nil
->> (integerp '())
-nil
->> (integerp 'a)
-nil
->> (integerp "a")
-nil
->> (integerp "abc")
+>> (integerp (/ 1 2))
 nil
 ```
 
@@ -1050,6 +1051,50 @@ nil
 nil
 >> (listp "abc")
 nil
+```
+
+### load
+
+**(load PATH)**
+Function that reads the file at PATH, parses it, and evaluates every
+top-level form in the global environment. Returns t. Definitions
+(`defun`, `defmacro`, `setq`, ...) made by the file are available
+afterwards.
+
+```
+>> (load "lib.lisp")
+t
+>> (function-defined-in-lib 1)
+...
+```
+
+### make-array
+
+**(make-array N)** / **(make-array N INIT)**
+Function that returns a fresh one-dimensional vector of N elements, each
+initialized to INIT (nil when omitted).
+
+**(kei-lisp specific behavior)** CL's `make-array` takes dimensions and
+keyword arguments (`:initial-element`); kei-lisp supports one dimension
+with a positional initial element.
+
+```
+>> (make-array 3)
+#(nil nil nil)
+>> (make-array 3 0)
+#(0 0 0)
+```
+
+### make-hash-table
+
+**(make-hash-table)**
+Function that returns a fresh, empty hash table. Entries are read with
+[gethash](#gethash), written with `(setf (gethash key h) value)`, and
+removed with [remhash](#remhash).
+
+```
+>> (make-hash-table)
+#<hash-table :count 0>
 ```
 
 ### macroexpand
@@ -1582,6 +1627,21 @@ Function to answer a random number greater than or equal to 0 and less than or e
 0.9867023484200941
 ```
 
+### rationalp
+
+**(rationalp X)**
+Function to answer whether X is an exact rational number: an integer or a
+ratio. Floats are not rational (CL semantics).
+
+```
+>> (rationalp 1)
+t
+>> (rationalp (/ 1 2))
+t
+>> (rationalp 0.5)
+nil
+```
+
 ### reduce
 
 **(reduce FN LIST [INIT])**
@@ -1633,6 +1693,37 @@ predicate PRED removed. The original list is not modified.
 (1 3)
 >> (remove-if 'oddp '(1 2 3 4))
 (2 4)
+```
+
+### read-from-string
+
+**(read-from-string S)**
+Function that parses the string S and returns the first expression it
+contains, without evaluating it (code as data). Combine with `eval` to
+run it.
+
+```
+>> (read-from-string "(+ 1 2)")
+(+ 1 2)
+>> (eval (read-from-string "(+ 1 2)"))
+3
+```
+
+### remhash
+
+**(remhash KEY H)**
+Function that removes KEY from the hash table H. Returns t when the key
+was present, nil otherwise.
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash 'a h) 1)
+1
+>> (remhash 'a h)
+t
+>> (remhash 'a h)
+nil
 ```
 
 ### reverse
@@ -1937,6 +2028,11 @@ t
 t
 ```
 
+### svref
+
+**(svref V N)**
+Alias of [aref](#aref) (simple-vector access).
+
 ### symbolp
 
 **(symbolp X)**
@@ -2059,6 +2155,32 @@ nil
 nil
 >> (unless (= 1 2) (+ 3 4))
 7
+```
+
+### vector
+
+**(vector X1 X2 ... Xn)**
+Function that returns a fresh vector of the given elements. Vectors print
+as `#(1 2 3)` (CL syntax; there is no reader literal yet) and provide
+O(1) indexed access via [aref](#aref).
+
+```
+>> (vector 1 2 3)
+#(1 2 3)
+>> (length (vector 1 2 3))
+3
+```
+
+### vectorp
+
+**(vectorp X)**
+Function to answer whether X is a vector.
+
+```
+>> (vectorp (vector 1))
+t
+>> (vectorp '(1))
+nil
 ```
 
 ### when
@@ -2185,13 +2307,20 @@ Same as the function "[multiply](#multiply)".
 
 **(/ X1 X2 ... Xn)**
 Function to answer the quotient of X1 divided by X2 ... and Xn.<br>
-Same as the function "[divide](#divide)".
+Same as the function "[divide](#divide)". Division of integers is **exact**:
+when it does not divide evenly the result is a rational (CL semantics).
+Involving a float makes the result a float. Exact division by zero signals
+an error.
 
 ```
 >> (/ 10 5)
 2
+>> (/ 1 2)
+1/2
 >> (/ 12 5 4)
-0.6
+3/5
+>> (/ 1.0 2)
+0.5
 ```
 
 ### //

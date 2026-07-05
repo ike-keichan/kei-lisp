@@ -14,6 +14,11 @@ an interactive REPL, or embed it in your application as a library.
 - Macros: `defmacro` with backquote/unquote (`` ` ``, `,`, `,@`) and `macroexpand`
 - Control flow: `catch` / `throw`, `error` / `handler-case`, and tail call
   optimization (deep tail recursion runs in constant stack space)
+- Numeric tower: arbitrary-precision integers (bignum), exact rationals
+  (`(/ 1 2)` → `1/2`), and floats with CL-style contagion
+- Data structures: hash tables (`make-hash-table` / `gethash`) and vectors
+  (`vector` / `aref`), plus keyword symbols (`:foo`)
+- Runtime reader and file loading: `read-from-string` and `load`
 - CLI tool **and** embeddable library
 - ESM and CommonJS dual output with TypeScript types
 - Zero runtime dependencies
@@ -86,10 +91,11 @@ const { LispInterpreter, Cons } = require('kei-lisp');
 const interpreter = new LispInterpreter();
 
 // Evaluate source and return the last expression's result
-interpreter.evalString('(+ 1 2)'); // 3
+// (Lisp integers come back as bigint — see docs/api.md)
+interpreter.evalString('(+ 1 2)'); // 3n
 
 // Evaluate multiple expressions and return all results
-interpreter.evalAll('(setq x 10) (* x x)'); // [10, 100]
+interpreter.evalAll('(setq x 10) (* x x)'); // [10n, 100n]
 ```
 
 ### `Repl`

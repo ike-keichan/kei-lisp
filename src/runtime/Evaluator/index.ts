@@ -6,6 +6,7 @@ import { Cons } from '../../value/Cons/index.js';
 import { EvalError } from '../../errors/EvalError/index.js';
 import { ExitError } from '../../errors/ExitError/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
+import { Numeric } from '../../value/Numeric/index.js';
 import { KeiLispError } from '../../errors/KeiLispError/index.js';
 import { ParseError } from '../../errors/ParseError/index.js';
 import { cannotApply, noBinding, notSymbol, SIZES_DO_NOT_MATCH } from '../../constants/index.js';
@@ -154,7 +155,7 @@ export class Evaluator extends Object {
    * @param aSymbol the symbol whose bindings are inspected
    * @return the number of distinct bindings found
    */
-  bindAUX(aSymbol: InterpretedSymbol): number {
+  bindAUX(aSymbol: InterpretedSymbol): bigint {
     let aTable: Table | null = this.environment;
     let anObject: LispValue = aTable.get(aSymbol);
     let count = 1;
@@ -172,7 +173,7 @@ export class Evaluator extends Object {
       aTable = aTable.source;
     }
 
-    return count;
+    return BigInt(count);
   }
 
   /**
@@ -730,7 +731,7 @@ export class Evaluator extends Object {
    */
   incrementPlace(aCons: Cons, sign: number): LispValue {
     const place = aCons.car;
-    let delta: LispValue = 1;
+    let delta: LispValue = 1n;
     if (Cons.isNotNil(aCons.cdr)) {
       delta = this.evalSub(aCons.nth(2));
     }
@@ -741,7 +742,7 @@ export class Evaluator extends Object {
     if (!Cons.isNumber(current)) {
       throw new EvalError(cannotApply(sign === 1 ? 'incf' : 'decf', current));
     }
-    const value = current + sign * delta;
+    const value = sign === 1 ? Numeric.add(current, delta) : Numeric.subtract(current, delta);
     this.writePlace(place, value);
 
     return value;
@@ -796,11 +797,51 @@ export class Evaluator extends Object {
       case 'elt': {
         const list = this.evalSub(place.nth(2));
         const index = this.evalSub(place.nth(3));
-        this.nthCell(list, Cons.isNumber(index) ? index + 1 : index, 'elt').setCar(value);
+        if (Cons.isVector(list)) {
+          const position = Numeric.toIndex(index);
+          if (position == null) {
+            throw new EvalError(cannotApply('elt', index));
+          }
+          try {
+            return list.set(position, value);
+          } catch (error) {
+            if (error instanceof RangeError) {
+              throw new EvalError(error.message);
+            }
+            throw error;
+          }
+        }
+        this.nthCell(list, Cons.isNumber(index) ? Numeric.add(index, 1n) : index, 'elt').setCar(
+          value,
+        );
         return value;
       }
       case 'getf': {
         return this.writeGetfPlace(place, value);
+      }
+      case 'gethash': {
+        const key = this.evalSub(place.nth(2));
+        const table = this.evalSub(place.nth(3));
+        if (!Cons.isHashTable(table)) {
+          throw new EvalError(cannotApply('setf', table));
+        }
+        return table.set(key, value);
+      }
+      case 'aref':
+      case 'svref': {
+        const target = this.evalSub(place.nth(2));
+        const index = Numeric.toIndex(this.evalSub(place.nth(3)));
+        if (!Cons.isVector(target) || index == null) {
+          throw new EvalError(cannotApply('setf', place));
+        }
+        try {
+          return target.set(index, value);
+        } catch (error) {
+          if (error instanceof RangeError) {
+            throw new EvalError(error.message);
+          }
+          throw error;
+        }
       }
       default: {
         const position = this.rootTable().structAccessors.get(operator);
@@ -837,13 +878,14 @@ export class Evaluator extends Object {
    * @return the Cons cell whose car is the addressed element
    */
   nthCell(list: LispValue, position: LispValue, operator: string): Cons {
-    if (!Cons.isNumber(position) || !Number.isInteger(position) || position < 1) {
+    const index = Numeric.toIndex(position);
+    if (index == null || index < 1) {
       throw new EvalError(cannotApply(operator, position));
     }
     let current: LispValue = list;
     let count = 1;
     while (Cons.isCons(current)) {
-      if (count >= position) {
+      if (count >= index) {
         return current;
       }
       count++;
@@ -1480,6 +1522,10 @@ export class Evaluator extends Object {
    * @return the value bound to the symbol
    */
   evaluateSymbol(aSymbol: InterpretedSymbol): LispValue {
+    // Keyword symbols (:foo) evaluate to themselves (CL / Clojure semantics).
+    if (aSymbol.name.startsWith(':')) {
+      return aSymbol;
+    }
     if (!this.environment.has(aSymbol)) {
       throw new EvalError(noBinding(aSymbol));
     }
@@ -1520,7 +1566,8 @@ export class Evaluator extends Object {
     triggerGc();
     const usage = process.memoryUsage();
     // Returns an association list so callers can do (assoc 'heap-used (gc)).
-    const pair = (key: string, value: number): Cons => new Cons(InterpretedSymbol.of(key), value);
+    const pair = (key: string, value: number): Cons =>
+      new Cons(InterpretedSymbol.of(key), BigInt(value));
     const entries: Cons[] = [
       pair('rss', usage.rss),
       pair('heap-total', usage.heapTotal),

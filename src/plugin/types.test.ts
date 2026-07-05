@@ -24,7 +24,7 @@ class DoublePlugin implements KeiLispPlugin {
     return this.#symbols.has(symbol);
   }
   apply(_symbol: InterpretedSymbol, args: Cons): LispValue {
-    return (args.car as number) * 2;
+    return (args.car as bigint) * 2n;
   }
 }
 
@@ -52,13 +52,13 @@ describe('KeiLispPlugin', () => {
   it('evaluates arguments before passing them to the plugin', () => {
     const interpreter = new LispInterpreter();
     interpreter.use(new DoublePlugin());
-    expect(interpreter.evalString('(double (+ 1 2))')).toBe(6);
+    expect(interpreter.evalString('(double (+ 1 2))')).toBe(6n);
   });
 
   it('falls through to built-ins when no plugin claims the symbol', () => {
     const interpreter = new LispInterpreter();
     interpreter.use(new GreetPlugin());
-    expect(interpreter.evalString('(+ 1 2 3)')).toBe(6);
+    expect(interpreter.evalString('(+ 1 2 3)')).toBe(6n);
   });
 
   it('throws when no plugin and no built-in claim the symbol', () => {
@@ -87,13 +87,13 @@ describe('KeiLispPlugin', () => {
   it('exposes ctx.eval so plugins can recursively evaluate forms', () => {
     const interpreter = new LispInterpreter();
     interpreter.use(new TwicePlugin());
-    expect(interpreter.evalString('(twice-of-first 5)')).toBe(10);
+    expect(interpreter.evalString('(twice-of-first 5)')).toBe(10n);
   });
 
   it('keeps plugin behavior across nested calls (plugins thread through Evaluator)', () => {
     const interpreter = new LispInterpreter();
     interpreter.use(new DoublePlugin());
-    expect(interpreter.evalString('(+ (double 3) (double 4))')).toBe(14);
+    expect(interpreter.evalString('(+ (double 3) (double 4))')).toBe(14n);
   });
 
   it('use() returns the interpreter for chaining', () => {

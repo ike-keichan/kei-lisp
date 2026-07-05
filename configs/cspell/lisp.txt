@@ -72,3 +72,13 @@ alist
 # 他方言（Scheme / Clojure）由来の用語
 defrecord
 SRFI
+rationalp
+bignum
+bignums
+dotimes
+gethash
+remhash
+sethash
+svref
+aref
+vectorp

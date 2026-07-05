@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Hash tables** — `make-hash-table` / `gethash` / `remhash` /
+  `hash-table-count` / `hash-table-p`, with `(setf (gethash key h) value)`
+  as a place. Keys compare by identity (`eq`). (#44)
+- **Vectors** — `vector` / `make-array` / `aref` / `svref` / `vectorp`,
+  printed as `#(1 2 3)`; `aref` / `elt` are `setf` places and `length` /
+  `elt` accept vectors. `make-array` takes a positional initial element
+  until keyword arguments arrive. (#44)
+- **Keyword symbols** — symbols starting with `:` evaluate to themselves
+  (CL / Clojure semantics) and work as hash-table keys and `case` keys.
+  (#44)
+- **Runtime reader and file loading** — `read-from-string` parses a
+  string into a form (code as data), and `load` reads, parses, and
+  evaluates a `.lisp` file in the global environment. (#44)
+- **Test coverage reporting** — new `pnpm test:coverage` script with v8
+  coverage configured in `vitest.config.js` (text / html / lcov); CI now
+  runs the suite with coverage. `@vitest/coverage-v8` is declared
+  explicitly in devDependencies. (#41)
+- **Community health files** — `SECURITY.md`, `CODE_OF_CONDUCT.md`, and
+  `.github/ISSUE_TEMPLATE/` (bug report / feature request / question),
+  ported from kei-lisp-plugin-graphics. (#41)
+- **Entry point tests** — the CLI argument handling was extracted into a
+  testable `CliApp` class (`--version` / `--help` / unknown-argument /
+  REPL fallback covered), and the library's public exports are asserted
+  by a new `src/index.test.ts`. (#41)
+- **Numeric tower (bignum / rational / float)** — integers are now
+  arbitrary precision (BigInt-backed bignum), and a new exact rational
+  type is produced by integer division that does not divide evenly
+  (`(/ 1 2)` → `1/2`, printed as `n/d`). Exact operands stay exact; any
+  float makes the result a float (CL-style contagion). New `rationalp`
+  predicate; `Rational` / `Numeric` are exported for library users. (#40)
 - **`catch` / `throw` special forms** — dynamic non-local exit with `eq`
   tag matching (CL semantics). An uncaught `throw` signals an `EvalError`
   at the interpreter boundary. (#39)
@@ -24,7 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   macro expansions) are applied iteratively, so deep tail recursion runs
   in constant stack space. Note: tail-optimized frames do not emit
   trace/spy output. (#39)
-
 - **`case` special form** — dispatches on an evaluated key against
   unevaluated clause keys (single key or key list), with `t` / `otherwise`
   default clauses. (#38)
@@ -48,11 +77,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING: integers and floats are distinct types.** Integer literals
+  evaluate to `bigint` (library API included); literals with a decimal
+  point or exponent are floats. `integerp` is now a type-tag check
+  (`(integerp 1.0)` → nil), `floatp` matches floats only (the previous
+  IEEE 32-bit range check is gone), and `=` compares numerically across
+  representations while `eq` distinguishes them. (#40)
+- **BREAKING: exact division.** `(/ 1 2)` now yields the rational `1/2`
+  instead of `0.5`; exact division by zero signals an error. `floor` /
+  `ceiling` / `round` / `truncate` return integers; `length` / `count` /
+  `position` / `gc` counters return integers. (#40)
 - **`push` / `pop` now accept generalized places** (CL semantics), e.g.
   `(push 7 (cdr x))`, instead of being restricted to symbols. (#38)
 - `princ` / `print` / `terpri` / `format` write through
   `StreamManager.writeOutput` so their output can be captured by
   `with-output-to-string`; behavior is unchanged outside a capture. (#38)
+- ESLint / cspell now ignore the actual typedoc output directory
+  (`docs/typedoc/`) and the coverage output instead of the unused `out/`
+  path, aligning the configuration with kei-lisp-plugin-graphics. (#41)
+
+### Removed
+
+- **BREAKING: `doublep`** — a kei-lisp-specific predicate with no
+  counterpart in CL / Scheme / Clojure; use `floatp` (type check) or
+  `numberp` instead. (#40)
 
 ## [2.3.0] - 2026-06-27
 

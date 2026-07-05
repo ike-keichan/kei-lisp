@@ -39,9 +39,16 @@ const interpreter = new LispInterpreter();
 Parse `source`, evaluate all top-level expressions, and return the value
 of the last expression. If `source` is empty, returns `Cons.nil`.
 
+> **Numbers**: Lisp integers are returned as **`bigint`** (arbitrary
+> precision), exact ratios as **`Rational`**, and floats as `number`.
+> Convert with `Number(value)` or `Numeric.toFloat(value)` before mixing
+> with JS number arithmetic.
+
 ```ts
-const result = interpreter.evalString('(+ 1 2 3)'); // 6
-interpreter.evalString('(setq x 10) (* x x)'); // 100 (last value)
+const result = interpreter.evalString('(+ 1 2 3)'); // 6n (bigint)
+interpreter.evalString('(setq x 10) (* x x)'); // 100n (last value)
+interpreter.evalString('(/ 1 2)'); // Rational { numerator: 1n, denominator: 2n }
+interpreter.evalString('(/ 1.0 2)'); // 0.5 (number)
 ```
 
 ### `interpreter.evalAll(source: string): LispValue[]`
@@ -50,7 +57,7 @@ Parse `source`, evaluate all top-level expressions, and return all
 results as an array.
 
 ```ts
-interpreter.evalAll('(+ 1 2) (* 3 4)'); // [3, 12]
+interpreter.evalAll('(+ 1 2) (* 3 4)'); // [3n, 12n]
 interpreter.evalAll(''); // []
 ```
 
@@ -61,7 +68,7 @@ input is a string. Throws `EvalError` (or `ExitError` for `(exit)`).
 
 ```ts
 const ast = interpreter.parse('(+ 1 2)');
-interpreter.eval(ast.car); // 3
+interpreter.eval(ast.car); // 3n
 ```
 
 ### `interpreter.parse(source: string): Cons`
