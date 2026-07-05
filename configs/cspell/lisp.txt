@@ -75,3 +75,4 @@ SRFI
 rationalp
 bignum
 bignums
+dotimes
