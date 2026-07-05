@@ -45,4 +45,4 @@ None
 
 - [ ] Tests added or updated to cover the change
 - [ ] Documentation updated (`README.md`, `CHANGELOG.md`, `docs/`) if public behavior changed
-- [ ] Base branch is correct (see CONTRIBUTING.md: usually the active release line `vX.Y`)
+- [ ] Base branch is correct (see CONTRIBUTING.md: `feature/*` targets the active release line `vX.Y` for minor / major work, or `main` for patch releases; `hotfix/*` targets `main` directly)

@@ -6,7 +6,22 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 
 A Lisp interpreter implemented in TypeScript. Use it from the command line as
-an interactive REPL, or embed it in your application as a library.
+an interactive REPL, or embed it in your application as a library and extend
+it with [plugins](./docs/plugins.md) such as
+[kei-lisp-plugin-graphics](https://github.com/ike-keichan/kei-lisp-plugin-graphics).
+
+> [!WARNING]
+> This is a **toy / hobby project** built for learning and experimentation.
+> **Use in production (or any other serious product) is not recommended.**
+> APIs may change without notice, and maintenance and support are provided
+> on a best-effort basis only.
+>
+> It is also a **personal project**: issue reports (bugs, questions, ideas)
+> are welcome, but external pull requests are generally **not accepted** —
+> see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+_You can write and run kei-lisp in the browser with
+[**kei-lisp-web**](https://ike-keichan.github.io/kei-lisp-web/)._
 
 ## Features
 
@@ -19,18 +34,22 @@ an interactive REPL, or embed it in your application as a library.
 - Data structures: hash tables (`make-hash-table` / `gethash`) and vectors
   (`vector` / `aref`), plus keyword symbols (`:foo`)
 - Runtime reader and file loading: `read-from-string` and `load`
-- CLI tool **and** embeddable library
+- CLI tool **and** embeddable library with a [plugin mechanism](./docs/plugins.md)
 - ESM and CommonJS dual output with TypeScript types
 - Zero runtime dependencies
 
 ## Installation
 
 ```sh
-# Use as a CLI tool
-npm install -g kei-lisp
+# npm
+npm install kei-lisp        # as a library
+npm install -g kei-lisp     # as a CLI tool
 
-# Use as a library
-npm install kei-lisp
+# yarn
+yarn add kei-lisp
+
+# pnpm
+pnpm add kei-lisp
 ```
 
 Requires **Node.js >= 24**.
@@ -80,6 +99,10 @@ const { LispInterpreter, Cons } = require('kei-lisp');
 | `Repl`              | Interactive REPL on stdin / stdout                         |
 | `Cons`              | Cons cell (pair) data type with type predicates            |
 | `InterpretedSymbol` | Lisp symbol (interned)                                     |
+| `Rational`          | Exact ratio of integers (`(/ 1 2)` → `1/2`)                |
+| `Numeric`           | Numeric-tower arithmetic helpers (`Numeric.toFloat`, ...)  |
+| `HashTable`         | Mutable hash table (`make-hash-table`)                     |
+| `Vector`            | Mutable one-dimensional vector (`vector` / `make-array`)   |
 | `KeiLispError`      | Base class for parse / eval failures (subclass of `Error`) |
 | `ParseError`        | Thrown on parse failure (subclass of `KeiLispError`)       |
 | `EvalError`         | Thrown on evaluation failure (subclass of `KeiLispError`)  |
@@ -142,6 +165,7 @@ try {
 (- 10 3)    ;; => 7
 (* 4 5)     ;; => 20
 (/ 100 4)   ;; => 25
+(/ 1 2)     ;; => 1/2 (exact rational)
 (mod 10 3)  ;; => 1
 ```
 
@@ -180,14 +204,34 @@ node --experimental-strip-types examples/basic-eval.ts
 node --experimental-strip-types examples/exit-handling.ts
 ```
 
+## Provided Lisp functions
+
+| Category             | Symbols                                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Arithmetic           | `+`, `-`, `*`, `/`, `mod`, `abs`, `expt`, `sqrt`, `floor`, `ceiling`, `round`, `truncate`, `min`, `max`, `1+`, `1-`, ...           |
+| Comparison / logic   | `=`, `==`, `<`, `<=`, `>`, `>=`, `and`, `or`, `not`                                                                                |
+| Predicates           | `numberp`, `integerp`, `floatp`, `rationalp`, `consp`, `listp`, `stringp`, `symbolp`, `null`, `eq`, `equal`, `zerop`, ...          |
+| Lists                | `car`, `cdr`, `cons`, `list`, `length`, `nth`, `append`, `reverse`, `assoc`, `member`, `mapcar`, `find`, `position`, `remove`, ... |
+| Data structures      | `make-hash-table`, `gethash`, `remhash`, `vector`, `make-array`, `aref`, `svref`, ...                                              |
+| Variables and places | `setq`, `setf`, `incf`, `decf`, `push`, `pop`, `getf`, `destructuring-bind`, `gensym`                                              |
+| Functions and macros | `defun`, `lambda`, `apply`, `defmacro`, `` ` `` / `,` / `,@`, `macroexpand`, `defstruct`                                           |
+| Control flow         | `if`, `cond`, `case`, `when`, `unless`, `do`, `dolist`, `catch`, `throw`, `error`, `handler-case`                                  |
+| I/O and formatting   | `format`, `print`, `princ`, `terpri`, `with-output-to-string`, `read-from-string`, `load`                                          |
+| System               | `exit`, `gc`, `time`, `trace`, `notrace`                                                                                           |
+
+See [`docs/built-in-functions.md`](./docs/built-in-functions.md) for the full
+reference with signatures and examples.
+
 ## Reference
 
-In-depth documentation of each language area:
-
+- [kei-lisp-web](https://ike-keichan.github.io/kei-lisp-web/) — interactive kei-lisp playground
+- [API docs (TypeDoc)](https://ike-keichan.github.io/kei-lisp/) — generated API documentation
 - [API Reference](./docs/api.md) — TypeScript / JavaScript library API
-- [Atoms](./docs/atoms.md) — numbers, symbols, strings, nil
+- [Atoms](./docs/atoms.md) — numbers (integer / rational / float), symbols, keywords, strings, nil
 - [Cons](./docs/cons.md) — pairs and lists
-- [Built-in Functions](./docs/built-in-functions.md) — full Lisp reference
+- [Built-in Functions](./docs/built-in-functions.md) — every Lisp function and special form
+- [Plugin Guide](./docs/plugins.md) — how to add Lisp-callable functions from external packages
+- [kei-lisp-plugin-graphics](https://github.com/ike-keichan/kei-lisp-plugin-graphics) — Canvas2D drawing plugin
 
 ## Development
 
@@ -201,14 +245,17 @@ pnpm start
 Requires [pnpm](https://pnpm.io/) and Node.js 24+
 (see [`.node-version`](./.node-version) for the exact version).
 
-| Command           | Description                               |
-| ----------------- | ----------------------------------------- |
-| `pnpm build`      | Build for distribution                    |
-| `pnpm start`      | Run the built CLI                         |
-| `pnpm test`       | Run tests                                 |
-| `pnpm test:watch` | Run tests in watch mode                   |
-| `pnpm check`      | Run all checks (format, lint, spell, ...) |
-| `pnpm fix`        | Auto-fix format and lint issues           |
+| Command              | Description                                |
+| -------------------- | ------------------------------------------ |
+| `pnpm build`         | Build for distribution (CJS + ESM + types) |
+| `pnpm start`         | Run the built CLI                          |
+| `pnpm test`          | Run tests                                  |
+| `pnpm test:coverage` | Run tests with coverage report             |
+| `pnpm test:watch`    | Run tests in watch mode                    |
+| `pnpm check`         | Run all checks (format, lint, spell, ...)  |
+| `pnpm fix`           | Auto-fix format and lint issues            |
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the branch policy and PR flow.
 
 ## License
 
