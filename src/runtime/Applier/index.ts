@@ -1243,7 +1243,14 @@ export class Applier extends Object {
     if (Cons.isNil(list)) {
       if (hasInit) return init;
       // CL semantics: (reduce fn '()) calls fn with no args
-      return Applier.apply(procedure, Cons.nil, this.environment, this.streamManager, this.depth);
+      return Applier.apply(
+        procedure,
+        Cons.nil,
+        this.environment,
+        this.streamManager,
+        this.depth,
+        this.plugins,
+      );
     }
     if (!Cons.isCons(list)) {
       throw new EvalError(cannotApply('reduce', list));
@@ -1255,7 +1262,14 @@ export class Applier extends Object {
       acc = init;
     } else {
       if (!iter.hasNext()) {
-        return Applier.apply(procedure, Cons.nil, this.environment, this.streamManager, this.depth);
+        return Applier.apply(
+          procedure,
+          Cons.nil,
+          this.environment,
+          this.streamManager,
+          this.depth,
+          this.plugins,
+        );
       }
       acc = iter.next();
     }
@@ -1267,6 +1281,7 @@ export class Applier extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
     }
     return acc;
@@ -1309,6 +1324,7 @@ export class Applier extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
       if (Cons.isNil(result)) {
         return Cons.nil;
@@ -1339,6 +1355,7 @@ export class Applier extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
       if (Cons.isNotNil(result)) {
         return result;
@@ -1660,6 +1677,7 @@ export class Applier extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
       if (Cons.isNil(result)) {
         kept.push(each);
@@ -1694,6 +1712,7 @@ export class Applier extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
       if (Cons.isCons(part)) {
         for (const x of part.loop()) {
@@ -1734,6 +1753,7 @@ export class Applier extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
       // CL: predicate returns truthy when a should come before b.
       return Cons.isNil(result) ? 1 : -1;
@@ -1914,6 +1934,7 @@ export class Applier extends Object {
         this.environment,
         this.streamManager,
         this.depth,
+        this.plugins,
       );
       theCons.setCdr(new Cons(anObject, Cons.nil));
       theCons = theCons.cdr as Cons;
@@ -2441,7 +2462,14 @@ export class Applier extends Object {
 
     const lambda = this.environment.get(procedure) as Cons;
     const theEnvironment = lambda.last().car as Table;
-    const answer = Applier.apply(lambda, args, theEnvironment, this.streamManager, this.depth);
+    const answer = Applier.apply(
+      lambda,
+      args,
+      theEnvironment,
+      this.streamManager,
+      this.depth,
+      this.plugins,
+    );
 
     if (this.isSpy(procedure)) {
       this.setDepth(this.depth - 1);
