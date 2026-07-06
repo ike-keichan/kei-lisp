@@ -1,7 +1,7 @@
 {
   "version": "0.2",
   "language": "en",
-  "words": ["keisuke", "ikeda", "kei-lisp"],
+  "words": ["keisuke", "ikeda", "keichan", "kei-lisp"],
   "dictionaries": ["lisp", "kei-lisp", "tool"],
   "dictionaryDefinitions": [
     {
@@ -17,5 +17,5 @@
       "path": "./configs/cspell/tool.txt"
     }
   ],
-  "ignorePaths": ["node_modules/", "dist/", "pnpm-lock.yaml", "out/"]
+  "ignorePaths": ["node_modules/", "dist/", "pnpm-lock.yaml", "docs/typedoc/", "coverage/"]
 }

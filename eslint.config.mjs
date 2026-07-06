@@ -13,7 +13,7 @@ import { vitestConfigs } from './configs/eslint/vitest/index.mjs';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'out/**'],
+    ignores: ['dist/**', 'node_modules/**', 'docs/typedoc/**', 'coverage/**'],
   },
   {
     languageOptions: {

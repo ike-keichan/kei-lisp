@@ -1,8 +1,10 @@
 import { Cons } from '../../value/Cons/index.js';
+import { EvalError } from '../../errors/EvalError/index.js';
 import { Evaluator } from '../../runtime/Evaluator/index.js';
 import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import { StreamManager } from '../../runtime/StreamManager/index.js';
 import { Table } from '../../runtime/Table/index.js';
+import { ThrowSignal } from '../../runtime/ThrowSignal/index.js';
 import type { KeiLispPlugin } from '../../plugin/types.js';
 import type { LispValue } from '../../types/index.js';
 
@@ -57,7 +59,15 @@ export class LispInterpreter extends Object {
    * @return the evaluation result
    */
   eval(aCons: LispValue): LispValue {
-    return Evaluator.eval(aCons, this.root, this.streamManager, 1, this.plugins);
+    try {
+      return Evaluator.eval(aCons, this.root, this.streamManager, 1, this.plugins);
+    } catch (error) {
+      // A `throw` with no dynamically enclosing `catch` is an error (CL semantics).
+      if (error instanceof ThrowSignal) {
+        throw new EvalError(error.message);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -121,10 +131,13 @@ export class LispInterpreter extends Object {
       'add',
       'and',
       'apply',
+      'aref',
       'assoc',
       'atom',
       'bind',
       'car',
+      'case',
+      'catch',
       'cdr',
       'characterp',
       'cond',
@@ -135,18 +148,21 @@ export class LispInterpreter extends Object {
       'copy',
       'cos',
       'count',
+      'decf',
+      'destructuring-bind',
       'floatp',
       'floor',
       'defmacro',
+      'defstruct',
       'defun',
       'divide',
       'do',
       'do*',
       'dolist',
-      'doublep',
       'elt',
       'eq',
       'equal',
+      'error',
       'eval',
       'evenp',
       'every',
@@ -157,7 +173,13 @@ export class LispInterpreter extends Object {
       'format',
       'gc',
       'gensym',
+      'getf',
+      'gethash',
+      'hash-table-count',
+      'hash-table-p',
+      'handler-case',
       'if',
+      'incf',
       'integerp',
       'lambda',
       'let',
@@ -166,6 +188,9 @@ export class LispInterpreter extends Object {
       'length',
       'list',
       'listp',
+      'load',
+      'make-array',
+      'make-hash-table',
       'macroexpand',
       'macroexpand-1',
       'mapcan',
@@ -190,6 +215,7 @@ export class LispInterpreter extends Object {
       'pi',
       'plusp',
       'pop',
+      'position',
       'princ',
       'print',
       'progn',
@@ -197,16 +223,23 @@ export class LispInterpreter extends Object {
       'quasiquote',
       'quote',
       'random',
+      'rationalp',
+      'read-from-string',
       'reduce',
+      'remove',
+      'remove-if',
       'round',
       'rplaca',
+      'remhash',
       'rplacd',
+      'setf',
       'setq',
       'set-allq',
       'sin',
       'some',
       'sort',
       'sqrt',
+      'svref',
       'string-downcase',
       'string-trim',
       'string-upcase',
@@ -217,13 +250,17 @@ export class LispInterpreter extends Object {
       'symbolp',
       'tan',
       'terpri',
+      'throw',
       'time',
       'trace',
       'truncate',
       'unless',
+      'vector',
+      'vectorp',
       'unquote',
       'unquote-splicing',
       'when',
+      'with-output-to-string',
       'zerop',
       '1+',
       '1-',

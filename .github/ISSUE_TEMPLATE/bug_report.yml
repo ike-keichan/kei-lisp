@@ -1,0 +1,58 @@
+name: Bug report
+description: Report something that does not work as documented
+title: 'bug: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+        Please fill in as much of the form below as you can.
+  - type: input
+    id: kei-lisp-version
+    attributes:
+      label: kei-lisp version
+      description: Output of `kei-lisp --version` or `npm ls kei-lisp`.
+      placeholder: e.g. 2.3.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Node.js version, and whether you use the CLI (REPL) or the library API.
+      placeholder: e.g. Node.js 24.14.0 / CLI
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: The smallest Lisp snippet (and TypeScript setup, if relevant) that reproduces the issue.
+      render: lisp
+      placeholder: |
+        (setq x (list 1 2 3))
+        (setf (car x) 99)
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include the error message or REPL output.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that might help (embedding code, bundler, OS, etc.).
+    validations:
+      required: false

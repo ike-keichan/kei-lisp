@@ -670,20 +670,20 @@ describe('Applier', () => {
   });
 
   describe('floatp', () => {
-    it('returns t for a number within IEEE 32-bit range', () => {
+    it('returns t for a float literal', () => {
       expect(evalStr('(floatp 3.14)')).toBe('t');
     });
 
-    it('returns t for an integer within IEEE 32-bit range (range check, not type-tag)', () => {
-      expect(evalStr('(floatp 42)')).toBe('t');
+    it('returns t for an integral float literal', () => {
+      expect(evalStr('(floatp 1.0)')).toBe('t');
+    });
+
+    it('returns nil for an integer (type tag, CL semantics)', () => {
+      expect(evalStr('(floatp 42)')).toBe('nil');
     });
 
     it('returns nil for a non-number', () => {
       expect(evalStr('(floatp "foo")')).toBe('nil');
-    });
-
-    it('returns nil for a value beyond the IEEE 32-bit range', () => {
-      expect(evalStr('(floatp 1e40)')).toBe('nil');
     });
   });
 
@@ -1024,6 +1024,319 @@ describe('Applier', () => {
     });
   });
 
+  describe('numeric tower', () => {
+    describe('bignum', () => {
+      it('keeps integer arithmetic exact beyond the double-precision range', () => {
+        expect(evalStr('(* 99999999999999999999 2)')).toBe('199999999999999999998');
+      });
+
+      it('computes large powers exactly', () => {
+        expect(evalStr('(expt 2 100)')).toBe('1267650600228229401496703205376');
+      });
+
+      it('adds large integers exactly', () => {
+        expect(evalStr('(+ 9007199254740993 1)')).toBe('9007199254740994');
+      });
+    });
+
+    describe('rational', () => {
+      it('returns an exact ratio for inexact integer division', () => {
+        expect(evalStr('(/ 1 2)')).toBe('1/2');
+      });
+
+      it('returns an integer when the division is exact', () => {
+        expect(evalStr('(/ 100 4)')).toBe('25');
+      });
+
+      it('reduces ratios to lowest terms', () => {
+        expect(evalStr('(/ 4 6)')).toBe('2/3');
+      });
+
+      it('normalizes the sign into the numerator', () => {
+        expect(evalStr('(/ 1 -2)')).toBe('-1/2');
+      });
+
+      it('adds ratios exactly back to an integer', () => {
+        expect(evalStr('(+ (/ 1 2) (/ 1 2))')).toBe('1');
+      });
+
+      it('keeps exact arithmetic through mixed operations', () => {
+        expect(evalStr('(+ (/ 1 3) (/ 1 6))')).toBe('1/2');
+      });
+
+      it('applies float contagion when a float is involved', () => {
+        expect(evalStr('(floatp (+ (/ 1 2) 0.5))')).toBe('t');
+      });
+
+      it('signals an error for exact division by zero', () => {
+        expect(() => evalStr('(/ 1 0)')).toThrow('division by zero');
+      });
+    });
+
+    describe('type predicates', () => {
+      it('integerp accepts integers', () => {
+        expect(evalStr('(integerp 42)')).toBe('t');
+      });
+
+      it('integerp rejects integral floats (CL semantics)', () => {
+        expect(evalStr('(integerp 1.0)')).toBe('nil');
+      });
+
+      it('floatp rejects integers (CL semantics)', () => {
+        expect(evalStr('(floatp 42)')).toBe('nil');
+      });
+
+      it('rationalp accepts integers and ratios but rejects floats', () => {
+        expect(evalStr('(list (rationalp 1) (rationalp (/ 1 2)) (rationalp 0.5))')).toBe(
+          '(t t nil)',
+        );
+      });
+
+      it('numberp accepts every numeric representation', () => {
+        expect(evalStr('(list (numberp 1) (numberp (/ 1 2)) (numberp 0.5))')).toBe('(t t t)');
+      });
+
+      it('doublep is removed', () => {
+        expect(() => evalStr('(doublep 1)')).toThrow();
+      });
+    });
+
+    describe('numeric comparison', () => {
+      it('= compares across representations', () => {
+        expect(evalStr('(list (= 1 1.0) (= (/ 1 2) 0.5) (= (/ 2 4) (/ 1 2)))')).toBe('(t t t)');
+      });
+
+      it('eq distinguishes integer and float of the same value', () => {
+        expect(evalStr('(eq 1 1.0)')).toBe('nil');
+      });
+
+      it('orders mixed integers and ratios', () => {
+        expect(evalStr('(< (/ 1 3) (/ 1 2) 1)')).toBe('t');
+      });
+    });
+
+    describe('integer-valued functions', () => {
+      it('floor of a float returns an integer', () => {
+        expect(evalStr('(integerp (floor 1.5))')).toBe('t');
+      });
+
+      it('floor of a ratio rounds toward negative infinity', () => {
+        expect(evalStr('(floor (/ -3 2))')).toBe('-2');
+      });
+
+      it('ceiling of a ratio rounds toward positive infinity', () => {
+        expect(evalStr('(ceiling (/ 3 2))')).toBe('2');
+      });
+
+      it('truncate of a ratio rounds toward zero', () => {
+        expect(evalStr('(truncate (/ -3 2))')).toBe('-1');
+      });
+
+      it('length returns an integer', () => {
+        expect(evalStr('(integerp (length (list 1 2 3)))')).toBe('t');
+      });
+
+      it('1+ preserves exactness', () => {
+        expect(evalStr('(1+ (/ 1 2))')).toBe('3/2');
+      });
+    });
+  });
+
+  describe('hash tables', () => {
+    it('make-hash-table returns an empty hash table', () => {
+      expect(evalStr('(hash-table-count (make-hash-table))')).toBe('0');
+    });
+
+    it('hash-table-p recognizes hash tables', () => {
+      expect(evalStr('(list (hash-table-p (make-hash-table)) (hash-table-p 1))')).toBe('(t nil)');
+    });
+
+    it('gethash returns nil for a missing key', () => {
+      expect(evalStr("(gethash 'a (make-hash-table))")).toBe('nil');
+    });
+
+    it('gethash returns the default for a missing key', () => {
+      expect(evalStr("(gethash 'a (make-hash-table) 99)")).toBe('99');
+    });
+
+    it('setf gethash stores a value', () => {
+      expect(
+        evalStr("(progn (setq h (make-hash-table)) (setf (gethash 'a h) 1) (gethash 'a h))"),
+      ).toBe('1');
+    });
+
+    it('keywords work as hash keys', () => {
+      expect(
+        evalStr(
+          '(progn (setq h (make-hash-table)) (setf (gethash :name h) "kei") (gethash :name h))',
+        ),
+      ).toBe('kei');
+    });
+
+    it('remhash removes a key and reports whether it was present', () => {
+      expect(
+        evalStr(
+          "(progn (setq h (make-hash-table)) (setf (gethash 'a h) 1) (list (remhash 'a h) (remhash 'a h) (gethash 'a h)))",
+        ),
+      ).toBe('(t nil nil)');
+    });
+
+    it('hash-table-count reflects insertions', () => {
+      expect(
+        evalStr(
+          "(progn (setq h (make-hash-table)) (setf (gethash 'a h) 1) (setf (gethash 'b h) 2) (hash-table-count h))",
+        ),
+      ).toBe('2');
+    });
+
+    it('prints with the entry count', () => {
+      expect(evalStr('(make-hash-table)')).toBe('#<hash-table :count 0>');
+    });
+  });
+
+  describe('vectors', () => {
+    it('vector builds a vector of its arguments', () => {
+      expect(evalStr('(vector 1 2 3)')).toBe('#(1 2 3)');
+    });
+
+    it('make-array builds a vector filled with nil by default', () => {
+      expect(evalStr('(make-array 3)')).toBe('#(nil nil nil)');
+    });
+
+    it('make-array accepts an initial element', () => {
+      expect(evalStr('(make-array 3 0)')).toBe('#(0 0 0)');
+    });
+
+    it('aref reads a zero-based index', () => {
+      expect(evalStr('(aref (vector 10 20 30) 1)')).toBe('20');
+    });
+
+    it('svref is an alias of aref', () => {
+      expect(evalStr('(svref (vector 10 20 30) 2)')).toBe('30');
+    });
+
+    it('setf aref replaces an element', () => {
+      expect(evalStr('(progn (setq v (vector 1 2 3)) (setf (aref v 0) 99) v)')).toBe('#(99 2 3)');
+    });
+
+    it('setf elt works on vectors', () => {
+      expect(evalStr('(progn (setq v (vector 1 2 3)) (setf (elt v 2) 9) v)')).toBe('#(1 2 9)');
+    });
+
+    it('length works on vectors', () => {
+      expect(evalStr('(length (vector 1 2 3 4))')).toBe('4');
+    });
+
+    it('elt reads vectors', () => {
+      expect(evalStr('(elt (vector 5 6) 0)')).toBe('5');
+    });
+
+    it('vectorp recognizes vectors', () => {
+      expect(evalStr("(list (vectorp (vector 1)) (vectorp '(1)))")).toBe('(t nil)');
+    });
+
+    it('aref signals an error for an out-of-range index', () => {
+      expect(() => evalStr('(aref (vector 1) 5)')).toThrow('out of range');
+    });
+  });
+
+  describe('read-from-string', () => {
+    it('parses a form without evaluating it', () => {
+      expect(evalStr('(read-from-string "(+ 1 2)")')).toBe('(+ 1 2)');
+    });
+
+    it('returns the first of several forms', () => {
+      expect(evalStr('(read-from-string "1 2 3")')).toBe('1');
+    });
+
+    it('returns nil for empty input', () => {
+      expect(evalStr('(read-from-string "")')).toBe('nil');
+    });
+
+    it('supports code as data via eval', () => {
+      expect(evalStr('(eval (read-from-string "(+ 1 2)"))')).toBe('3');
+    });
+
+    it('throws EvalError for a non-string argument', () => {
+      expect(() => evalStr('(read-from-string 1)')).toThrow('Can not apply');
+    });
+  });
+
+  describe('getf', () => {
+    it('returns the value stored under the key', () => {
+      expect(evalStr("(getf '(a 1 b 2) 'b)")).toBe('2');
+    });
+
+    it('returns nil when the key is absent', () => {
+      expect(evalStr("(getf '(a 1) 'b)")).toBe('nil');
+    });
+
+    it('returns the default when the key is absent', () => {
+      expect(evalStr("(getf '(a 1) 'b 9)")).toBe('9');
+    });
+
+    it('returns the default for an empty property list', () => {
+      expect(evalStr("(getf nil 'a 9)")).toBe('9');
+    });
+  });
+
+  describe('position', () => {
+    it('returns the zero-based index of the first match', () => {
+      expect(evalStr("(position 'c '(a b c))")).toBe('2');
+    });
+
+    it('returns the index of the first of several matches', () => {
+      expect(evalStr("(position 'b '(a b b))")).toBe('1');
+    });
+
+    it('returns nil when the item is absent', () => {
+      expect(evalStr("(position 'z '(a b c))")).toBe('nil');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr("(position 'a nil)")).toBe('nil');
+    });
+  });
+
+  describe('remove', () => {
+    it('removes every element matching the item', () => {
+      expect(evalStr("(remove 2 '(1 2 3 2))")).toBe('(1 3)');
+    });
+
+    it('returns an equal list when the item is absent', () => {
+      expect(evalStr("(remove 9 '(1 2 3))")).toBe('(1 2 3)');
+    });
+
+    it('does not mutate the original list', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq x (list 1 2 3))');
+      interpreter.evalString('(remove 2 x)');
+      expect(Cons.toString(interpreter.evalString('x'))).toBe('(1 2 3)');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr('(remove 1 nil)')).toBe('nil');
+    });
+  });
+
+  describe('remove-if', () => {
+    it('removes every element satisfying the predicate', () => {
+      expect(evalStr("(remove-if (lambda (v) (evenp v)) '(1 2 3 4))")).toBe('(1 3)');
+    });
+
+    it('returns an equal list when no element satisfies the predicate', () => {
+      expect(evalStr("(remove-if (lambda (v) (evenp v)) '(1 3 5))")).toBe('(1 3 5)');
+    });
+
+    it('accepts a named function as the predicate', () => {
+      expect(evalStr("(progn (defun big (v) (> v 2)) (remove-if 'big '(1 2 3 4)))")).toBe('(1 2)');
+    });
+
+    it('returns nil for an empty list', () => {
+      expect(evalStr('(remove-if (lambda (v) t) nil)')).toBe('nil');
+    });
+  });
+
   describe('push / pop', () => {
     it('push prepends an element to the list stored in the variable', () => {
       const interpreter = new LispInterpreter();
@@ -1036,7 +1349,7 @@ describe('Applier', () => {
       const interpreter = new LispInterpreter();
       interpreter.evalString('(setq stack (list 1 2 3))');
       const popped = interpreter.evalString('(pop stack)');
-      expect(popped).toBe(1);
+      expect(popped).toBe(1n);
     });
   });
 

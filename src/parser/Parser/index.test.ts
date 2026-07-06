@@ -13,7 +13,7 @@ describe('Parser', () => {
     });
 
     it('initializes the peek buffer with size PEEKCOUNT + 1', () => {
-      expect(new Parser('abc').nexts.length).toBe(11);
+      expect(new Parser('abc').nexts).toHaveLength(11);
     });
   });
 
@@ -30,17 +30,17 @@ describe('Parser', () => {
   describe('parse (static)', () => {
     it('parses an integer', () => {
       const result = Parser.parse('(42)');
-      expect((result as Cons).car).toBe(42);
+      expect((result as Cons).car).toBe(42n);
     });
 
     it('parses a floating-point number', () => {
-      const result = Parser.parse('(2.75)');
-      expect((result as Cons).car).toBe(2.75);
+      const result = Parser.parse('(3.14)');
+      expect((result as Cons).car).toBeCloseTo(3.14);
     });
 
     it('parses a negative number', () => {
       const result = Parser.parse('(-42)');
-      expect((result as Cons).car).toBe(-42);
+      expect((result as Cons).car).toBe(-42n);
     });
 
     it('parses and interns a symbol', () => {
@@ -57,14 +57,14 @@ describe('Parser', () => {
       const result = Parser.parse('((1 2 3))');
       const list = (result as Cons).car as Cons;
       expect(list.length()).toBe(3);
-      expect(list.nth(2)).toBe(2);
+      expect(list.nth(2)).toBe(2n);
     });
 
     it('parses nested lists', () => {
       const result = Parser.parse('(((1) (2 3)))');
       const outer = (result as Cons).car as Cons;
-      expect((outer.nth(1) as Cons).nth(1) as number).toBe(1);
-      expect((outer.nth(2) as Cons).nth(2) as number).toBe(3);
+      expect((outer.nth(1) as Cons).nth(1)).toBe(1n);
+      expect((outer.nth(2) as Cons).nth(2)).toBe(3n);
     });
 
     it("parses 'x as (quote x)", () => {
@@ -105,21 +105,21 @@ describe('Parser', () => {
       const result = Parser.parse('((foo 1 2 3))');
       const call = (result as Cons).car as Cons;
       expect(call.car).toBe(InterpretedSymbol.of('foo'));
-      expect(call.nth(4)).toBe(3);
+      expect(call.nth(4)).toBe(3n);
     });
 
     it('tokenizes 1+ as the symbol 1+ (CL-style increment)', () => {
       const result = Parser.parse('((1+ 5))');
       const call = (result as Cons).car as Cons;
       expect(call.car).toBe(InterpretedSymbol.of('1+'));
-      expect(call.nth(2)).toBe(5);
+      expect(call.nth(2)).toBe(5n);
     });
 
     it('tokenizes 1- as the symbol 1- (CL-style decrement)', () => {
       const result = Parser.parse('((1- 5))');
       const call = (result as Cons).car as Cons;
       expect(call.car).toBe(InterpretedSymbol.of('1-'));
-      expect(call.nth(2)).toBe(5);
+      expect(call.nth(2)).toBe(5n);
     });
 
     it('tokenizes 1+2 as a single symbol (digit followed by + then symbol char)', () => {
@@ -229,7 +229,7 @@ describe('Parser', () => {
     it('parses numeric literals and returns them', () => {
       const p = new Parser('(99)');
       const result = p.nextToken() as Cons;
-      expect(result.car).toBe(99);
+      expect(result.car).toBe(99n);
     });
   });
 
@@ -237,7 +237,7 @@ describe('Parser', () => {
     it('treats ; as a line comment inside a list', () => {
       const result = Parser.parse('(1 ; this is a comment\n 2 3)') as Cons;
       expect(result.length()).toBe(3);
-      expect(result.nth(2)).toBe(2);
+      expect(result.nth(2)).toBe(2n);
     });
 
     it('treats # as a regular symbol character (no longer a comment)', () => {
