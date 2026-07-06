@@ -100,6 +100,6 @@ describe('KeiLispPlugin', () => {
     const interpreter = new LispInterpreter();
     const result = interpreter.use(new GreetPlugin()).use(new DoublePlugin());
     expect(result).toBe(interpreter);
-    expect(interpreter.plugins.length).toBe(2);
+    expect(interpreter.plugins).toHaveLength(2);
   });
 });

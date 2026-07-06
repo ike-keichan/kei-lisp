@@ -17,13 +17,13 @@ describe('Loop', () => {
       const list = makeList(1, 2, 3);
       const loop = new Loop(list);
       expect(loop.aCons).toBe(list);
-      expect(loop.length).toBe(3);
+      expect(loop).toHaveLength(3);
       expect(loop.index).toBe(1);
     });
 
     it('can be constructed from nil alone', () => {
       const loop = new Loop(Cons.nil);
-      expect(loop.length).toBe(0);
+      expect(loop).toHaveLength(0);
     });
   });
 
