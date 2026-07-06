@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Plugin symbols now resolve inside user-defined functions and
+  higher-order built-ins.** `Applier` dropped the plugin chain when
+  applying a user-defined function (`defun`) and when invoking function
+  arguments from `mapcar` / `mapcan` / `reduce` / `every` / `some` /
+  `remove-if` / `sort`, so a plugin-provided function (e.g. a drawing
+  function from kei-lisp-plugin-graphics) signaled "I could find no
+  procedure description" when called from a `defun` body or a passed
+  lambda. All
+  `Applier.apply` call sites now forward `this.plugins`.
+
 ## [3.0.0] - 2026-07-06
 
 ### Security

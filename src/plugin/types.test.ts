@@ -103,3 +103,60 @@ describe('KeiLispPlugin', () => {
     expect(interpreter.plugins).toHaveLength(2);
   });
 });
+
+describe('plugin dispatch inside user-defined functions', () => {
+  it('resolves plugin symbols inside a defun body', () => {
+    const interpreter = new LispInterpreter();
+    interpreter.use(new DoublePlugin());
+    interpreter.evalString('(defun quadruple (n) (double (double n)))');
+    expect(interpreter.evalString('(quadruple 3)')).toBe(12n);
+  });
+
+  it('resolves plugin symbols inside a lambda passed to mapcar', () => {
+    const interpreter = new LispInterpreter();
+    interpreter.use(new DoublePlugin());
+    expect(String(interpreter.evalString('(mapcar (lambda (n) (double n)) (list 1 2 3))'))).toBe(
+      '(2 4 6)',
+    );
+  });
+
+  it('resolves plugin symbols inside a lambda passed to mapcan', () => {
+    const interpreter = new LispInterpreter();
+    interpreter.use(new DoublePlugin());
+    expect(
+      String(interpreter.evalString('(mapcan (lambda (n) (list (double n))) (list 1 2))')),
+    ).toBe('(2 4)');
+  });
+
+  it('resolves plugin symbols inside a lambda passed to reduce', () => {
+    const interpreter = new LispInterpreter();
+    interpreter.use(new DoublePlugin());
+    expect(interpreter.evalString('(reduce (lambda (a b) (+ (double a) b)) (list 1 2 3))')).toBe(
+      11n,
+    );
+  });
+
+  it('resolves plugin symbols inside predicates passed to every / some / remove-if', () => {
+    const interpreter = new LispInterpreter();
+    interpreter.use(new DoublePlugin());
+    expect(interpreter.evalString('(every (lambda (n) (integerp (double n))) (list 1 2))')).toBe(
+      InterpretedSymbol.of('t'),
+    );
+    expect(interpreter.evalString('(some (lambda (n) (= (double n) 4)) (list 1 2 3))')).toBe(
+      InterpretedSymbol.of('t'),
+    );
+    expect(
+      String(interpreter.evalString('(remove-if (lambda (n) (= (double n) 4)) (list 1 2 3))')),
+    ).toBe('(1 3)');
+  });
+
+  it('resolves plugin symbols inside a sort comparator', () => {
+    const interpreter = new LispInterpreter();
+    interpreter.use(new DoublePlugin());
+    expect(
+      String(
+        interpreter.evalString('(sort (list 3 1 2) (lambda (a b) (< (double a) (double b))))'),
+      ),
+    ).toBe('(1 2 3)');
+  });
+});
