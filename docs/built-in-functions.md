@@ -7,22 +7,28 @@ Entries are organized into the following categories:
 - [Arithmetic](#arithmetic) — `+`, `-`, `*`, `/`, `//`, `mod`, `abs`, `exp`, `expt`, `sqrt`, `sin`, `cos`, `tan`, `round`, `truncate`, `floor`, `ceiling`, `min`, `max`, `1+`, `1-`, `random`, `pi`, `napier`
 - [Comparison](#comparison) — `=`, `==`, `~=`, `~~`, `<`, `<=`, `>`, `>=`
 - [Logic](#logic) — `and`, `or`, `not`
-- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `doublep`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
-- [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `mapcan`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`, `reduce`, `every`, `some`, `find`, `sort`
+- [Predicates](#predicates) — `atom`, `consp`, `listp`, `numberp`, `integerp`, `floatp`, `rationalp`, `stringp`, `symbolp`, `characterp`, `null`, `eq`, `equal`, `neq`, `nequal`, `evenp`, `oddp`, `zerop`, `plusp`, `minusp`
+- [List operations](#list-operations) — `car`, `cdr`, `cons`, `list`, `length`, `last`, `nth`, `nthcdr`, `reverse`, `append`, `butlast`, `assoc`, `member`, `memq`, `mapcar`, `mapcan`, `rplaca`, `rplacd`, `push`, `pop`, `copy`, `elt`, `subseq`, `count`, `reduce`, `every`, `some`, `find`, `position`, `remove`, `remove-if`, `sort`, `getf`
+- [Data structures](#data-structures) — `make-hash-table`, `gethash`, `remhash`, `hash-table-count`, `hash-table-p`, `vector`, `make-array`, `aref`, `svref`, `vectorp`
 - [Strings](#strings) — `string-upcase`, `string-downcase`, `string-trim`, `substring`, `concatenate`
-- [Variables and bindings](#variables-and-bindings) — `setq`, `set-allq`, `bind`, `gensym`
-- [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`
+- [Variables and bindings](#variables-and-bindings) — `setq`, `setf`, `incf`, `decf`, `set-allq`, `bind`, `gensym`, `destructuring-bind`
+- [Functions and special forms](#functions-and-special-forms) — `defun`, `lambda`, `apply`, `quote`, `eval`, `let`, `let*`, `progn`, `defstruct`
 - [Macros](#macros) — `defmacro`, backquote (`` ` ``, `,`, `,@`), `macroexpand`, `macroexpand-1`
-- [Control flow](#control-flow) — `if`, `cond`, `when`, `unless`, `do`, `do*`, `dolist`
-- [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`
+- [Control flow](#control-flow) — `if`, `cond`, `case`, `when`, `unless`, `do`, `do*`, `dolist`, `catch`, `throw`
+- [Error handling](#error-handling) — `error`, `handler-case`
+- [I/O and formatting](#io-and-formatting) — `format`, `print`, `princ`, `terpri`, `with-output-to-string`, `read-from-string`, `load`
 - [System](#system) — `exit`, `gc`, `time`, `trace`, `notrace`
 
 > The original alphabetical reference of each function follows below.
 
 > **Legend**: Entries marked **(kei-lisp specific)** are either not part of
 > the Common Lisp standard or behave differently from CL. They are kept for
-> historical reasons or because of platform constraints (e.g. JS has only
-> one numeric type).
+> historical reasons or because of platform constraints.
+>
+> **Numbers**: kei-lisp has a numeric tower — integers (arbitrary
+> precision), exact rationals (created by `/`, printed as `1/2`), and
+> double-precision floats. Exact operands stay exact; as soon as a float
+> is involved the result is a float (float contagion).
 
 ## Comments
 
@@ -88,6 +94,24 @@ Functions to answer the combined list of L1 and L2.
 ```
 >> (append '(a b c) '(d e f))
 (a b c d e f)
+```
+
+### aref
+
+**(aref V N)**
+Function that returns the element of vector V at the zero-based index N.
+`svref` is an alias. Usable as a [setf](#setf) place. Signals an error for
+an out-of-range index.
+
+```
+>> (setq v (vector 10 20 30))
+#(10 20 30)
+>> (aref v 1)
+20
+>> (setf (aref v 0) 99)
+99
+>> v
+#(99 20 30)
 ```
 
 ### apply
@@ -175,6 +199,42 @@ Function to answer the value of the head from L.
 a
 >> (car '(1 2 3))
 1
+```
+
+### case
+
+**(case KEY (KEYS X1 ... Xn) ... (otherwise Y1 ... Yn))**
+Special form that evaluates KEY and runs the body of the first clause whose
+keys match it. A clause head may be a single key or a list of keys; keys are
+**not** evaluated and are compared by identity (`eq`). A head of `t` or
+`otherwise` always matches. Returns nil when no clause matches (matches
+Common Lisp `case`; Scheme and Clojure have the same construct).
+
+```
+>> (case 2 (1 'one) ((2 3) 'two-or-three) (otherwise 'other))
+two-or-three
+>> (case 'foo ((bar foo) 42))
+42
+>> (case 9 (1 'one))
+nil
+```
+
+### catch
+
+**(catch TAG X1 ... Xn)**
+Special form for dynamic non-local exit. Evaluates TAG, then the body; when
+a [throw](#throw) with an `eq` tag fires during the body (even deep inside
+function calls), control unwinds here and the thrown value becomes the
+result. Otherwise returns the last body value (matches Common Lisp
+`catch`; note this is **not** exception handling — see
+[handler-case](#handler-case) for errors, and note Clojure's `try`/`catch`
+has different semantics).
+
+```
+>> (catch 'tag 1 2 3)
+3
+>> (catch 'done (dolist (x '(1 2 3)) (when (= x 2) (throw 'done x))))
+2
 ```
 
 ### cdr
@@ -307,6 +367,21 @@ ITEM does not occur.
 0
 ```
 
+### decf
+
+**(decf PLACE)** / **(decf PLACE DELTA)**
+Special form that decrements the number stored in a generalized place (see
+[setf](#setf)) by DELTA (default 1) and returns the new value.
+
+```
+>> (setq n 10)
+10
+>> (decf n)
+9
+>> (decf n 4)
+5
+```
+
 ### defun
 
 **(defun N L X1 X2 ... Xn)**
@@ -341,6 +416,48 @@ nil
 See also [`macroexpand`](#macroexpand) / [`macroexpand-1`](#macroexpand-1) for
 inspecting expansions, and [Backquote](#backquote-quasiquote) for the template
 syntax.
+
+### defstruct
+
+**(defstruct NAME FIELD1 ... FIELDn)**
+Special form that defines a structure type and generates a positional
+constructor `make-NAME`, a predicate `NAME-p`, and one accessor
+`NAME-FIELD` per field. Accessors are usable as [setf](#setf) places.
+Instances are represented as tagged lists `(NAME V1 ... Vn)`.
+
+**(kei-lisp specific behavior)** Common Lisp's `defstruct` constructor takes
+keyword arguments (`:field value`); kei-lisp's constructor is positional
+until keyword symbols are introduced. Records exist in every major dialect
+(CL `defstruct` / Scheme `define-record-type` / Clojure `defrecord`).
+
+```
+>> (defstruct point x y)
+point
+>> (setq p (make-point 3 4))
+(point 3 4)
+>> (point-x p)
+3
+>> (setf (point-y p) 40)
+40
+>> (point-p p)
+t
+```
+
+### destructuring-bind
+
+**(destructuring-bind PATTERN EXPR X1 ... Xn)**
+Special form that evaluates EXPR, binds the symbols of the (possibly nested
+or dotted) PATTERN to the corresponding parts of the value, and evaluates the
+body in the new scope. Signals an error when the shape does not match
+(matches Common Lisp `destructuring-bind`; Scheme and Clojure offer the same
+idea as `let-values` / destructuring `let`).
+
+```
+>> (destructuring-bind (a b) '(1 2) (list b a))
+(2 1)
+>> (destructuring-bind (a (b . rest)) '(1 (2 3 4)) rest)
+(3 4)
+```
 
 ### divide
 
@@ -391,42 +508,20 @@ c
 t
 ```
 
-### doublep
+### error
 
-**(kei-lisp specific)** Not present in Common Lisp; in kei-lisp it is the
-same as `numberp` (JS has only one numeric type, so "double" and "number"
-collapse to the same check).
-
-**(doublep X)**
-Function to answer whether X is a Double.
+**(error MESSAGE X1 ... Xn)**
+Function that formats MESSAGE with the given arguments (using the
+[format](#format) directives) and signals it as an evaluation error. The
+error can be intercepted with [handler-case](#handler-case); otherwise it
+propagates to the caller (the REPL prints it; the library throws
+`EvalError`).
 
 ```
->> (doublep 12)
-t
->> (doublep 12.3)
-t
->> (doublep -12)
-t
->> (doublep -12.3)
-t
->> (doublep 3.4E-38)
-t
->> (doublep 3.4E+38)
-t
->> (doublep 1.7E+308)
-t
->> (doublep 1.7E-308)
-t
->> (doublep '(1 2 3))
-nil
->> (doublep '())
-nil
->> (doublep 'a)
-nil
->> (doublep "a")
-nil
->> (doublep "abc")
-nil
+>> (error "bad value: ~a" 42)
+Error: bad value: 42
+>> (handler-case (error "boom") (error (e) e))
+boom
 ```
 
 ### eval
@@ -576,7 +671,8 @@ Function that returns the base B raised to the exponent E.
 
 **(floor X)**
 Function that returns the largest integer less than or equal to X (rounded
-toward negative infinity).
+toward negative infinity). The result is an integer (CL semantics); works
+on integers, rationals, and floats.
 
 ```
 >> (floor 3.7)
@@ -617,40 +713,22 @@ nil
 
 ### floatp
 
-**(kei-lisp specific behavior)** In Common Lisp `floatp` is a type-tag
-predicate (integer vs float). In kei-lisp, because JS has only one numeric
-type (double), `floatp` is interpreted as a **range check**: it returns
-`t` when X is representable in IEEE 32-bit (single-precision) float range.
-
 **(floatp X)**
-Function to answer whether X is a Float.
+Function to answer whether X is a float (a double-precision floating-point
+number). Integers are a distinct type and answer nil (CL type-tag
+semantics). A literal is a float when it contains a decimal point or an
+exponent.
 
 ```
->> (floatp 12)
-t
 >> (floatp 12.3)
 t
->> (floatp -12)
+>> (floatp 1.0)
 t
->> (floatp -12.3)
-t
->> (floatp 3.4E-38)
-t
->> (floatp 3.4E+38)
-t
->> (floatp 1.7E-308)
+>> (floatp 12)
 nil
->> (floatp 1.7E+308)
-nil
->> (floatp '(1 2 3))
-nil
->> (floatp '())
-nil
->> (floatp 'a)
+>> (floatp (/ 1 2))
 nil
 >> (floatp "a")
-nil
->> (floatp "abc")
 nil
 ```
 
@@ -722,6 +800,99 @@ id0
 id1
 ```
 
+### getf
+
+**(getf PLIST KEY)** / **(getf PLIST KEY DEFAULT)**
+Function that looks up KEY in a property list (a flat list of alternating
+keys and values) and returns the value that follows it, or DEFAULT (nil when
+omitted) if the key is absent. Usable as a [setf](#setf) place.
+
+```
+>> (setq pl '(a 1 b 2))
+(a 1 b 2)
+>> (getf pl 'b)
+2
+>> (getf pl 'c 99)
+99
+>> (setf (getf pl 'c) 3)
+3
+>> pl
+(a 1 b 2 c 3)
+```
+
+### gethash
+
+**(gethash KEY H)** / **(gethash KEY H DEFAULT)**
+Function that looks up KEY in the hash table H and returns the stored value,
+or DEFAULT (nil when omitted). Keys are compared by identity (`eq`); symbols,
+keywords, integers, and strings all work as keys. Usable as a [setf](#setf)
+place.
+
+**(kei-lisp specific behavior)** CL's `gethash` returns a second value
+indicating presence; kei-lisp returns only the value (use a unique default
+to distinguish a stored nil).
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash :name h) "kei")
+kei
+>> (gethash :name h)
+kei
+>> (gethash :missing h 99)
+99
+```
+
+### hash-table-count
+
+**(hash-table-count H)**
+Function that returns the number of entries in the hash table H.
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash 'a h) 1)
+1
+>> (hash-table-count h)
+1
+```
+
+### hash-table-p
+
+**(hash-table-p X)**
+Function to answer whether X is a hash table.
+
+```
+>> (hash-table-p (make-hash-table))
+t
+>> (hash-table-p '(a 1))
+nil
+```
+
+### handler-case
+
+**(handler-case FORM (TYPE (VAR) X1 ... Xn) ...)**
+Special form for error handling — the common subset of Common Lisp
+`handler-case`, Scheme `guard`, and Clojure `try`/`catch`. Evaluates FORM;
+when it signals an error, runs the body of the first clause whose TYPE
+matches: `error` matches any interpreter error, `parse-error` /
+`eval-error` match the specific families. VAR (optional) is bound to the
+error message string. `throw` and `exit` are control flow, not errors, and
+pass through untouched.
+
+**(kei-lisp specific behavior)** CL's condition system (`signal`,
+`restart-case`, condition classes) is not implemented; conditions are
+represented by their message string.
+
+```
+>> (handler-case (+ 1 2) (error (e) 99))
+3
+>> (handler-case (error "boom") (error (e) e))
+boom
+>> (handler-case (undefined-fn 1) (eval-error (e) 'recovered))
+recovered
+```
+
 ### if
 
 **(if X Y Z)**
@@ -738,37 +909,40 @@ Functions to do Y when X is t and to do Z when X is nil.
 6
 ```
 
+### incf
+
+**(incf PLACE)** / **(incf PLACE DELTA)**
+Special form that increments the number stored in a generalized place (see
+[setf](#setf)) by DELTA (default 1) and returns the new value.
+
+```
+>> (setq n 10)
+10
+>> (incf n)
+11
+>> (setq x (list 1 2))
+(1 2)
+>> (incf (car x))
+2
+>> x
+(2 2)
+```
+
 ### integerp
 
 **(integerp X)**
-Function to answer whether X is an Integer.
+Function to answer whether X is an integer. Integers have arbitrary
+precision (bignum). An integral **float** such as `1.0` is not an integer
+(CL type-tag semantics).
 
 ```
 >> (integerp 12)
 t
->> (integerp 12.3)
-nil
->> (integerp -12)
+>> (integerp 99999999999999999999)
 t
->> (integerp -12.3)
+>> (integerp 1.0)
 nil
->> (integerp 3.4E-38)
-nil
->> (integerp 3.4E+38)
-t
->> (integerp 1.7E-308)
-nil
->> (integerp 1.7E+308)
-t
->> (integerp '(1 2 3))
-nil
->> (integerp '())
-nil
->> (integerp 'a)
-nil
->> (integerp "a")
-nil
->> (integerp "abc")
+>> (integerp (/ 1 2))
 nil
 ```
 
@@ -877,6 +1051,50 @@ nil
 nil
 >> (listp "abc")
 nil
+```
+
+### load
+
+**(load PATH)**
+Function that reads the file at PATH, parses it, and evaluates every
+top-level form in the global environment. Returns t. Definitions
+(`defun`, `defmacro`, `setq`, ...) made by the file are available
+afterwards.
+
+```
+>> (load "lib.lisp")
+t
+>> (function-defined-in-lib 1)
+...
+```
+
+### make-array
+
+**(make-array N)** / **(make-array N INIT)**
+Function that returns a fresh one-dimensional vector of N elements, each
+initialized to INIT (nil when omitted).
+
+**(kei-lisp specific behavior)** CL's `make-array` takes dimensions and
+keyword arguments (`:initial-element`); kei-lisp supports one dimension
+with a positional initial element.
+
+```
+>> (make-array 3)
+#(nil nil nil)
+>> (make-array 3 0)
+#(0 0 0)
+```
+
+### make-hash-table
+
+**(make-hash-table)**
+Function that returns a fresh, empty hash table. Entries are read with
+[gethash](#gethash), written with `(setf (gethash key h) value)`, and
+removed with [remhash](#remhash).
+
+```
+>> (make-hash-table)
+#<hash-table :count 0>
 ```
 
 ### macroexpand
@@ -1258,10 +1476,29 @@ nil
 nil
 ```
 
+### position
+
+**(position ITEM LIST)**
+Function that returns the zero-based index of the first element of LIST that
+is `eq` to ITEM, or nil if not found.
+
+**(kei-lisp specific behavior)** Common Lisp's `position` accepts `:test` /
+`:key` / `:from-end` keyword arguments; kei-lisp's variant uses `eq`
+(identity) and only supports the positional 2-arg form.
+
+```
+>> (position 'c '(a b c))
+2
+>> (position 'z '(a b c))
+nil
+```
+
 ### pop
 
-**(pop L)**
-Function to pop to Symbol-bound list L.
+**(pop PLACE)**
+Special form that removes and returns the first element of the list stored
+in a generalized place (see [setf](#setf)): a symbol, `(car x)`, `(cdr x)`,
+and so on. Returns nil when the place value is not a Cons.
 
 ```
 >> (setq a '(1 2 3))
@@ -1317,8 +1554,14 @@ Function to output X with a newline.
 
 ### push
 
-**(push X L)**
-Function to push the value of X to Symbol-bound list L.
+**(push X PLACE)**
+Special form that prepends the value of X onto the list stored in a
+generalized place (see [setf](#setf)): a symbol, `(cdr x)`, and so on.
+Returns the new list.
+
+**(kei-lisp specific behavior)** `push` here is destructive on the place,
+matching Common Lisp; note that Clojure's `conj` / Scheme's SRFI-1 idioms
+are non-destructive.
 
 ```
 >> (setq a '())
@@ -1384,6 +1627,21 @@ Function to answer a random number greater than or equal to 0 and less than or e
 0.9867023484200941
 ```
 
+### rationalp
+
+**(rationalp X)**
+Function to answer whether X is an exact rational number: an integer or a
+ratio. Floats are not rational (CL semantics).
+
+```
+>> (rationalp 1)
+t
+>> (rationalp (/ 1 2))
+t
+>> (rationalp 0.5)
+nil
+```
+
 ### reduce
 
 **(reduce FN LIST [INIT])**
@@ -1404,6 +1662,68 @@ the third positional argument).
 106
 >> (reduce + nil 0)
 0
+```
+
+### remove
+
+**(remove ITEM LIST)**
+Function that returns a fresh list with every element `eq` to ITEM removed.
+The original list is not modified.
+
+**(kei-lisp specific behavior)** This follows Common Lisp: `remove` removes
+an **item**. Clojure's and SRFI-1's `remove` take a **predicate** instead —
+that variant is [remove-if](#remove-if) here. CL's `:test` / `:key` /
+`:count` keyword arguments are not supported.
+
+```
+>> (remove 2 '(1 2 3 2))
+(1 3)
+>> (remove 9 '(1 2 3))
+(1 2 3)
+```
+
+### remove-if
+
+**(remove-if PRED LIST)**
+Function that returns a fresh list with every element satisfying the
+predicate PRED removed. The original list is not modified.
+
+```
+>> (remove-if (lambda (v) (evenp v)) '(1 2 3 4))
+(1 3)
+>> (remove-if 'oddp '(1 2 3 4))
+(2 4)
+```
+
+### read-from-string
+
+**(read-from-string S)**
+Function that parses the string S and returns the first expression it
+contains, without evaluating it (code as data). Combine with `eval` to
+run it.
+
+```
+>> (read-from-string "(+ 1 2)")
+(+ 1 2)
+>> (eval (read-from-string "(+ 1 2)"))
+3
+```
+
+### remhash
+
+**(remhash KEY H)**
+Function that removes KEY from the hash table H. Returns t when the key
+was present, nil otherwise.
+
+```
+>> (setq h (make-hash-table))
+#<hash-table :count 0>
+>> (setf (gethash 'a h) 1)
+1
+>> (remhash 'a h)
+t
+>> (remhash 'a h)
+nil
 ```
 
 ### reverse
@@ -1456,6 +1776,31 @@ Function to bind X to the tail of list L.
 (1 2 3)
 >> (rplacd a 4)
 (1 . 4)
+```
+
+### setf
+
+**(setf PLACE1 X1 PLACE2 X2 ... PLACEn Xn)**
+Special form that assigns each value to the corresponding **generalized
+place**, like [setq](#setq) but accepting places. Supported places: a symbol,
+`(car x)`, `(cdr x)`, `(nth n x)` (1-based, like `nth`), `(elt x n)`
+(zero-based), `(getf plist key)`, and struct field accessors generated by
+[defstruct](#defstruct). Returns the last assigned value.
+
+**(kei-lisp specific behavior)** Common Lisp's `setf` is extensible via
+setf expanders; kei-lisp supports the fixed set of places above.
+
+```
+>> (setq x (list 1 2 3))
+(1 2 3)
+>> (setf (car x) 99)
+99
+>> x
+(99 2 3)
+>> (setf (nth 2 x) 88 (elt x 2) 77)
+77
+>> x
+(99 88 77)
 ```
 
 ### setq
@@ -1683,6 +2028,11 @@ t
 t
 ```
 
+### svref
+
+**(svref V N)**
+Alias of [aref](#aref) (simple-vector access).
+
 ### symbolp
 
 **(symbolp X)**
@@ -1725,6 +2075,19 @@ Function to output new line;
 >> (terpri)
 
 t
+```
+
+### throw
+
+**(throw TAG X)**
+Special form that evaluates TAG and X, then unwinds to the nearest
+dynamically enclosing [catch](#catch) whose tag is `eq` to TAG; X becomes
+the value of that `catch`. A `throw` with no matching `catch` signals an
+evaluation error.
+
+```
+>> (catch 'tag (throw 'tag 42) 'not-reached)
+42
 ```
 
 ### time
@@ -1794,6 +2157,32 @@ nil
 7
 ```
 
+### vector
+
+**(vector X1 X2 ... Xn)**
+Function that returns a fresh vector of the given elements. Vectors print
+as `#(1 2 3)` (CL syntax; there is no reader literal yet) and provide
+O(1) indexed access via [aref](#aref).
+
+```
+>> (vector 1 2 3)
+#(1 2 3)
+>> (length (vector 1 2 3))
+3
+```
+
+### vectorp
+
+**(vectorp X)**
+Function to answer whether X is a vector.
+
+```
+>> (vectorp (vector 1))
+t
+>> (vectorp '(1))
+nil
+```
+
 ### when
 
 **(when X Y)**
@@ -1808,6 +2197,24 @@ nil
 7
 >> (when (= 1 2) (+ 3 4))
 nil
+```
+
+### with-output-to-string
+
+**(with-output-to-string () X1 ... Xn)**
+Special form that evaluates the body while capturing program output
+(`princ`, `print`, `terpri`, `format`) and returns the captured text as a
+string. Corresponds to CL `with-output-to-string` / Clojure `with-out-str`.
+
+**(kei-lisp specific behavior)** The stream variable list is accepted for
+CL compatibility but no stream object is bound (kei-lisp has no stream
+objects yet); write it as `()`.
+
+```
+>> (with-output-to-string () (princ 1) (princ 'a))
+1a
+>> (with-output-to-string () (format "~a-~a" 1 2))
+1-2
 ```
 
 ### zerop
@@ -1900,13 +2307,20 @@ Same as the function "[multiply](#multiply)".
 
 **(/ X1 X2 ... Xn)**
 Function to answer the quotient of X1 divided by X2 ... and Xn.<br>
-Same as the function "[divide](#divide)".
+Same as the function "[divide](#divide)". Division of integers is **exact**:
+when it does not divide evenly the result is a rational (CL semantics).
+Involving a float makes the result a float. Exact division by zero signals
+an error.
 
 ```
 >> (/ 10 5)
 2
+>> (/ 1 2)
+1/2
 >> (/ 12 5 4)
-0.6
+3/5
+>> (/ 1.0 2)
+0.5
 ```
 
 ### //

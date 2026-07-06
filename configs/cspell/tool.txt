@@ -1,37 +1,36 @@
-# 開発ツール・npm パッケージ名の辞書
-
-# パッケージマネージャー・ランタイム管理
-pnpm
-nodenv
-npmrc
-prepublish
-
-# ビルドツール
-tsdown
-rolldown
-shims
-sourcemap
-
-# テスト
-vitest
-
-# ドキュメント・Lint
-classdesc
-typedoc
-tsconfig
-tseslint
-sonarjs
-unicorn
-
-
-# npm パッケージ
-readline
-
-# 外部サービス
-npmjs
 
 # GitHub Actions
-softprops
-
 # Lisp 処理系
+# npm パッケージ
+# テスト
+# ドキュメント・Lint
+# パッケージマネージャー・ランタイム管理
+# ビルドツール
+# 外部サービス
+# 開発ツール・npm パッケージ名の辞書
 SBCL
+actionlint
+classdesc
+knip
+napi
+networkidle
+nodenv
+npmjs
+npmrc
+pnpm
+prepublish
+readline
+rhysd
+rolldown
+shims
+softprops
+sonarjs
+sourcemap
+tsconfig
+tsdown
+tseslint
+typedoc
+unicorn
+unstub
+vite
+vitest

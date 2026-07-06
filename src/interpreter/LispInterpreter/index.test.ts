@@ -56,7 +56,7 @@ describe('LispInterpreter', () => {
     it('returns the evaluation results of multiple expressions as an array', () => {
       const interpreter = new LispInterpreter();
       const results = interpreter.evalAll('(+ 1 2) (* 3 4) (- 10 5)');
-      expect(results).toEqual([3, 12, 5]);
+      expect(results).toEqual([3n, 12n, 5n]);
     });
 
     it('returns an empty array for empty input', () => {
@@ -66,13 +66,13 @@ describe('LispInterpreter', () => {
     it('returns a single-element array for a single expression', () => {
       const results = new LispInterpreter().evalAll('(+ 1 2)');
       expect(results).toHaveLength(1);
-      expect(results[0]).toBe(3);
+      expect(results[0]).toBe(3n);
     });
 
     it('propagates side effects (setq)', () => {
       const interpreter = new LispInterpreter();
       const results = interpreter.evalAll('(setq x 100) x');
-      expect(results.at(-1)).toBe(100);
+      expect(results.at(-1)).toBe(100n);
     });
   });
 
@@ -80,13 +80,13 @@ describe('LispInterpreter', () => {
     it('evaluates a Cons expression', () => {
       const interpreter = new LispInterpreter();
       const ast = interpreter.parse('(+ 1 2)');
-      expect(interpreter.eval(ast.car)).toBe(3);
+      expect(interpreter.eval(ast.car)).toBe(3n);
     });
 
     it('evaluates an atom (number)', () => {
       const interpreter = new LispInterpreter();
       const ast = interpreter.parse('42');
-      expect(interpreter.eval(ast.car)).toBe(42);
+      expect(interpreter.eval(ast.car)).toBe(42n);
     });
   });
 

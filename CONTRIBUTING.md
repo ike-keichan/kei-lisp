@@ -73,16 +73,17 @@ directories group multiple related classes.
 
 ## Scripts
 
-| Command           | Description                                |
-| ----------------- | ------------------------------------------ |
-| `pnpm build`      | Build for distribution (CJS + ESM + types) |
-| `pnpm start`      | Run the built CLI                          |
-| `pnpm test`       | Run the test suite                         |
-| `pnpm test:watch` | Run tests in watch mode                    |
-| `pnpm doc`        | Generate API documentation with TypeDoc    |
-| `pnpm typecheck`  | Type check (`tsc --noEmit`)                |
-| `pnpm check`      | Run all checks (format / lint / spell)     |
-| `pnpm fix`        | Auto-fix format and lint issues            |
+| Command              | Description                                |
+| -------------------- | ------------------------------------------ |
+| `pnpm build`         | Build for distribution (CJS + ESM + types) |
+| `pnpm start`         | Run the built CLI                          |
+| `pnpm test`          | Run the test suite                         |
+| `pnpm test:coverage` | Run the test suite with coverage report    |
+| `pnpm test:watch`    | Run tests in watch mode                    |
+| `pnpm doc`           | Generate API documentation with TypeDoc    |
+| `pnpm typecheck`     | Type check (`tsc --noEmit`)                |
+| `pnpm check`         | Run all checks (format / lint / spell)     |
+| `pnpm fix`           | Auto-fix format and lint issues            |
 
 ## Coding conventions
 

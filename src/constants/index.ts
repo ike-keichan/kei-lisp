@@ -20,10 +20,6 @@ export const noBinding = (symbol: LispValue): string =>
 export const noProcedure = (procedure: LispValue): string =>
   `I could find no procedure description for ${String(procedure)}`;
 
-/** Positional argument validation: `arguments N is not symbol.`. */
-export const argumentNotSymbol = (position: number): string =>
-  `arguments ${String(position)} is not symbol.`;
-
 /** Multi-list arity mismatch. */
 export const SIZES_DO_NOT_MATCH = 'sizes do not match.';
 

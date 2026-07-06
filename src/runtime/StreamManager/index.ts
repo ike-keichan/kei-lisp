@@ -25,6 +25,12 @@ export class StreamManager extends Object {
    * The stream that receives trace output while tracing is on.
    */
   traceStream: Stream;
+  /**
+   * Stack of capture buffers. While non-empty, program output (`princ`,
+   * `print`, `terpri`, `format`) is appended to the top buffer instead of
+   * being written to stdout; used by `with-output-to-string`.
+   */
+  captureStack: string[];
 
   /**
    * Constructor.
@@ -35,7 +41,41 @@ export class StreamManager extends Object {
     this.streamTable = new Map();
     this.spyTable = new Map();
     this.traceStream = null;
+    this.captureStack = [];
     this.initialize();
+  }
+
+  /**
+   * Pushes a fresh capture buffer onto the capture stack. Subsequent
+   * `writeOutput` calls are captured until the matching `popCapture`.
+   * @return null
+   */
+  pushCapture(): null {
+    this.captureStack.push('');
+    return null;
+  }
+
+  /**
+   * Pops the top capture buffer and returns its accumulated output.
+   * @return the captured output, or an empty string when nothing was captured
+   */
+  popCapture(): string {
+    return this.captureStack.pop() ?? '';
+  }
+
+  /**
+   * Writes program output to the top capture buffer when capturing, otherwise
+   * to stdout.
+   * @param text the text to write
+   * @return null
+   */
+  writeOutput(text: string): null {
+    if (this.captureStack.length > 0) {
+      this.captureStack[this.captureStack.length - 1] += text;
+      return null;
+    }
+    process.stdout.write(text);
+    return null;
   }
 
   /**

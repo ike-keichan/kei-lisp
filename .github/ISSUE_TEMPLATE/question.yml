@@ -1,0 +1,32 @@
+name: Question
+description: Ask a question about usage or behavior
+title: 'question: '
+labels: ['question']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking, please check the reference docs:
+        [docs/built-in-functions.md](https://github.com/ike-keichan/kei-lisp/blob/main/docs/built-in-functions.md)
+        and [docs/api.md](https://github.com/ike-keichan/kei-lisp/blob/main/docs/api.md).
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried
+      description: Code or Lisp snippets you have already tried, and what happened.
+    validations:
+      required: false
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: e.g. kei-lisp 2.3.0 / Node.js 24.14.0
+    validations:
+      required: false

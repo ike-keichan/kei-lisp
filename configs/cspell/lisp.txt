@@ -18,7 +18,12 @@ memq
 # 特殊形式・構文
 defun
 defmacro
+defstruct
 setq
+setf
+getf
+incf
+decf
 progn
 cond
 lambda
@@ -63,3 +68,17 @@ sublist
 
 # データ構造
 alist
+
+# 他方言（Scheme / Clojure）由来の用語
+defrecord
+SRFI
+rationalp
+bignum
+bignums
+dotimes
+gethash
+remhash
+sethash
+svref
+aref
+vectorp
