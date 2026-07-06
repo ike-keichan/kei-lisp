@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`lambda` no longer drops body forms after the first.** The `lambda`
+  special form spliced the captured closure environment right after the
+  first body form, so `(defun f () form1 form2 form3)` silently evaluated
+  only `form1` (the same truncation applied to `lambda` and `defmacro`
+  bodies). The environment is now appended after the last body form — the
+  layout `defineDerivedLambda` already used — so multi-form bodies run
+  every form and return the last value, with tail call optimization still
+  applying to the final form.
+
 ## [3.0.0] - 2026-07-06
 
 ### Security

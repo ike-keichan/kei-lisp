@@ -117,6 +117,10 @@ describe('Evaluator', () => {
       interpreter.evalString('(setq f (lambda (x) (* x 2)))');
       expect(Cons.toString(interpreter.evalString('(f 5)'))).toBe('10');
     });
+
+    it('evaluates every form of a multi-form body and returns the last value', () => {
+      expect(evalStr('((lambda (x) (setq x (+ x 1)) (setq x (* x 10)) x) 4)')).toBe('50');
+    });
   });
 
   describe('defun', () => {
@@ -124,6 +128,23 @@ describe('Evaluator', () => {
       const interpreter = new LispInterpreter();
       interpreter.evalString('(defun double (x) (* x 2))');
       expect(Cons.toString(interpreter.evalString('(double 5)'))).toBe('10');
+    });
+
+    it('evaluates every form of a multi-form body in order', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString('(setq log nil)');
+      interpreter.evalString(
+        '(defun steps () (push "a" log) (push "b" log) (push "c" log) (reverse log))',
+      );
+      expect(Cons.toString(interpreter.evalString('(steps)'))).toBe('(a b c)');
+    });
+
+    it('keeps tail call optimization for the last form of a multi-form body', () => {
+      const interpreter = new LispInterpreter();
+      interpreter.evalString(
+        '(defun countdown (n acc) (setq acc (+ acc 1)) (if (= n 0) acc (countdown (- n 1) acc)))',
+      );
+      expect(Cons.toString(interpreter.evalString('(countdown 100000 0)'))).toBe('100001');
     });
 
     it('defines a recursive function (fact)', () => {

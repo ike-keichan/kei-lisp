@@ -1628,13 +1628,14 @@ export class Evaluator extends Object {
 
   /**
    * Implementation of the Lisp `lambda` special form; captures the current environment as a closure.
+   * The environment Table is appended after the last body form (the same
+   * layout `defineDerivedLambda` produces), so a body of any length is kept.
    * @param args the argument Cons containing the parameter list and body
    * @return a lambda form with the captured environment appended
    */
   lambda(args: Cons): LispValue {
     const aCons = Cons.cloneValue(args) as Cons;
-    const theCons = aCons.cdr as Cons;
-    theCons.setCdr(new Cons(this.environment, Cons.nil));
+    aCons.last().setCdr(new Cons(this.environment, Cons.nil));
 
     return new Cons(InterpretedSymbol.of('lambda'), aCons);
   }
