@@ -12,8 +12,12 @@ const runCli = (
   let replStarted = false;
   const status = CliApp.run(
     args,
-    (line) => stdout.push(line),
-    (line) => stderr.push(line),
+    (line) => {
+      stdout.push(line);
+    },
+    (line) => {
+      stderr.push(line);
+    },
     () => {
       replStarted = true;
     },

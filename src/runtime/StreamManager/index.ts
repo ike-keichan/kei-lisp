@@ -83,11 +83,11 @@ export class StreamManager extends Object {
    * @return the active stream, or null when none is available
    */
   getStream(): Stream {
-    let aPrintStream: Stream = null;
     if (this.isTrace) {
       // Following the original: traceStream is invoked as a function (since it is a Stream object this throws).
       return (this.traceStream as unknown as () => Stream)();
     }
+    let aPrintStream: Stream = null;
     const filePath = process.env['HOME'] as string;
     if (this.streamTable.has(filePath)) {
       aPrintStream = this.streamTable.get(filePath) ?? null;
@@ -117,10 +117,7 @@ export class StreamManager extends Object {
     if (this.isTrace) {
       return true;
     }
-    if (aSymbol != null && this.spyTable_().has(aSymbol)) {
-      return true;
-    }
-    return false;
+    return aSymbol != null && this.spyTable_().has(aSymbol);
   }
 
   /**
@@ -202,10 +199,7 @@ export class StreamManager extends Object {
    * @return a new map containing the same entries as the internal spy table
    */
   spyTable_(): Map<InterpretedSymbol, string> {
-    const aTable = new Map<InterpretedSymbol, string>();
-    for (const [key, value] of this.spyTable) {
-      aTable.set(key, value);
-    }
+    const aTable = new Map<InterpretedSymbol, string>(this.spyTable);
     return aTable;
   }
 

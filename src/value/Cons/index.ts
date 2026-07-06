@@ -21,45 +21,6 @@ export class Cons extends Object {
   static readonly nil: Cons = new Cons();
 
   /**
-   * The head element of this Cons cell.
-   */
-  car: LispValue;
-  /**
-   * The tail of this Cons cell (typically another Cons or nil).
-   */
-  cdr: LispValue;
-
-  /**
-   * Constructor.
-   * @constructor
-   * @param car the car; defaults to nil when no argument is given.
-   * @param cdr the cdr; defaults to nil when no argument is given.
-   */
-  constructor(car: LispValue = Cons.nil, cdr: LispValue = Cons.nil) {
-    super();
-    this.car = car;
-    this.cdr = cdr;
-  }
-
-  /**
-   * Appends the given element to the end of this Cons.
-   * @param anObject the object to append
-   * @return the Cons with the element appended
-   */
-  add(anObject: LispValue): this {
-    const aCons = new Cons(anObject, Cons.nil);
-    return this.nconc(aCons);
-  }
-
-  /**
-   * Clones this Cons and returns the clone.
-   * @return the cloned Cons
-   */
-  clone(): Cons {
-    return new Cons(Cons.cloneValue(this.car), Cons.cloneValue(this.cdr));
-  }
-
-  /**
    * Clones the given value (a Cons element) and returns the clone.
    * @param value a Cons element
    * @return the cloned element
@@ -90,38 +51,6 @@ export class Cons extends Object {
       return value.clone();
     }
     return value;
-  }
-
-  /**
-   * Returns whether this Cons equals the given object.
-   * @param anObject the object to compare against
-   * @return a boolean
-   */
-  equals(anObject: LispValue): boolean {
-    if (Cons.isCons(anObject)) {
-      return this.equalsAUX(this, anObject);
-    }
-    return false;
-  }
-
-  /**
-   * Returns whether both arguments are Cons cells and are equal.
-   * @param left the object to compare
-   * @param right the object to compare
-   * @return a boolean
-   */
-  equalsAUX(left: LispValue, right: LispValue): boolean {
-    if (left === right) {
-      return true;
-    }
-    if (!(Cons.isCons(left) && Cons.isCons(right))) {
-      return false;
-    }
-    if (this.equalsAUX(left.car, right.car)) {
-      return this.equalsAUX(left.cdr, right.cdr);
-    }
-
-    return false;
   }
 
   /**
@@ -245,6 +174,93 @@ export class Cons extends Object {
   }
 
   /**
+   * Lexes the given string into a Cons and returns it.
+   * @param aString the string to lex
+   */
+  static parse(aString: string): LispValue {
+    return Parser.parse(aString);
+  }
+
+  /**
+   * Returns a formatted string representation of the given object.
+   * @param anObject the object to format
+   */
+  static override toString(anObject: LispValue): string {
+    return Cons.isNil(anObject) ? 'nil' : (anObject as { toString(): string }).toString();
+  }
+
+  /**
+   * The head element of this Cons cell.
+   */
+  car: LispValue;
+  /**
+   * The tail of this Cons cell (typically another Cons or nil).
+   */
+  cdr: LispValue;
+
+  /**
+   * Constructor.
+   * @constructor
+   * @param car the car; defaults to nil when no argument is given.
+   * @param cdr the cdr; defaults to nil when no argument is given.
+   */
+  constructor(car: LispValue = Cons.nil, cdr: LispValue = Cons.nil) {
+    super();
+    this.car = car;
+    this.cdr = cdr;
+  }
+
+  /**
+   * Appends the given element to the end of this Cons.
+   * @param anObject the object to append
+   * @return the Cons with the element appended
+   */
+  add(anObject: LispValue): this {
+    const aCons = new Cons(anObject, Cons.nil);
+    return this.nconc(aCons);
+  }
+
+  /**
+   * Clones this Cons and returns the clone.
+   * @return the cloned Cons
+   */
+  clone(): Cons {
+    return new Cons(Cons.cloneValue(this.car), Cons.cloneValue(this.cdr));
+  }
+
+  /**
+   * Returns whether this Cons equals the given object.
+   * @param anObject the object to compare against
+   * @return a boolean
+   */
+  equals(anObject: LispValue): boolean {
+    if (Cons.isCons(anObject)) {
+      return this.equalsAUX(this, anObject);
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether both arguments are Cons cells and are equal.
+   * @param left the object to compare
+   * @param right the object to compare
+   * @return a boolean
+   */
+  equalsAUX(left: LispValue, right: LispValue): boolean {
+    if (left === right) {
+      return true;
+    }
+    if (!(Cons.isCons(left) && Cons.isCons(right))) {
+      return false;
+    }
+    if (this.equalsAUX(left.car, right.car)) {
+      return this.equalsAUX(left.cdr, right.cdr);
+    }
+
+    return false;
+  }
+
+  /**
    * Returns the last cell of this Cons.
    * @return this Cons's last cell
    */
@@ -320,14 +336,6 @@ export class Cons extends Object {
   }
 
   /**
-   * Lexes the given string into a Cons and returns it.
-   * @param aString the string to lex
-   */
-  static parse(aString: string): LispValue {
-    return Parser.parse(aString);
-  }
-
-  /**
    * Sets the car.
    */
   setCar(anObject: LispValue): null {
@@ -380,13 +388,5 @@ export class Cons extends Object {
     }
 
     return aString;
-  }
-
-  /**
-   * Returns a formatted string representation of the given object.
-   * @param anObject the object to format
-   */
-  static override toString(anObject: LispValue): string {
-    return Cons.isNil(anObject) ? 'nil' : (anObject as { toString(): string }).toString();
   }
 }

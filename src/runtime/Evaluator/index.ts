@@ -25,6 +25,8 @@ let cachedGc: (() => void) | null = null;
 const triggerGc = (): void => {
   if (cachedGc == null) {
     v8.setFlagsFromString('--expose_gc');
+    // NOTE: gc() の遅延初期化キャッシュのため、モジュール変数への代入が必要
+    // eslint-disable-next-line unicorn/no-top-level-assignment-in-function
     cachedGc = vm.runInNewContext('gc') as () => void;
   }
   cachedGc();
@@ -47,6 +49,102 @@ export class Evaluator extends Object {
    * distinguishing macros from ordinary `lambda` closures in the environment.
    */
   static readonly macroMarker: InterpretedSymbol = InterpretedSymbol.of('macro');
+
+  /**
+   * Returns whether the given value is a user lambda closure (a lambda Cons
+   * with a captured environment) rather than a macro or plain data.
+   * @param value the environment binding to inspect
+   * @return a boolean
+   */
+  static isUserLambda(value: LispValue): boolean {
+    return (
+      Cons.isCons(value) &&
+      value.car === InterpretedSymbol.of('lambda') &&
+      value.last().car instanceof Table
+    );
+  }
+
+  /**
+   * Evaluates the given form in the given environment.
+   * @param form the form to evaluate
+   * @param environment the variable binding environment
+   * @param aStreamManager the stream manager for trace and spy output
+   * @param depth the current call depth
+   * @param plugins the plugin chain consulted before falling through to Applier
+   * @return the evaluation result
+   */
+  static eval(
+    form: LispValue,
+    environment: Table,
+    aStreamManager: StreamManager = new StreamManager(),
+    depth: number = 1,
+    plugins: KeiLispPlugin[] = [],
+  ): LispValue {
+    return new Evaluator(environment, aStreamManager, depth, plugins).eval(form);
+  }
+
+  /**
+   * Builds and returns the Lisp-name to method-name dispatch map for special forms.
+   * @return the dispatch map
+   */
+  static setup(): Map<InterpretedSymbol, string> {
+    try {
+      const entries: Array<[string, string]> = [
+        ['and', 'and'],
+        ['apply', 'apply_lisp'],
+        ['bind', 'bind'],
+        ['case', 'case_'],
+        ['catch', 'catch_'],
+        ['cond', 'cond'],
+        ['decf', 'decf'],
+        ['defmacro', 'defmacro'],
+        ['defstruct', 'defstruct'],
+        ['defun', 'defun'],
+        ['destructuring-bind', 'destructuringBind'],
+        ['do', 'do_'],
+        ['dolist', 'doList'],
+        ['do*', 'doStar'],
+        ['eval', 'eval_lisp'],
+        ['exit', 'exit'],
+        ['gc', 'gc'],
+        ['handler-case', 'handlerCase'],
+        ['if', 'if_'],
+        ['incf', 'incf'],
+        ['lambda', 'lambda'],
+        ['let', 'let'],
+        ['let*', 'letStar'],
+        ['macroexpand', 'macroexpand'],
+        ['macroexpand-1', 'macroexpand_1'],
+        ['not', 'not'],
+        ['notrace', 'notrace'],
+        ['or', 'or'],
+        ['pop', 'pop_'],
+        ['progn', 'progn'],
+        ['princ', 'princ'],
+        ['print', 'print'],
+        ['push', 'push_'],
+        ['quasiquote', 'quasiquote'],
+        ['quote', 'quote'],
+        ['rplaca', 'rplaca'],
+        ['rplacd', 'rplacd'],
+        ['setf', 'setf'],
+        ['setq', 'setq'],
+        ['set-allq', 'set_allq'],
+        ['with-output-to-string', 'withOutputToString'],
+        ['terpri', 'terpri'],
+        ['throw', 'throw_'],
+        ['time', 'time'],
+        ['trace', 'trace'],
+        ['unless', 'unless'],
+        ['unquote', 'unquote'],
+        [UNQUOTE_SPLICING, 'unquoteSplicing'],
+        ['when', 'when'],
+      ];
+      return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
+    } catch {
+      throw new Error('NullPointerException (Evaluator, initialize)');
+    }
+  }
 
   /**
    * The variable binding environment used during evaluation.
@@ -127,10 +225,10 @@ export class Evaluator extends Object {
       this.depth,
       this.plugins,
     );
-    let aTable: Table = this.environment;
-    if (procedure instanceof Cons && procedure.last().car instanceof Table) {
-      aTable = procedure.last().car as Table;
-    }
+    const aTable: Table =
+      procedure instanceof Cons && procedure.last().car instanceof Table
+        ? (procedure.last().car as Table)
+        : this.environment;
 
     return Applier.apply(procedure, args, aTable, this.streamManager, this.depth, this.plugins);
   }
@@ -486,20 +584,6 @@ export class Evaluator extends Object {
   }
 
   /**
-   * Returns whether the given value is a user lambda closure (a lambda Cons
-   * with a captured environment) rather than a macro or plain data.
-   * @param value the environment binding to inspect
-   * @return a boolean
-   */
-  static isUserLambda(value: LispValue): boolean {
-    return (
-      Cons.isCons(value) &&
-      value.car === InterpretedSymbol.of('lambda') &&
-      value.last().car instanceof Table
-    );
-  }
-
-  /**
    * Implementation of the Lisp `catch` special form. Evaluates the tag form,
    * then the body; a `throw` to an `eq` tag during the body unwinds to here
    * and its value becomes the result.
@@ -733,10 +817,7 @@ export class Evaluator extends Object {
    */
   incrementPlace(aCons: Cons, sign: number): LispValue {
     const place = aCons.car;
-    let delta: LispValue = 1n;
-    if (Cons.isNotNil(aCons.cdr)) {
-      delta = this.evalSub(aCons.nth(2));
-    }
+    const delta: LispValue = Cons.isNotNil(aCons.cdr) ? this.evalSub(aCons.nth(2)) : 1n;
     if (!Cons.isNumber(delta)) {
       throw new EvalError(cannotApply(sign === 1 ? 'incf' : 'decf', delta));
     }
@@ -1064,10 +1145,7 @@ export class Evaluator extends Object {
    * @return the captured output string
    */
   withOutputToString(aCons: Cons): LispValue {
-    let body: LispValue = aCons;
-    if (Cons.isCons(aCons) && Cons.isList(aCons.car)) {
-      body = aCons.cdr;
-    }
+    const body: LispValue = Cons.isCons(aCons) && Cons.isList(aCons.car) ? aCons.cdr : aCons;
     this.streamManager.pushCapture();
     try {
       this.evalBody(body);
@@ -1377,11 +1455,7 @@ export class Evaluator extends Object {
     const aCons = form.cdr as Cons;
     let args: Cons = new Cons(Cons.nil, Cons.nil);
     const procedure = form.car;
-    let aSymbol: InterpretedSymbol | null = null;
-
-    if (Cons.isSymbol(procedure)) {
-      aSymbol = procedure;
-    }
+    const aSymbol: InterpretedSymbol | null = Cons.isSymbol(procedure) ? procedure : null;
     if (this.isSpy(aSymbol)) {
       this.spyPrint(this.streamManager.spyStream(aSymbol), form.toString());
       this.setDepth(this.depth + 1);
@@ -1408,25 +1482,6 @@ export class Evaluator extends Object {
       this.depth,
       this.plugins,
     );
-  }
-
-  /**
-   * Evaluates the given form in the given environment.
-   * @param form the form to evaluate
-   * @param environment the variable binding environment
-   * @param aStreamManager the stream manager for trace and spy output
-   * @param depth the current call depth
-   * @param plugins the plugin chain consulted before falling through to Applier
-   * @return the evaluation result
-   */
-  static eval(
-    form: LispValue,
-    environment: Table,
-    aStreamManager: StreamManager = new StreamManager(),
-    depth: number = 1,
-    plugins: KeiLispPlugin[] = [],
-  ): LispValue {
-    return new Evaluator(environment, aStreamManager, depth, plugins).eval(form);
   }
 
   /**
@@ -2094,69 +2149,6 @@ export class Evaluator extends Object {
   setDepth(aNumber: number): null {
     this.depth = aNumber;
     return null;
-  }
-
-  /**
-   * Builds and returns the Lisp-name to method-name dispatch map for special forms.
-   * @return the dispatch map
-   */
-  static setup(): Map<InterpretedSymbol, string> {
-    try {
-      const entries: Array<[string, string]> = [
-        ['and', 'and'],
-        ['apply', 'apply_lisp'],
-        ['bind', 'bind'],
-        ['case', 'case_'],
-        ['catch', 'catch_'],
-        ['cond', 'cond'],
-        ['decf', 'decf'],
-        ['defmacro', 'defmacro'],
-        ['defstruct', 'defstruct'],
-        ['defun', 'defun'],
-        ['destructuring-bind', 'destructuringBind'],
-        ['do', 'do_'],
-        ['dolist', 'doList'],
-        ['do*', 'doStar'],
-        ['eval', 'eval_lisp'],
-        ['exit', 'exit'],
-        ['gc', 'gc'],
-        ['handler-case', 'handlerCase'],
-        ['if', 'if_'],
-        ['incf', 'incf'],
-        ['lambda', 'lambda'],
-        ['let', 'let'],
-        ['let*', 'letStar'],
-        ['macroexpand', 'macroexpand'],
-        ['macroexpand-1', 'macroexpand_1'],
-        ['not', 'not'],
-        ['notrace', 'notrace'],
-        ['or', 'or'],
-        ['pop', 'pop_'],
-        ['progn', 'progn'],
-        ['princ', 'princ'],
-        ['print', 'print'],
-        ['push', 'push_'],
-        ['quasiquote', 'quasiquote'],
-        ['quote', 'quote'],
-        ['rplaca', 'rplaca'],
-        ['rplacd', 'rplacd'],
-        ['setf', 'setf'],
-        ['setq', 'setq'],
-        ['set-allq', 'set_allq'],
-        ['with-output-to-string', 'withOutputToString'],
-        ['terpri', 'terpri'],
-        ['throw', 'throw_'],
-        ['time', 'time'],
-        ['trace', 'trace'],
-        ['unless', 'unless'],
-        ['unquote', 'unquote'],
-        [UNQUOTE_SPLICING, 'unquoteSplicing'],
-        ['when', 'when'],
-      ];
-      return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
-    } catch {
-      throw new Error('NullPointerException (Evaluator, initialize)');
-    }
   }
 
   /**

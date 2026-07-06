@@ -77,10 +77,7 @@ export class LispInterpreter extends Object {
    */
   evalAll(source: string): LispValue[] {
     const ast = this.parse(source);
-    const results: LispValue[] = [];
-    for (const expr of ast.loop()) {
-      results.push(this.eval(expr));
-    }
+    const results: LispValue[] = Array.from(ast.loop(), (expr) => this.eval(expr));
     return results;
   }
 
