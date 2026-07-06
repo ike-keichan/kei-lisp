@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Plugin symbols now resolve inside user-defined functions and
+  higher-order built-ins.** `Applier` dropped the plugin chain when
+  applying a user-defined function (`defun`) and when invoking function
+  arguments from `mapcar` / `mapcan` / `reduce` / `every` / `some` /
+  `remove-if` / `sort`, so a plugin-provided function (e.g. a drawing
+  function from kei-lisp-plugin-graphics) signaled "I could find no
+  procedure description" when called from a `defun` body or a passed
+  lambda. All
+  `Applier.apply` call sites now forward `this.plugins`.
 - **`lambda` no longer drops body forms after the first.** The `lambda`
   special form spliced the captured closure environment right after the
   first body form, so `(defun f () form1 form2 form3)` silently evaluated
