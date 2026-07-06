@@ -24,10 +24,15 @@ let cachedGc: (() => void) | null = null;
 const triggerGc = (): void => {
   if (cachedGc == null) {
     v8.setFlagsFromString('--expose_gc');
+    // NOTE: gc() の遅延初期化キャッシュのため、モジュール変数への代入が必要
+    // eslint-disable-next-line unicorn/no-top-level-assignment-in-function
     cachedGc = vm.runInNewContext('gc') as () => void;
   }
   cachedGc();
 };
+
+// Lisp symbol name repeatedly referenced across quasiquote handling.
+const UNQUOTE_SPLICING = 'unquote-splicing';
 
 /**
  * @class
@@ -46,6 +51,78 @@ export class Evaluator extends Object {
    * distinguishing macros from ordinary `lambda` closures in the environment.
    */
   static readonly macroMarker: InterpretedSymbol = InterpretedSymbol.of('macro');
+
+  /**
+   * Evaluates the given form in the given environment.
+   * @param form the form to evaluate
+   * @param environment the variable binding environment
+   * @param aStreamManager the stream manager for trace and spy output
+   * @param depth the current call depth
+   * @param plugins the plugin chain consulted before falling through to Applier
+   * @return the evaluation result
+   */
+  static eval(
+    form: LispValue,
+    environment: Table,
+    aStreamManager: StreamManager = new StreamManager(),
+    depth: number = 1,
+    plugins: KeiLispPlugin[] = [],
+  ): LispValue {
+    return new Evaluator(environment, aStreamManager, depth, plugins).eval(form);
+  }
+
+  /**
+   * Builds and returns the Lisp-name to method-name dispatch map for special forms.
+   * @return the dispatch map
+   */
+  static setup(): Map<InterpretedSymbol, string> {
+    try {
+      const entries: Array<[string, string]> = [
+        ['and', 'and'],
+        ['apply', 'apply_lisp'],
+        ['bind', 'bind'],
+        ['cond', 'cond'],
+        ['defmacro', 'defmacro'],
+        ['defun', 'defun'],
+        ['do', 'do_'],
+        ['dolist', 'doList'],
+        ['do*', 'doStar'],
+        ['eval', 'eval_lisp'],
+        ['exit', 'exit'],
+        ['gc', 'gc'],
+        ['if', 'if_'],
+        ['lambda', 'lambda'],
+        ['let', 'let'],
+        ['let*', 'letStar'],
+        ['macroexpand', 'macroexpand'],
+        ['macroexpand-1', 'macroexpand_1'],
+        ['not', 'not'],
+        ['notrace', 'notrace'],
+        ['or', 'or'],
+        ['pop', 'pop_'],
+        ['progn', 'progn'],
+        ['princ', 'princ'],
+        ['print', 'print'],
+        ['push', 'push_'],
+        ['quasiquote', 'quasiquote'],
+        ['quote', 'quote'],
+        ['rplaca', 'rplaca'],
+        ['rplacd', 'rplacd'],
+        ['setq', 'setq'],
+        ['set-allq', 'set_allq'],
+        ['terpri', 'terpri'],
+        ['time', 'time'],
+        ['trace', 'trace'],
+        ['unless', 'unless'],
+        ['unquote', 'unquote'],
+        [UNQUOTE_SPLICING, 'unquoteSplicing'],
+        ['when', 'when'],
+      ];
+      return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
+    } catch {
+      throw new Error('NullPointerException (Evaluator, initialize)');
+    }
+  }
 
   /**
    * The variable binding environment used during evaluation.
@@ -126,10 +203,10 @@ export class Evaluator extends Object {
       this.depth,
       this.plugins,
     );
-    let aTable: Table = this.environment;
-    if (procedure instanceof Cons && procedure.last().car instanceof Table) {
-      aTable = procedure.last().car as Table;
-    }
+    const aTable: Table =
+      procedure instanceof Cons && procedure.last().car instanceof Table
+        ? (procedure.last().car as Table)
+        : this.environment;
 
     return Applier.apply(procedure, args, aTable, this.streamManager, this.depth, this.plugins);
   }
@@ -564,11 +641,7 @@ export class Evaluator extends Object {
     const aCons = form.cdr as Cons;
     let args: Cons = new Cons(Cons.nil, Cons.nil);
     const procedure = form.car;
-    let aSymbol: InterpretedSymbol | null = null;
-
-    if (Cons.isSymbol(procedure)) {
-      aSymbol = procedure;
-    }
+    const aSymbol: InterpretedSymbol | null = Cons.isSymbol(procedure) ? procedure : null;
     if (this.isSpy(aSymbol)) {
       this.spyPrint(this.streamManager.spyStream(aSymbol), form.toString());
       this.setDepth(this.depth + 1);
@@ -595,25 +668,6 @@ export class Evaluator extends Object {
       this.depth,
       this.plugins,
     );
-  }
-
-  /**
-   * Evaluates the given form in the given environment.
-   * @param form the form to evaluate
-   * @param environment the variable binding environment
-   * @param aStreamManager the stream manager for trace and spy output
-   * @param depth the current call depth
-   * @param plugins the plugin chain consulted before falling through to Applier
-   * @return the evaluation result
-   */
-  static eval(
-    form: LispValue,
-    environment: Table,
-    aStreamManager: StreamManager = new StreamManager(),
-    depth: number = 1,
-    plugins: KeiLispPlugin[] = [],
-  ): LispValue {
-    return new Evaluator(environment, aStreamManager, depth, plugins).eval(form);
   }
 
   /**
@@ -1089,7 +1143,7 @@ export class Evaluator extends Object {
         break;
       }
       const head = current.car;
-      if (Cons.isCons(head) && head.car === InterpretedSymbol.of('unquote-splicing')) {
+      if (Cons.isCons(head) && head.car === InterpretedSymbol.of(UNQUOTE_SPLICING)) {
         if (level === 1) {
           this.spliceInto(
             parts,
@@ -1104,7 +1158,7 @@ export class Evaluator extends Object {
         } else {
           parts.push(
             new Cons(
-              InterpretedSymbol.of('unquote-splicing'),
+              InterpretedSymbol.of(UNQUOTE_SPLICING),
               new Cons(this.quasiquoteExpand(head.nth(2), level - 1), Cons.nil),
             ),
           );
@@ -1138,7 +1192,7 @@ export class Evaluator extends Object {
       return null;
     }
     if (Cons.isNotCons(value)) {
-      throw new EvalError(cannotApply('unquote-splicing', value));
+      throw new EvalError(cannotApply(UNQUOTE_SPLICING, value));
     }
     let current: LispValue = value;
     while (Cons.isCons(current)) {
@@ -1146,7 +1200,7 @@ export class Evaluator extends Object {
       current = current.cdr;
     }
     if (Cons.isNotNil(current)) {
-      throw new EvalError(cannotApply('unquote-splicing', value));
+      throw new EvalError(cannotApply(UNQUOTE_SPLICING, value));
     }
 
     return null;
@@ -1294,59 +1348,6 @@ export class Evaluator extends Object {
   setDepth(aNumber: number): null {
     this.depth = aNumber;
     return null;
-  }
-
-  /**
-   * Builds and returns the Lisp-name to method-name dispatch map for special forms.
-   * @return the dispatch map
-   */
-  static setup(): Map<InterpretedSymbol, string> {
-    try {
-      const entries: Array<[string, string]> = [
-        ['and', 'and'],
-        ['apply', 'apply_lisp'],
-        ['bind', 'bind'],
-        ['cond', 'cond'],
-        ['defmacro', 'defmacro'],
-        ['defun', 'defun'],
-        ['do', 'do_'],
-        ['dolist', 'doList'],
-        ['do*', 'doStar'],
-        ['eval', 'eval_lisp'],
-        ['exit', 'exit'],
-        ['gc', 'gc'],
-        ['if', 'if_'],
-        ['lambda', 'lambda'],
-        ['let', 'let'],
-        ['let*', 'letStar'],
-        ['macroexpand', 'macroexpand'],
-        ['macroexpand-1', 'macroexpand_1'],
-        ['not', 'not'],
-        ['notrace', 'notrace'],
-        ['or', 'or'],
-        ['pop', 'pop_'],
-        ['progn', 'progn'],
-        ['princ', 'princ'],
-        ['print', 'print'],
-        ['push', 'push_'],
-        ['quasiquote', 'quasiquote'],
-        ['quote', 'quote'],
-        ['rplaca', 'rplaca'],
-        ['rplacd', 'rplacd'],
-        ['setq', 'setq'],
-        ['set-allq', 'set_allq'],
-        ['terpri', 'terpri'],
-        ['time', 'time'],
-        ['trace', 'trace'],
-        ['unless', 'unless'],
-        ['unquote', 'unquote'],
-        ['unquote-splicing', 'unquoteSplicing'],
-        ['when', 'when'],
-      ];
-      return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
-    } catch {
-      throw new Error('NullPointerException (Evaluator, initialize)');
-    }
   }
 
   /**

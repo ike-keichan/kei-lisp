@@ -58,8 +58,7 @@ export class Repl extends Object {
         for (const aCharacter of line) {
           if (aCharacter === '(') {
             leftParentheses++;
-          }
-          if (aCharacter === ')') {
+          } else if (aCharacter === ')') {
             leftParentheses--;
           }
           aString += aCharacter;

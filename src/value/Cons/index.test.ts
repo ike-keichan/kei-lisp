@@ -214,7 +214,7 @@ describe('Cons', () => {
   describe('isNumber (static)', () => {
     it('returns true for primitive numbers', () => {
       expect(Cons.isNumber(42)).toBe(true);
-      expect(Cons.isNumber(-3.14)).toBe(true);
+      expect(Cons.isNumber(-2.75)).toBe(true);
     });
 
     it('returns false for non-number values', () => {

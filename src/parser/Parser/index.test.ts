@@ -34,8 +34,8 @@ describe('Parser', () => {
     });
 
     it('parses a floating-point number', () => {
-      const result = Parser.parse('(3.14)');
-      expect((result as Cons).car).toBe(3.14);
+      const result = Parser.parse('(2.75)');
+      expect((result as Cons).car).toBe(2.75);
     });
 
     it('parses a negative number', () => {

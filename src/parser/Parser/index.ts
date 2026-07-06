@@ -16,6 +16,14 @@ const SYNTAX_ERROR = 'Syntax Error!';
  */
 export class Parser extends Object {
   /**
+   * Parses the given string and returns the result.
+   * @param aString the source string
+   * @return the parsed value
+   */
+  static parse(aString: string): LispValue {
+    return new Parser(aString).nextToken();
+  }
+  /**
    * Iterator over the input source characters.
    */
   stream: Iterator<string>;
@@ -158,15 +166,6 @@ export class Parser extends Object {
   }
 
   /**
-   * Parses the given string and returns the result.
-   * @param aString the source string
-   * @return the parsed value
-   */
-  static parse(aString: string): LispValue {
-    return new Parser(aString).nextToken();
-  }
-
-  /**
    * Returns the next character if one exists.
    * @param aNumber 1-based offset into the look-ahead buffer
    * @return the character at that offset, or null if not present
@@ -281,7 +280,8 @@ export class Parser extends Object {
     if (this.rightParen()) {
       this.nextChar();
       return Cons.nil;
-    } else if (this.peekChar() === '.') {
+    }
+    if (this.peekChar() === '.') {
       this.nextChar();
       this.state = 0;
       const cdr = this.nextToken();
@@ -292,10 +292,9 @@ export class Parser extends Object {
       this.nextChar();
 
       return cdr;
-    } else {
-      this.state = 0;
-      return new Cons(this.nextToken(), this.parseListAUX());
     }
+    this.state = 0;
+    return new Cons(this.nextToken(), this.parseListAUX());
   }
 
   /**

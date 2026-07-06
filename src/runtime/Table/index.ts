@@ -67,10 +67,10 @@ export class Table extends Map<unknown, LispValue> {
    * @param anObject the object to compare against
    * @return true when the underlying Map.equals would return true
    */
-  equals(anObject: unknown): boolean {
+  equals(_anObject: unknown): boolean {
     // Kept for interface uniformity with Cons.equals / InterpretedSymbol.equals.
-    // Delegates to Map.prototype.equals which does not exist in JS (throws TypeError).
-    return (Map.prototype as unknown as { equals(o: unknown): boolean }).equals(anObject);
+    // Following the original: Map.prototype.equals does not exist in JS, so this always throws.
+    throw new TypeError('Map.prototype.equals is not a function');
   }
 
   /**

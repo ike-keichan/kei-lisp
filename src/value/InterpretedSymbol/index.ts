@@ -21,6 +21,22 @@ export class InterpretedSymbol extends Object {
   }
 
   /**
+   * Returns the same interpreted symbol for a given printed name.
+   * @param aString printed name
+   * @return the canonical InterpretedSymbol for that name
+   */
+  static of(aString: string): InterpretedSymbol {
+    let aSymbol = this.table.get(aString) as InterpretedSymbol | null;
+
+    if (aSymbol == null) {
+      aSymbol = new InterpretedSymbol(aString);
+      this.table.set(aString, aSymbol);
+    }
+
+    return aSymbol;
+  }
+
+  /**
    * The printed name of this symbol.
    */
   name: string;
@@ -56,22 +72,6 @@ export class InterpretedSymbol extends Object {
    */
   equals(anObject: unknown): boolean {
     return this === anObject;
-  }
-
-  /**
-   * Returns the same interpreted symbol for a given printed name.
-   * @param aString printed name
-   * @return the canonical InterpretedSymbol for that name
-   */
-  static of(aString: string): InterpretedSymbol {
-    let aSymbol = this.table.get(aString) as InterpretedSymbol | null;
-
-    if (aSymbol == null) {
-      aSymbol = new InterpretedSymbol(aString);
-      this.table.set(aString, aSymbol);
-    }
-
-    return aSymbol;
   }
 
   /**

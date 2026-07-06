@@ -35,6 +35,133 @@ export class Applier extends Object {
   static #generateNumber = 0;
 
   /**
+   * Static entry point that instantiates an Applier and applies the given procedure to the arguments.
+   * @param procedure the procedure to apply (a symbol or a lambda Cons)
+   * @param args the argument list
+   * @param environment the environment to use
+   * @param aStreamManager the stream manager for I/O
+   * @param depth the current recursion depth
+   * @param plugins the plugin chain to forward when re-entering the Evaluator
+   * @return the result of applying the procedure
+   */
+  static override apply(
+    procedure: LispValue,
+    args: LispValue,
+    environment: Table,
+    aStreamManager: StreamManager,
+    depth: number,
+    plugins: KeiLispPlugin[] = [],
+  ): LispValue {
+    return new Applier(environment, aStreamManager, depth, plugins).apply(procedure, args);
+  }
+
+  /**
+   * Increments the internal counter used by `gensym` to ensure uniqueness.
+   */
+  static incrementGenerateNumber(): null {
+    Applier.#generateNumber++;
+    return null;
+  }
+
+  /**
+   * Builds and returns the Lisp-name to method-name dispatch map.
+   * @return a Map associating each Lisp function name (as an InterpretedSymbol) with the corresponding Applier method name
+   */
+  static setup(): Map<InterpretedSymbol, string> {
+    try {
+      const entries: Array<[string, string]> = [
+        ['abs', 'abs'],
+        ['add', 'add'],
+        ['assoc', 'assoc'],
+        ['atom', 'atom_'],
+        ['car', 'car'],
+        ['cdr', 'cdr'],
+        ['characterp', 'character_'],
+        ['cons', 'cons'],
+        ['consp', 'cons_'],
+        ['copy', 'copy'],
+        ['ceiling', 'ceiling'],
+        ['cos', 'cos'],
+        ['floatp', 'float_'],
+        ['floor', 'floor'],
+        ['divide', 'divide'],
+        ['doublep', 'number_'],
+        ['eq', 'eq_'],
+        ['equal', 'equal_'],
+        ['evenp', 'even_'],
+        ['every', 'every'],
+        ['exp', 'exp'],
+        ['expt', 'expt'],
+        ['find', 'find'],
+        ['format', 'format'],
+        ['gensym', 'gensym'],
+        ['integerp', 'integer_'],
+        ['concatenate', 'concatenate'],
+        ['count', 'count'],
+        ['elt', 'elt'],
+        ['last', 'last'],
+        ['length', 'length'],
+        ['list', 'list'],
+        ['listp', 'list_'],
+        ['mapcan', 'mapcan'],
+        ['mapcar', 'mapcar'],
+        ['max', 'max'],
+        ['member', 'member'],
+        ['memq', 'memq'],
+        ['min', 'min'],
+        ['minusp', 'minus_'],
+        ['mod', 'mod'],
+        ['multiply', 'multiply'],
+        ['napier', 'napier'],
+        ['neq', 'neq'],
+        ['nequal', 'nequal'],
+        ['nth', 'nth'],
+        ['null', 'null_'],
+        ['numberp', 'number_'],
+        ['oddp', 'odd_'],
+        ['pi', 'pi'],
+        ['plusp', 'plus_'],
+        ['random', 'random'],
+        ['reduce', 'reduce'],
+        ['round', 'round'],
+        ['sin', 'sin'],
+        ['some', 'some'],
+        ['sort', 'sort'],
+        ['sqrt', 'sqrt'],
+        ['string-downcase', 'stringDowncase'],
+        ['string-trim', 'stringTrim'],
+        ['string-upcase', 'stringUpcase'],
+        ['stringp', 'string_'],
+        ['subseq', 'subseq'],
+        ['substring', 'substring'],
+        ['subtract', 'subtract'],
+        ['symbolp', 'symbol_'],
+        ['tan', 'tan'],
+        ['truncate', 'truncate'],
+        ['zerop', 'zero_'],
+        ['1+', 'oneplus'],
+        ['1-', 'oneminus'],
+        ['+', 'add'],
+        ['-', 'subtract'],
+        ['*', 'multiply'],
+        ['/', 'divide'],
+        ['//', 'mod'],
+        ['==', 'eq_'],
+        ['=', 'equal_'],
+        ['~~', 'neq'],
+        ['~=', 'nequal'],
+        ['<', 'lessThan'],
+        ['<=', 'lessThanOrEqual'],
+        ['>', 'greaterThan'],
+        ['>=', 'greaterThanOrEqual'],
+      ];
+      return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
+    } catch {
+      throw new Error('NullPointerException (Applier, initialize)');
+    }
+  }
+
+  /**
    * The environment (variable bindings) used while applying procedures.
    */
   environment: Table;
@@ -113,7 +240,7 @@ export class Applier extends Object {
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result + each;
+        result += each;
       } else {
         throw new EvalError(cannotApply('add', each));
         return Cons.nil;
@@ -122,27 +249,6 @@ export class Applier extends Object {
     }
 
     return result;
-  }
-
-  /**
-   * Static entry point that instantiates an Applier and applies the given procedure to the arguments.
-   * @param procedure the procedure to apply (a symbol or a lambda Cons)
-   * @param args the argument list
-   * @param environment the environment to use
-   * @param aStreamManager the stream manager for I/O
-   * @param depth the current recursion depth
-   * @param plugins the plugin chain to forward when re-entering the Evaluator
-   * @return the result of applying the procedure
-   */
-  static override apply(
-    procedure: LispValue,
-    args: LispValue,
-    environment: Table,
-    aStreamManager: StreamManager,
-    depth: number,
-    plugins: KeiLispPlugin[] = [],
-  ): LispValue {
-    return new Applier(environment, aStreamManager, depth, plugins).apply(procedure, args);
   }
 
   /**
@@ -372,7 +478,7 @@ export class Applier extends Object {
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result / each;
+        result /= each;
       } else {
         throw new EvalError(cannotApply('divide', each));
         return Cons.nil;
@@ -775,14 +881,6 @@ export class Applier extends Object {
   }
 
   /**
-   * Increments the internal counter used by `gensym` to ensure uniqueness.
-   */
-  static incrementGenerateNumber(): null {
-    Applier.#generateNumber++;
-    return null;
-  }
-
-  /**
    * Returns a string of indentation used as a prefix for spy output, based on the current depth.
    * @return the indentation string
    */
@@ -1042,14 +1140,14 @@ export class Applier extends Object {
    */
   substring(args: Cons): LispValue {
     const target = args.car;
-    const start = args.nth(2);
-    const end = args.nth(3);
     if (!Cons.isString(target)) {
       throw new EvalError(cannotApply('substring', target));
     }
+    const start = args.nth(2);
     if (!Cons.isNumber(start)) {
       throw new EvalError(cannotApply('substring', start));
     }
+    const end = args.nth(3);
     const chars = toCodePoints(target);
     if (Cons.isNil(end)) {
       return chars.slice(start).join('');
@@ -1111,10 +1209,10 @@ export class Applier extends Object {
   subseq(args: Cons): LispValue {
     const target = args.car;
     const start = args.nth(2);
-    const end = args.nth(3);
     if (!Cons.isNumber(start)) {
       throw new EvalError(cannotApply('subseq', start));
     }
+    const end = args.nth(3);
     if (Cons.isString(target)) {
       const chars = toCodePoints(target);
       if (Cons.isNil(end)) {
@@ -1338,12 +1436,12 @@ export class Applier extends Object {
    */
   sort(args: Cons): LispValue {
     const list = args.car;
-    const procedure = args.nth(2);
 
     if (Cons.isNil(list)) return Cons.nil;
     if (!Cons.isCons(list)) {
       throw new EvalError(cannotApply('sort', list));
     }
+    const procedure = args.nth(2);
 
     const items: LispValue[] = [];
     for (const each of list.loop()) {
@@ -1561,15 +1659,13 @@ export class Applier extends Object {
     let aCons = args.nth(2) as Cons;
 
     while (Cons.isCons(aCons)) {
-      let anObject: LispValue = null;
+      let anObject: LispValue;
 
       if (aSymbol === InterpretedSymbol.of('eq?')) {
         anObject = this.eq_(new Cons(args.car, new Cons(aCons.car, Cons.nil)));
-      }
-      if (aSymbol === InterpretedSymbol.of('equal?')) {
+      } else if (aSymbol === InterpretedSymbol.of('equal?')) {
         anObject = this.equal_(new Cons(args.car, new Cons(aCons.car, Cons.nil)));
-      }
-      if (anObject == null) {
+      } else {
         throw new EvalError(cannotApply('member', aSymbol));
       }
       if (anObject === InterpretedSymbol.of('t')) {
@@ -1621,7 +1717,7 @@ export class Applier extends Object {
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result % each;
+        result %= each;
       } else {
         throw new EvalError(cannotApply('mod', each));
         return Cons.nil;
@@ -1659,7 +1755,7 @@ export class Applier extends Object {
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result * each;
+        result *= each;
       } else {
         throw new EvalError(cannotApply('multiply', each));
         return Cons.nil;
@@ -1802,104 +1898,6 @@ export class Applier extends Object {
   }
 
   /**
-   * Builds and returns the Lisp-name to method-name dispatch map.
-   * @return a Map associating each Lisp function name (as an InterpretedSymbol) with the corresponding Applier method name
-   */
-  static setup(): Map<InterpretedSymbol, string> {
-    try {
-      const entries: Array<[string, string]> = [
-        ['abs', 'abs'],
-        ['add', 'add'],
-        ['assoc', 'assoc'],
-        ['atom', 'atom_'],
-        ['car', 'car'],
-        ['cdr', 'cdr'],
-        ['characterp', 'character_'],
-        ['cons', 'cons'],
-        ['consp', 'cons_'],
-        ['copy', 'copy'],
-        ['ceiling', 'ceiling'],
-        ['cos', 'cos'],
-        ['floatp', 'float_'],
-        ['floor', 'floor'],
-        ['divide', 'divide'],
-        ['doublep', 'number_'],
-        ['eq', 'eq_'],
-        ['equal', 'equal_'],
-        ['evenp', 'even_'],
-        ['every', 'every'],
-        ['exp', 'exp'],
-        ['expt', 'expt'],
-        ['find', 'find'],
-        ['format', 'format'],
-        ['gensym', 'gensym'],
-        ['integerp', 'integer_'],
-        ['concatenate', 'concatenate'],
-        ['count', 'count'],
-        ['elt', 'elt'],
-        ['last', 'last'],
-        ['length', 'length'],
-        ['list', 'list'],
-        ['listp', 'list_'],
-        ['mapcan', 'mapcan'],
-        ['mapcar', 'mapcar'],
-        ['max', 'max'],
-        ['member', 'member'],
-        ['memq', 'memq'],
-        ['min', 'min'],
-        ['minusp', 'minus_'],
-        ['mod', 'mod'],
-        ['multiply', 'multiply'],
-        ['napier', 'napier'],
-        ['neq', 'neq'],
-        ['nequal', 'nequal'],
-        ['nth', 'nth'],
-        ['null', 'null_'],
-        ['numberp', 'number_'],
-        ['oddp', 'odd_'],
-        ['pi', 'pi'],
-        ['plusp', 'plus_'],
-        ['random', 'random'],
-        ['reduce', 'reduce'],
-        ['round', 'round'],
-        ['sin', 'sin'],
-        ['some', 'some'],
-        ['sort', 'sort'],
-        ['sqrt', 'sqrt'],
-        ['string-downcase', 'stringDowncase'],
-        ['string-trim', 'stringTrim'],
-        ['string-upcase', 'stringUpcase'],
-        ['stringp', 'string_'],
-        ['subseq', 'subseq'],
-        ['substring', 'substring'],
-        ['subtract', 'subtract'],
-        ['symbolp', 'symbol_'],
-        ['tan', 'tan'],
-        ['truncate', 'truncate'],
-        ['zerop', 'zero_'],
-        ['1+', 'oneplus'],
-        ['1-', 'oneminus'],
-        ['+', 'add'],
-        ['-', 'subtract'],
-        ['*', 'multiply'],
-        ['/', 'divide'],
-        ['//', 'mod'],
-        ['==', 'eq_'],
-        ['=', 'equal_'],
-        ['~~', 'neq'],
-        ['~=', 'nequal'],
-        ['<', 'lessThan'],
-        ['<=', 'lessThanOrEqual'],
-        ['>', 'greaterThan'],
-        ['>=', 'greaterThanOrEqual'],
-      ];
-      return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
-    } catch {
-      throw new Error('NullPointerException (Applier, initialize)');
-    }
-  }
-
-  /**
    * Implementation of the Lisp `sin` function. Returns the sine of the given number.
    * @param args the argument Cons containing the angle in radians
    * @return the sine of the argument
@@ -1978,7 +1976,7 @@ export class Applier extends Object {
     while (Cons.isNotNil(aCons)) {
       const each = (aCons as Cons).car;
       if (Cons.isNumber(each)) {
-        result = result - each;
+        result -= each;
       } else {
         throw new EvalError(cannotApply('subtract', each));
         return Cons.nil;
