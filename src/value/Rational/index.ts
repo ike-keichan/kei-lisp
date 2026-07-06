@@ -10,28 +10,6 @@
  */
 export class Rational extends Object {
   /**
-   * The numerator (carries the sign).
-   */
-  numerator: bigint;
-  /**
-   * The denominator (always positive).
-   */
-  denominator: bigint;
-
-  /**
-   * Constructor. Prefer `Rational.make`, which normalizes and demotes
-   * integral results to bigint.
-   * @constructor
-   * @param numerator the numerator (carries the sign)
-   * @param denominator the denominator (must be positive)
-   */
-  constructor(numerator: bigint, denominator: bigint) {
-    super();
-    this.numerator = numerator;
-    this.denominator = denominator;
-  }
-
-  /**
    * Returns the normalized rational for the given fraction: reduced, with a
    * positive denominator, demoted to a bigint when the result is integral.
    * @param numerator the numerator
@@ -74,6 +52,27 @@ export class Rational extends Object {
     }
 
     return a;
+  }
+  /**
+   * The numerator (carries the sign).
+   */
+  numerator: bigint;
+  /**
+   * The denominator (always positive).
+   */
+  denominator: bigint;
+
+  /**
+   * Constructor. Prefer `Rational.make`, which normalizes and demotes
+   * integral results to bigint.
+   * @constructor
+   * @param numerator the numerator (carries the sign)
+   * @param denominator the denominator (must be positive)
+   */
+  constructor(numerator: bigint, denominator: bigint) {
+    super();
+    this.numerator = numerator;
+    this.denominator = denominator;
   }
 
   /**
