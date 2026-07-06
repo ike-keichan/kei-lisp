@@ -28,8 +28,10 @@ export default [
   ...securityConfigs,
   ...unicornConfigs,
   ...importXConfigs,
-  ...unusedImportsConfigs,
+  // NOTE: no-unused-vars を unused-imports/no-unused-vars へ委譲する OFF 設定が
+  // typescript-eslint の strictTypeChecked に上書きされないよう、typescript の後に置く
   ...typescriptConfigs,
+  ...unusedImportsConfigs,
   ...vitestConfigs,
   prettier,
 ];
