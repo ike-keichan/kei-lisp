@@ -13,7 +13,7 @@ describe('Parser', () => {
     });
 
     it('initializes the peek buffer with size PEEKCOUNT + 1', () => {
-      expect(new Parser('abc').nexts.length).toBe(11);
+      expect(new Parser('abc').nexts).toHaveLength(11);
     });
   });
 
@@ -35,7 +35,7 @@ describe('Parser', () => {
 
     it('parses a floating-point number', () => {
       const result = Parser.parse('(3.14)');
-      expect((result as Cons).car).toBe(3.14);
+      expect((result as Cons).car).toBeCloseTo(3.14);
     });
 
     it('parses a negative number', () => {

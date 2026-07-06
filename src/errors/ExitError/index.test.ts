@@ -5,7 +5,7 @@ import { ExitError } from './index.js';
 describe('ExitError', () => {
   describe('constructor', () => {
     it('can be constructed without arguments', () => {
-      expect(new ExitError()).toBeDefined();
+      expect(() => new ExitError()).not.toThrow();
     });
 
     it('sets name to "ExitError"', () => {

@@ -60,12 +60,12 @@ describe('LispInterpreter', () => {
     });
 
     it('returns an empty array for empty input', () => {
-      expect(new LispInterpreter().evalAll('').length).toBe(0);
+      expect(new LispInterpreter().evalAll('')).toHaveLength(0);
     });
 
     it('returns a single-element array for a single expression', () => {
       const results = new LispInterpreter().evalAll('(+ 1 2)');
-      expect(results.length).toBe(1);
+      expect(results).toHaveLength(1);
       expect(results[0]).toBe(3n);
     });
 

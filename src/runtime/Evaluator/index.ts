@@ -17,6 +17,8 @@ import { ThrowSignal } from '../ThrowSignal/index.js';
 import type { KeiLispPlugin, PluginContext } from '../../plugin/types.js';
 import type { LispValue } from '../../types/index.js';
 
+const UNQUOTE_SPLICING = 'unquote-splicing';
+
 // Lazily expose V8's gc() to user-land on first use, avoiding the need for the
 // host process to be started with `--expose-gc`.
 let cachedGc: (() => void) | null = null;
@@ -1886,7 +1888,7 @@ export class Evaluator extends Object {
         break;
       }
       const head = current.car;
-      if (Cons.isCons(head) && head.car === InterpretedSymbol.of('unquote-splicing')) {
+      if (Cons.isCons(head) && head.car === InterpretedSymbol.of(UNQUOTE_SPLICING)) {
         if (level === 1) {
           this.spliceInto(
             parts,
@@ -1901,7 +1903,7 @@ export class Evaluator extends Object {
         } else {
           parts.push(
             new Cons(
-              InterpretedSymbol.of('unquote-splicing'),
+              InterpretedSymbol.of(UNQUOTE_SPLICING),
               new Cons(this.quasiquoteExpand(head.nth(2), level - 1), Cons.nil),
             ),
           );
@@ -1935,7 +1937,7 @@ export class Evaluator extends Object {
       return null;
     }
     if (Cons.isNotCons(value)) {
-      throw new EvalError(cannotApply('unquote-splicing', value));
+      throw new EvalError(cannotApply(UNQUOTE_SPLICING, value));
     }
     let current: LispValue = value;
     while (Cons.isCons(current)) {
@@ -1943,7 +1945,7 @@ export class Evaluator extends Object {
       current = current.cdr;
     }
     if (Cons.isNotNil(current)) {
-      throw new EvalError(cannotApply('unquote-splicing', value));
+      throw new EvalError(cannotApply(UNQUOTE_SPLICING, value));
     }
 
     return null;
@@ -2147,7 +2149,7 @@ export class Evaluator extends Object {
         ['trace', 'trace'],
         ['unless', 'unless'],
         ['unquote', 'unquote'],
-        ['unquote-splicing', 'unquoteSplicing'],
+        [UNQUOTE_SPLICING, 'unquoteSplicing'],
         ['when', 'when'],
       ];
       return new Map(entries.map(([key, value]) => [InterpretedSymbol.of(key), value]));
