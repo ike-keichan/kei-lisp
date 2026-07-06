@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Restored the dev-dependency security updates that regressed in the
+  v3.0.0 release.** `pnpm-lock.yaml` on `main` resolved `vite` 7.3.1 and
+  `shell-quote` 1.8.3 even though the v3.0.0 notes (and the
+  `vite: >=7.3.5` override) recorded the patched versions — the
+  resolutions were lost while reconciling the release branch with the
+  Dependabot lockfile updates, reintroducing 6 advisories (1 critical,
+  3 high, 2 moderate; all development-only, no runtime dependencies are
+  affected). The lockfile is regenerated from a clean resolution
+  (`vite` 7.3.6, `shell-quote` 1.9.0, `vitest` 4.1.10) and a
+  `shell-quote: >=1.9.0` override now keeps the fix pinned;
+  `pnpm audit` reports no known vulnerabilities.
+
 ### Fixed
 
 - **Plugin symbols now resolve inside user-defined functions and
