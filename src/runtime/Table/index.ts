@@ -71,8 +71,8 @@ export class Table extends Map<unknown, LispValue> {
 
   /**
    * Returns whether this instance equals the given object.
-   * @param anObject the object to compare against
-   * @return true when the underlying Map.equals would return true
+   * @param _anObject the object to compare against (unused; this always throws)
+   * @return never returns; always throws a TypeError
    */
   equals(_anObject: unknown): boolean {
     // Kept for interface uniformity with Cons.equals / InterpretedSymbol.equals.
