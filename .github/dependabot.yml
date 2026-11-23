@@ -6,6 +6,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # TypeScript 7 は、typescript-eslint が対応するまで見送る（peer は typescript <6.1.0）
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
     groups:
       dev-dependencies:
         dependency-type: development
