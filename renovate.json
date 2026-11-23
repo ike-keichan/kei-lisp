@@ -1,0 +1,7 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate は .node-version の Node.js バージョン更新のみ担当する。npm パッケージと GitHub Actions の更新は Dependabot (.github/dependabot.yml) が担当。",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["nodenv"],
+  "labels": ["dependencies"]
+}
