@@ -73,16 +73,14 @@ describe('Parser', () => {
       expect(quoted.car).toBe(InterpretedSymbol.of('quote'));
     });
 
-    it('interprets (quote +) as the symbol +', () => {
-      const result = Parser.parse("('+)");
+    it.each([
+      ['+', 'interprets (quote +) as the symbol +'],
+      ['-', 'interprets (quote -) as the symbol -'],
+      ['1+2', 'tokenizes 1+2 as a single symbol (digit followed by + then symbol char)'],
+    ])('quotes %s: %s', (name) => {
+      const result = Parser.parse(`('${name})`);
       const quoted = (result as Cons).car as Cons;
-      expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of('+'));
-    });
-
-    it('interprets (quote -) as the symbol -', () => {
-      const result = Parser.parse("('-)");
-      const quoted = (result as Cons).car as Cons;
-      expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of('-'));
+      expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of(name));
     });
 
     it('interprets a + surrounded by whitespace as a symbol', () => {
@@ -122,12 +120,6 @@ describe('Parser', () => {
       expect(call.nth(2)).toBe(5n);
     });
 
-    it('tokenizes 1+2 as a single symbol (digit followed by + then symbol char)', () => {
-      const result = Parser.parse("('1+2)");
-      const quoted = (result as Cons).car as Cons;
-      expect((quoted.cdr as Cons).car).toBe(InterpretedSymbol.of('1+2'));
-    });
-
     it('still parses 1e+10 as a float (exponent sign in state 4)', () => {
       const result = Parser.parse('(1e+10)');
       expect((result as Cons).car).toBe(1e10);
@@ -135,24 +127,14 @@ describe('Parser', () => {
   });
 
   describe('quasiquote syntax', () => {
-    it('parses `x as (quasiquote x)', () => {
-      const result = Parser.parse('(`x)');
+    it.each([
+      ['`x', 'quasiquote'],
+      [',x', 'unquote'],
+      [',@x', 'unquote-splicing'],
+    ])('parses %s as (%s x)', (source, operator) => {
+      const result = Parser.parse(`(${source})`);
       const form = (result as Cons).car as Cons;
-      expect(form.car).toBe(InterpretedSymbol.of('quasiquote'));
-      expect((form.cdr as Cons).car).toBe(InterpretedSymbol.of('x'));
-    });
-
-    it('parses ,x as (unquote x)', () => {
-      const result = Parser.parse('(,x)');
-      const form = (result as Cons).car as Cons;
-      expect(form.car).toBe(InterpretedSymbol.of('unquote'));
-      expect((form.cdr as Cons).car).toBe(InterpretedSymbol.of('x'));
-    });
-
-    it('parses ,@x as (unquote-splicing x)', () => {
-      const result = Parser.parse('(,@x)');
-      const form = (result as Cons).car as Cons;
-      expect(form.car).toBe(InterpretedSymbol.of('unquote-splicing'));
+      expect(form.car).toBe(InterpretedSymbol.of(operator));
       expect((form.cdr as Cons).car).toBe(InterpretedSymbol.of('x'));
     });
 
