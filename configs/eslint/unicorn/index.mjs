@@ -23,9 +23,6 @@ export const unicornConfigs = [
       // NOTE: Parser.concat()を誤検知するため無効化
       // Array.concat() / Array.from() のスプレッド構文への統一を強制
       'unicorn/prefer-spread': OFF,
-      // NOTE: Parser.concat()を誤検知するため無効化
-      // 配列メソッドの戻り値の無視を禁止
-      'unicorn/no-unused-array-method-return': OFF,
       // NOTE: Parserの状態遷移表構築と相性が悪いため無効化
       // new Map()/Set() 等の直後のミューテーションを禁止
       'unicorn/no-immediate-mutation': OFF,
@@ -71,6 +68,32 @@ export const unicornConfigs = [
           ],
         },
       ],
+      // --- v80 で追加・拡張された規則 ---
+      // NOTE: JSDoc / TSDoc は行頭に `*` を付ける標準の書き方で統一しているため無効化
+      // ドキュメントコメントの行頭の `*` を取り除かせる
+      'unicorn/no-asterisk-prefix-in-documentation-comments': OFF,
+      // NOTE: `/** ... */` の1行の JSDoc を書けなくなるため無効化
+      // 1行のブロックコメントを複数行の形に強制
+      'unicorn/single-line-block-comment-style': OFF,
+      // NOTE: Parser.concat()を誤検知するため無効化
+      // NOTE: v80 で no-unused-array-method-return から置き換えられたため新ルール名で指定
+      // 組み込みメソッドの戻り値の無視を禁止
+      'unicorn/no-unused-builtin-method-return': OFF,
+      // NOTE: 以下は制御構造の書き方の好みに関する規則。評価器 (Applier / Evaluator) は
+      // 「条件を確かめて早期 return し、最後に本来の処理を書く」形で統一しており、
+      // 規則に合わせると広い範囲の書き換えになるうえ、読みやすさも上がらないため無効化
+      // if 文を三項演算子に置き換えさせる
+      'unicorn/prefer-ternary': OFF,
+      // 三項演算子を、式の中の変わる部分だけに寄せさせる
+      'unicorn/prefer-minimal-ternary': OFF,
+      // 連続するガード節を `||` で1つにまとめさせる
+      'unicorn/prefer-combined-guards': OFF,
+      // 単純な条件を先に書かせる
+      'unicorn/prefer-simple-condition-first': OFF,
+      // 関数の残りを包む if を、早期 return に置き換えさせる
+      'unicorn/prefer-early-return': OFF,
+      // ループの残りを包む if を、早期 continue に置き換えさせる
+      'unicorn/prefer-continue': OFF,
     },
   },
 ];
