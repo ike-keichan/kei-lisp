@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`&optional` and `&rest` now work in lambda lists.** `defun`, `lambda`,
+  and `defmacro` bound `&optional` / `&rest` as ordinary parameter names, so
+  `(defun f (x &optional (y 2)) (+ x y))` failed with "sizes do not match."
+  on `(f 1)` and `(defun g (&rest xs) xs)` returned `2` for `(g 1 2 3)`.
+  They now follow Common Lisp: omitted optional parameters take their
+  default (or `nil`), with an optional supplied-p variable, and `&rest`
+  collects the remaining arguments. Unsupported lambda-list keywords
+  (`&key`, `&aux`, `&body`, ...) and malformed `&optional` / `&rest`
+  sections signal an error at definition time. (#88)
+
 ## [3.0.1] - 2026-07-06
 
 ### Security
