@@ -8,9 +8,11 @@ import { InterpretedSymbol } from '../../value/InterpretedSymbol/index.js';
 import { Numeric } from '../../value/Numeric/index.js';
 import {
   cannotApply,
+  malformedLambdaList,
   noProcedure,
   SIZE_DO_NOT_MATCH,
   SIZES_DO_NOT_MATCH,
+  unsupportedLambdaListKeyword,
 } from '../../constants/index.js';
 import type { StreamManager } from '../StreamManager/index.js';
 import { Table } from '../Table/index.js';
@@ -19,6 +21,40 @@ import { Vector } from '../../value/Vector/index.js';
 import type { KeiLispPlugin } from '../../plugin/types.js';
 import type { NumericValue } from '../../value/Numeric/index.js';
 import type { LispValue } from '../../types/index.js';
+
+/**
+ * An `&optional` parameter: its variable, the default form evaluated when the
+ * argument is omitted, and the optional supplied-p variable.
+ */
+type OptionalParameter = {
+  name: InterpretedSymbol;
+  init: LispValue;
+  suppliedP: InterpretedSymbol | null;
+};
+
+/**
+ * A lambda list split into its required, `&optional`, and `&rest` sections.
+ */
+type LambdaList = {
+  required: InterpretedSymbol[];
+  optional: OptionalParameter[];
+  rest: InterpretedSymbol | null;
+};
+
+/**
+ * Common Lisp lambda-list keywords. `&optional` and `&rest` are implemented;
+ * the others are rejected so they are never silently bound as variables.
+ */
+const LAMBDA_LIST_KEYWORDS: ReadonlySet<string> = new Set([
+  '&optional',
+  '&rest',
+  '&key',
+  '&aux',
+  '&body',
+  '&whole',
+  '&environment',
+  '&allow-other-keys',
+]);
 
 const SELECT_PRINT_FUNCTION_NOT_DEFINED = 'selectPrintFunction is not defined';
 
@@ -68,6 +104,124 @@ export class Applier extends Object {
   static incrementGenerateNumber(): null {
     Applier.#generateNumber++;
     return null;
+  }
+
+  /**
+   * Returns whether the given parameter list contains a lambda-list keyword
+   * (`&optional`, `&rest`, `&key`, ...).
+   * @param parameter the parameter list
+   * @return true if a lambda-list keyword appears at the top level of the list
+   */
+  static hasLambdaListKeyword(parameter: LispValue): boolean {
+    let current = parameter;
+    while (Cons.isCons(current)) {
+      if (Cons.isSymbol(current.car) && LAMBDA_LIST_KEYWORDS.has(current.car.name)) {
+        return true;
+      }
+      current = current.cdr;
+    }
+
+    return false;
+  }
+
+  /**
+   * Parses a lambda list of the form
+   * `(req... [&optional {var | (var [init [supplied-p]])}...] [&rest var])`.
+   * A dotted tail `(a &optional b . c)` is accepted as an alternative to `&rest`.
+   * @param parameter the parameter list
+   * @return the parsed lambda list
+   * @throws EvalError when the list uses an unsupported keyword (e.g. `&key`) or is malformed
+   */
+  static parseLambdaList(parameter: LispValue): LambdaList {
+    const lambdaList: LambdaList = { required: [], optional: [], rest: null };
+    const malformed = (): EvalError => new EvalError(malformedLambdaList(parameter));
+    const toVariable = (anObject: LispValue): InterpretedSymbol => {
+      if (
+        Cons.isNotSymbol(anObject) ||
+        Cons.isNil(anObject) ||
+        LAMBDA_LIST_KEYWORDS.has((anObject as InterpretedSymbol).name)
+      ) {
+        throw malformed();
+      }
+      return anObject as InterpretedSymbol;
+    };
+
+    let section: 'required' | 'optional' | 'rest' | 'done' = 'required';
+    let current = parameter;
+    while (Cons.isCons(current)) {
+      const each = current.car;
+      current = current.cdr;
+      if (Cons.isSymbol(each) && LAMBDA_LIST_KEYWORDS.has(each.name)) {
+        if (each.name === '&optional' && section === 'required') {
+          section = 'optional';
+        } else if (each.name === '&rest' && (section === 'required' || section === 'optional')) {
+          section = 'rest';
+        } else if (each.name === '&optional' || each.name === '&rest') {
+          throw malformed();
+        } else {
+          throw new EvalError(unsupportedLambdaListKeyword(each));
+        }
+        continue;
+      }
+
+      switch (section) {
+        case 'required': {
+          lambdaList.required.push(toVariable(each));
+          break;
+        }
+        case 'optional': {
+          lambdaList.optional.push(Applier.parseOptionalParameter(each, toVariable, malformed));
+          break;
+        }
+        case 'rest': {
+          lambdaList.rest = toVariable(each);
+          section = 'done';
+          break;
+        }
+        default: {
+          throw malformed();
+        }
+      }
+    }
+
+    if (Cons.isNotNil(current)) {
+      if (section === 'rest' || section === 'done') {
+        throw malformed();
+      }
+      lambdaList.rest = toVariable(current);
+    } else if (section === 'rest') {
+      throw malformed();
+    }
+
+    return lambdaList;
+  }
+
+  /**
+   * Parses one `&optional` parameter specifier: `var` or `(var [init [supplied-p]])`.
+   * @param spec the parameter specifier
+   * @param toVariable validates and returns a parameter variable
+   * @param malformed builds the error signaled for a malformed specifier
+   * @return the parsed optional parameter
+   */
+  static parseOptionalParameter(
+    spec: LispValue,
+    toVariable: (anObject: LispValue) => InterpretedSymbol,
+    malformed: () => EvalError,
+  ): OptionalParameter {
+    if (Cons.isNotCons(spec)) {
+      return { name: toVariable(spec), init: Cons.nil, suppliedP: null };
+    }
+    const aCons = spec as Cons;
+    const length = aCons.length();
+    if (length > 3 || Cons.isNotNil(aCons.last().cdr)) {
+      throw malformed();
+    }
+
+    return {
+      name: toVariable(aCons.car),
+      init: length >= 2 ? aCons.nth(2) : Cons.nil,
+      suppliedP: length === 3 ? toVariable(aCons.nth(3)) : null,
+    };
   }
 
   /**
@@ -337,6 +491,9 @@ export class Applier extends Object {
     if (Cons.isNil(parameter)) {
       return null;
     }
+    if (Applier.hasLambdaListKeyword(parameter)) {
+      return this.bindingLambdaList(Applier.parseLambdaList(parameter), args, environment);
+    }
     let aCons = parameter as Cons;
     let theCons = args as Cons;
 
@@ -366,6 +523,52 @@ export class Applier extends Object {
       // Following the original: the source code references the undefined variable `aList`,
       // so it throws ReferenceError (the intended Error message is never reached).
       throw new ReferenceError('aList is not defined');
+    }
+
+    return null;
+  }
+
+  /**
+   * Binds arguments to a lambda list containing `&optional` / `&rest`, as in
+   * Common Lisp. Omitted optional parameters take the value of their default
+   * form (evaluated in the environment holding the preceding parameters, or
+   * nil when there is none), and the `&rest` variable receives the list of
+   * remaining arguments. Missing required arguments, or extra arguments
+   * without `&rest`, signal an EvalError.
+   * @param lambdaList the parsed lambda list
+   * @param args the argument list to bind to the parameters
+   * @param environment the environment receiving the bindings
+   */
+  bindingLambdaList(lambdaList: LambdaList, args: LispValue, environment: Table): null {
+    let remaining = args;
+    for (const name of lambdaList.required) {
+      if (Cons.isNotCons(remaining)) {
+        throw new EvalError(SIZES_DO_NOT_MATCH);
+      }
+      environment.set(name, (remaining as Cons).car);
+      remaining = (remaining as Cons).cdr;
+    }
+
+    for (const { name, init, suppliedP } of lambdaList.optional) {
+      const supplied = Cons.isCons(remaining);
+      if (Cons.isCons(remaining)) {
+        environment.set(name, remaining.car);
+        remaining = remaining.cdr;
+      } else {
+        environment.set(
+          name,
+          Evaluator.eval(init, environment, this.streamManager, this.depth, this.plugins),
+        );
+      }
+      if (suppliedP !== null) {
+        environment.set(suppliedP, supplied ? InterpretedSymbol.of('t') : Cons.nil);
+      }
+    }
+
+    if (lambdaList.rest !== null) {
+      environment.set(lambdaList.rest, remaining);
+    } else if (Cons.isNotNil(remaining)) {
+      throw new EvalError(SIZES_DO_NOT_MATCH);
     }
 
     return null;
