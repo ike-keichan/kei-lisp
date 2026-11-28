@@ -20,6 +20,14 @@ export const noBinding = (symbol: LispValue): string =>
 export const noProcedure = (procedure: LispValue): string =>
   `I could find no procedure description for ${String(procedure)}`;
 
+/** Lambda-list keyword that the interpreter does not implement (e.g. `&key`). */
+export const unsupportedLambdaListKeyword = (keyword: LispValue): string =>
+  `lambda-list keyword "${String(keyword)}" is not supported`;
+
+/** Lambda list whose `&optional` / `&rest` section is not well formed. */
+export const malformedLambdaList = (lambdaList: LispValue): string =>
+  `malformed lambda list "${String(lambdaList)}"`;
+
 /** Multi-list arity mismatch. */
 export const SIZES_DO_NOT_MATCH = 'sizes do not match.';
 
