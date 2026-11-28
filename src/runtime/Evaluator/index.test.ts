@@ -160,6 +160,78 @@ describe('Evaluator', () => {
     });
   });
 
+  describe('lambda-list keywords', () => {
+    it('uses the default of an omitted &optional parameter', () => {
+      expect(evalStr('(defun f (x &optional (y 2)) (+ x y)) (f 1)')).toBe('3');
+    });
+
+    it('binds a supplied &optional argument', () => {
+      expect(evalStr('(defun f (x &optional (y 2)) (+ x y)) (f 1 5)')).toBe('6');
+    });
+
+    it('binds an omitted &optional parameter without a default to nil', () => {
+      expect(evalStr('(defun h (x &optional y) (list x y)) (h 1)')).toBe('(1 nil)');
+    });
+
+    it('evaluates a default form that refers to earlier parameters', () => {
+      expect(evalStr('(defun f (x &optional (y (* x 10))) (list x y)) (f 3)')).toBe('(3 30)');
+    });
+
+    it('binds the supplied-p variable of an &optional parameter', () => {
+      expect(evalStr('(defun f (&optional (y 2 y-p)) (list y y-p)) (list (f) (f 2))')).toBe(
+        '((2 nil) (2 t))',
+      );
+    });
+
+    it('collects the remaining arguments into the &rest variable', () => {
+      expect(evalStr('(defun g (&rest xs) xs) (g 1 2 3)')).toBe('(1 2 3)');
+    });
+
+    it('binds the &rest variable to nil when no arguments remain', () => {
+      expect(evalStr('(defun g (&rest xs) xs) (g)')).toBe('nil');
+    });
+
+    it('combines required, &optional, and &rest parameters', () => {
+      expect(evalStr('(defun f (a &optional (b 2) &rest c) (list a b c)) (f 1 5 6 7)')).toBe(
+        '(1 5 (6 7))',
+      );
+    });
+
+    it('supports &optional and &rest in lambda', () => {
+      expect(evalStr('((lambda (a &optional b &rest c) (list a b c)) 1)')).toBe('(1 nil nil)');
+    });
+
+    it('supports &optional and &rest in defmacro', () => {
+      expect(
+        evalStr(
+          '(progn (defmacro my-when (c &rest body) `(if ,c (progn ,@body) nil)) (my-when t 1 2 3))',
+        ),
+      ).toBe('3');
+    });
+
+    it('signals an error when a required argument is missing', () => {
+      expect(() => evalStr('(defun f (x &optional y) x) (f)')).toThrow('sizes do not match.');
+    });
+
+    it('signals an error on extra arguments without &rest', () => {
+      expect(() => evalStr('(defun f (x &optional y) x) (f 1 2 3)')).toThrow('sizes do not match.');
+    });
+
+    it('rejects an unsupported lambda-list keyword at definition time', () => {
+      expect(() => evalStr('(defun f (&key a) a)')).toThrow(
+        'lambda-list keyword "&key" is not supported',
+      );
+    });
+
+    it('rejects &rest without a variable at definition time', () => {
+      expect(() => evalStr('(defun f (&rest) nil)')).toThrow('malformed lambda list');
+    });
+
+    it('rejects more than one &rest variable at definition time', () => {
+      expect(() => evalStr('(lambda (&rest a b) nil)')).toThrow('malformed lambda list');
+    });
+  });
+
   describe('if', () => {
     it('evaluates the then branch when the condition is true', () => {
       expect(evalStr('(if (= 1 1) "yes" "no")')).toBe('yes');
