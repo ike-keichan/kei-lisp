@@ -1689,6 +1689,10 @@ export class Evaluator extends Object {
    * @return a lambda form with the captured environment appended
    */
   lambda(args: Cons): LispValue {
+    if (Applier.hasLambdaListKeyword(args.car)) {
+      // Validate `&optional` / `&rest` (and reject unsupported keywords) at definition time.
+      Applier.parseLambdaList(args.car);
+    }
     const aCons = Cons.cloneValue(args) as Cons;
     aCons.last().setCdr(new Cons(this.environment, Cons.nil));
 
