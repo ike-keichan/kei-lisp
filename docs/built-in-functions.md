@@ -394,6 +394,42 @@ tasu
 3
 ```
 
+The argument list L supports the `&optional` and `&rest` lambda-list
+keywords, as in Common Lisp (see [Lambda lists](#lambda-lists)).
+
+```
+>> (defun f (x &optional (y 2)) (+ x y))
+f
+>> (f 1)
+3
+>> (f 1 5)
+6
+>> (defun g (&rest xs) xs)
+g
+>> (g 1 2 3)
+(1 2 3)
+```
+
+#### Lambda lists
+
+The argument list of `defun`, `lambda`, and `defmacro` has the form
+`(var... [&optional {var | (var [init [supplied-p]])}...] [&rest var])`.
+
+- **Required parameters** come first; calling with too few arguments signals
+  `sizes do not match.`
+- **`&optional`** parameters may be omitted. An omitted parameter is bound to
+  the value of its `init` form (evaluated after the preceding parameters are
+  bound, so it may refer to them), or to `nil` when no `init` is given. The
+  optional `supplied-p` variable is bound to `t` when the argument was passed
+  and `nil` otherwise.
+- **`&rest`** binds a single variable to the list of the remaining arguments
+  (`nil` when none remain). A dotted list such as `(a . rest)` is equivalent.
+  When a lambda list uses `&optional` and has no `&rest`, extra arguments
+  signal `sizes do not match.`
+
+Other lambda-list keywords (`&key`, `&aux`, `&body`, ...) are not supported
+yet and signal an error when the function or macro is defined.
+
 ### defmacro
 
 **(defmacro N L X1 X2 ... Xn)**
@@ -402,7 +438,8 @@ X1, X2 ... and Xn as the body. Unlike `defun`, a macro receives its arguments
 **unevaluated**; the body is evaluated to produce a new form, which is then
 evaluated in the caller's environment. Combine with the backquote syntax
 (`` ` ``, `,`, `,@`) to build the expansion, and with [`gensym`](#gensym) to
-introduce fresh names that avoid variable capture.
+introduce fresh names that avoid variable capture. L may use `&optional` and
+`&rest` (see [Lambda lists](#lambda-lists)).
 
 ```
 >> (defmacro my-when (test . body) `(if ,test (progn ,@body) nil))
@@ -956,6 +993,13 @@ Function to generate the lambda expression with L as the argument, and X1, X2 ..
 (lambda (a b) (+ a b))
 >> ((lambda (a b) (+ a b)) 1 2)
 3
+```
+
+L may use `&optional` and `&rest` (see [Lambda lists](#lambda-lists)).
+
+```
+>> ((lambda (a &optional (b 10)) (+ a b)) 1)
+11
 ```
 
 ### last
